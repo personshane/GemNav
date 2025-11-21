@@ -1,24 +1,27 @@
 # GemNav Status
 
 ## Current State
-- **Active MP**: MP-003 COMPLETE ✅
+- **Active MP**: MP-004 COMPLETE ✅
 - **Last Update**: 2025-11-21
 - **GitHub**: https://github.com/personshane/GemNav
-- **Next**: Ready to begin MP-004
+- **Next**: Ready to begin MP-005
 
 ## Quick Resume
-MP-003 complete: Android Intent System documented
-Files: android/intents/ (3 files expanded with full specs)
-Intent URIs, Gemini Nano flow, error handling all defined
+MP-004 complete: Plus Tier Architecture documented
+Files: 4 comprehensive spec files created
+- google/maps_tier2_integration.md (695 lines)
+- android/architecture/gemini_integration.md (793 lines)
+- android/ui/plus_mode_ui.md (662 lines)
+- android/architecture/app_flow_diagram.md (787 lines)
 
 ## Next Micro-Project
-MP-004: Plus Tier Architecture
-- Google Maps SDK integration design
-- Gemini Cloud API architecture
-- Multi-waypoint routing logic
-- In-app navigation flow
+MP-005: Pro Tier Architecture
+- HERE SDK integration design
+- Truck routing logic
+- Pro/Car mode toggle system
+- Commercial navigation features
 
 ## Session Context
-See HANDOFF.md for full MP-003 summary
-See android/intents/ for complete intent documentation
+See HANDOFF.md for full MP-004 summary
+See android/architecture/ for Plus tier implementation specs
 See docs/microproject_index.md for roadmap
