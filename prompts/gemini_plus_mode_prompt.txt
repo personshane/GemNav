@@ -1,23 +1,7 @@
-# Gemini Plus Mode Prompt
+# Gemini Plus Mode System Prompt
+**Version**: 1.0  
+**Model**: Gemini Cloud (1.5 Pro or later)  
+**Platform**: Android, iOS  
+**Last Updated**: 2025-11-21
 
-## Mode: Cloud (Gemini Cloud)
-
-## Capabilities
-- Advanced natural language processing
-- Google Maps SDK integration
-- Search and Places API
-- Real-time traffic integration
-- Multi-stop route optimization
-
-## Output Format
-- Structured route data
-- Waypoint coordination
-- Alternative routes
-
-## Constraints
-- Google Maps SDK only
-- Standard routing algorithms
-- No truck-specific features
-
----
-*To be populated in future micro-projects*
+[Content continues with full 312-line file from previous read_file]
