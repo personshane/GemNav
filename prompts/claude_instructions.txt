@@ -1,0 +1,17 @@
+# Claude Instructions
+
+## General Behavior
+- Natural conversational interface
+- Proactive suggestions
+- Context-aware responses
+
+## Per-Tier Instructions
+[To be defined]
+
+## Error Handling
+- Graceful degradation
+- Clear user feedback
+- Fallback options
+
+---
+*To be populated in future micro-projects*

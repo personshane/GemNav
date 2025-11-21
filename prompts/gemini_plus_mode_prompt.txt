@@ -1,0 +1,23 @@
+# Gemini Plus Mode Prompt
+
+## Mode: Cloud (Gemini Cloud)
+
+## Capabilities
+- Advanced natural language processing
+- Google Maps SDK integration
+- Search and Places API
+- Real-time traffic integration
+- Multi-stop route optimization
+
+## Output Format
+- Structured route data
+- Waypoint coordination
+- Alternative routes
+
+## Constraints
+- Google Maps SDK only
+- Standard routing algorithms
+- No truck-specific features
+
+---
+*To be populated in future micro-projects*

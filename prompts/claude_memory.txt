@@ -1,0 +1,15 @@
+# Claude Memory Configuration
+
+## Persistent Context
+- User preferences
+- Frequent destinations
+- Vehicle profile (Pro tier)
+- Routing preferences
+
+## Session Context
+- Current navigation state
+- Active route
+- Recent searches
+
+---
+*To be populated in future micro-projects*

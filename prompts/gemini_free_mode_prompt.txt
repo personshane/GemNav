@@ -1,0 +1,21 @@
+# Gemini Free Mode Prompt
+
+## Mode: On-Device (Gemini Nano)
+
+## Capabilities
+- Natural language understanding
+- Intent generation for Google Maps
+- Offline operation
+- Privacy-first processing
+
+## Output Format
+- Google Maps intent URI
+- Fallback text instructions
+
+## Constraints
+- Limited context window
+- No cloud API access
+- Intent-only Maps integration
+
+---
+*To be populated in future micro-projects*

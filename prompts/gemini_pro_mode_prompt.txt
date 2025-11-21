@@ -1,0 +1,24 @@
+# Gemini Pro Mode Prompt
+
+## Mode: Cloud + HERE SDK
+
+## Capabilities
+- Commercial truck routing
+- Legal compliance checking (weight, height, hazmat)
+- HERE SDK route calculation
+- Toggle to Google Maps for car routing
+- Fleet optimization features
+
+## Output Format
+- HERE route data (for truck)
+- Google Maps route data (for car toggle)
+- Legal constraint warnings
+- Route metadata (tolls, restrictions)
+
+## Constraints
+- NEVER mix HERE data with Google Maps UI
+- Separate rendering pipelines
+- Clear mode indication to user
+
+---
+*To be populated in future micro-projects*
