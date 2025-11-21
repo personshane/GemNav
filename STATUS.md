@@ -1,19 +1,21 @@
 ## Quick Resume
-MP-006 complete: iOS Platform Specifications
-Files: 11 comprehensive iOS spec files created
-- ios/url_schemes/ (3 files: maps, flow, toggle)
-- ios/ui/ (3 files: free, plus, pro)
-- ios/architecture/ (4 files: flow, routing, billing, gemini)
+MPs 001-007 complete and committed to GitHub
+Recovery protocol established for safe git operations
+
+MP-006 complete: iOS Platform Specifications (11 files)
+MP-007 complete: Prompt Engineering & AI Behaviors (7 files, 2,705 lines)
 
 ## Next Micro-Project
-MP-007: Prompt Engineering & AI Behaviors
-- Refine Gemini prompts for all tiers
-- Claude core prompt optimization
-- AI sales agent prompts
-- Conversation flow design
-- Memory and context management
+MP-008: HERE SDK Integration Specifications
+- HERE SDK setup and initialization
+- Truck routing API patterns
+- Compliance checking algorithms
+- Restriction database integration
+- Cost calculation logic
+- Fleet management features
 
 ## Session Context
-See HANDOFF.md for full MP-006 summary
-iOS platform fully specified: SwiftUI, StoreKit 2, HERE/Google SDKs
+All specs (MP-001 through MP-007) committed to GitHub
+Recovery protocol saved: RECOVERY_PROTOCOL.md
+Ready for HERE SDK deep dive
 See docs/microproject_index.md for roadmap
