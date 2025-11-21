@@ -1,113 +1,151 @@
 # GemNav Handoff Summary
 
-## MP-002: Define Product Requirements Document ✅ COMPLETE
+## MP-003: Android Intent System (Free Tier) ✅ COMPLETE
 
 ### Final Status: COMPLETE
 
 ### What Was Completed:
 
-**Created Complete PRD**: docs/product_requirements.md (500+ lines)
+**Documented Complete Android Intent Architecture for Free Tier**
 
-**Sections Included**:
-1. Executive Summary
-2. Product Vision
-3. Tier Structure & Features (Free/Plus/Pro)
-4. Monetization & Billing Requirements
-5. Technical Requirements (Android/iOS)
-6. Legal & Compliance Requirements
-7. Permissions & Privacy
-8. Phase 1 vs Phase 2 Breakdown
-9. Success Metrics & KPIs
-10. User Experience Requirements
-11. Risk Assessment & Mitigation
-12. Dependencies & Constraints
-13. Appendix
+**Files Created/Expanded**:
 
-**Key Specifications Defined**:
+1. **android/intents/maps_intents.md** (89 lines)
+   - Intent URI formats table (6 types)
+   - Navigation modes (driving, walking, bicycling, transit)
+   - Android Intent flags
+   - Permission requirements
+   - Device compatibility
+   - Error handling patterns
+   - Testing strategy
 
-**Tier Structure**:
-- Free: Gemini Nano + Maps intents, no ads, pure free
-- Plus: $4.99/mo or $29.99/yr, Gemini Cloud + Maps SDK, multi-waypoint
-- Pro: $14.99/mo or $99/yr + 7-day trial, HERE SDK truck routing
+2. **android/intents/gemini_to_maps_flow.md** (170 lines)
+   - System architecture diagram
+   - Detailed 6-step flow
+   - Gemini Nano integration pattern
+   - Prompt template for intent parsing
+   - Intent parsing examples table
+   - Intent builder logic (Kotlin)
+   - Data flow & privacy specifications
+   - Error handling (4 scenarios)
+   - Fallback strategies table
+   - Performance requirements
+   - 8 testing scenarios
 
-**Monetization Details**:
-- Google Play Billing integration (Android)
-- Apple IAP StoreKit 2 (iOS Phase 2)
-- One trial per user/account/device enforcement
-- Real-time entitlement management
-- Promo codes and intro pricing support
+3. **android/intents/pro_mode_engine_toggle.md** (60 lines)
+   - Phase 2 placeholder structure
+   - Legal compliance notes
+   - Deferred to MP-005
 
-**Technical Stack**:
-- Android: Kotlin, Jetpack Compose, MVVM
-- iOS: Swift, SwiftUI (Phase 2)
-- Gemini Nano (on-device) + Cloud API
-- Google Maps SDK + HERE SDK (Pro)
-- Dual rendering pipelines (legal separation)
+### Key Decisions Made:
 
-**Legal Constraints**:
-- Google Maps ToS compliance
-- HERE SDK commercial license required
-- NEVER mix HERE data with Google Maps UI
-- GDPR compliance for cloud processing
-- App store requirements (12+ rating)
+**Intent URIs**:
+- Primary: `google.navigation:q=` for navigation
+- Search: `geo:0,0?q=` for search queries
+- Coordinates: `geo:lat,lon` for direct coordinates
+- Fallback: Generic search with raw user input
 
-**Launch Strategy**:
-- Phase 1: Android MVP, Free + Plus tiers
-- Phase 2: iOS support, Pro tier with HERE SDK
-- Regions: US and Canada (Mexico optional)
+**Gemini Nano Integration**:
+- JSON output format for structured parsing
+- Action types: navigate, search, directions, place_details
+- Mode parameter: driving (default), walking, bicycling, transit
 
-### Files Modified/Created:
+**Error Handling Strategy**:
+- Maps app not installed → Redirect to Play Store
+- Ambiguous input → Prompt for clarification
+- Invalid location → Show error, retry voice input
+- Permission denied → Fallback to generic search
+- Offline mode → Use on-device speech recognition
+
+**Privacy & Data Flow**:
+- All processing on-device (Gemini Nano)
+- No cloud API calls
+- No PII leaves device
+- Recent destinations stored locally only
+
+**Performance Targets**:
+- Voice to intent: <1s
+- Text to intent: <500ms
+- Intent launch: Instant
+
+### Implementation Ready:
+
+**Code Examples Provided**:
+- Intent construction logic
+- Error handling patterns
+- Fallback strategies
+- URI building functions
+
+**Tables Created**:
+- Intent URI formats (6 types)
+- Navigation modes (4 modes)
+- Permission requirements (2 permissions)
+- Error handling (4 scenarios)
+- Fallback strategies (4 cases)
+- Testing scenarios (8 tests)
+
+### Files Modified:
 
 ```
 C:\Users\perso\GemNav\
+├── android/intents/
+│   ├── maps_intents.md (EXPANDED)
+│   ├── gemini_to_maps_flow.md (EXPANDED)
+│   └── pro_mode_engine_toggle.md (UPDATED - Phase 2 placeholder)
 ├── docs/
-│   ├── product_requirements.md (NEW - 500+ lines)
 │   └── microproject_index.md (UPDATED)
 ├── STATUS.md (UPDATED)
 └── HANDOFF.md (UPDATED)
 ```
 
 ### Git Commits:
-- Commit: 8973eba "MP-002-Complete-PRD"
+- Commit: a92920f "MP-003-Android-Intent-System"
 - Pushed to: https://github.com/personshane/GemNav
 
 ---
 
-## Next Micro-Project: MP-003
+## Next Micro-Project: MP-004
 
-**Android Intent System (Free Tier)**
+**Plus Tier Architecture**
 
-**Objective**: Implement Free tier navigation flow with Gemini Nano and Google Maps intents
+**Objective**: Design and document Plus tier implementation with Google Maps SDK and Gemini Cloud
 
 **Tasks**:
-1. Design intent URI generation logic
-2. Define Gemini Nano integration pattern
-3. Create intent flow architecture document
-4. Specify error handling and fallbacks
-5. Document Android-specific implementation
+1. Google Maps SDK integration architecture
+2. Gemini Cloud API design (vs Nano differences)
+3. Multi-waypoint routing logic (up to 10 stops)
+4. Route optimization algorithm
+5. In-app navigation flow
+6. UI component specifications
+7. Real-time traffic integration
+8. Alternative routes display
 
-**Files to Create**:
-- android/intents/maps_intents.md (expand with implementation details)
-- android/intents/gemini_to_maps_flow.md (expand with flow diagrams)
-- android/architecture/gemini_integration.md (expand with technical specs)
+**Files to Create/Expand**:
+- android/architecture/gemini_integration.md (Plus tier Cloud API)
+- android/ui/plus_mode_ui.md (detailed UI specs)
+- google/maps_tier2_integration.md (SDK integration)
+- android/architecture/app_flow_diagram.md (Plus tier flows)
 
 **Approach**:
-- Reference PRD for requirements
-- Focus on Android MVP (Phase 1)
-- Define clear interfaces and contracts
-- Prepare for actual code implementation
+- Reference PRD Plus tier requirements
+- Build on Free tier intent knowledge
+- Design in-app vs external Maps differences
+- Specify SDK initialization and configuration
+- Define route calculation and rendering
 
 ### Dependencies:
 - MP-001 ✅ Complete
 - MP-002 ✅ Complete
+- MP-003 ✅ Complete
 
 ### Resume Instructions:
-Claude can immediately begin MP-003. Complete PRD provides all necessary context.
+Claude can immediately begin MP-004. Intent system knowledge provides foundation for understanding SDK integration differences.
 
 ---
 
-**Micro-Project ID:** MP-002  
+**Micro-Project ID:** MP-003  
 **Status:** ✅ COMPLETE  
 **Completion Date:** 2025-11-21  
 **Local Path:** C:\Users\perso\GemNav  
-**GitHub:** https://github.com/personshane/GemNav
+**GitHub:** https://github.com/personshane/GemNav  
+**Commit:** a92920f
