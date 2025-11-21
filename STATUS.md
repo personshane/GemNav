@@ -1,23 +1,23 @@
 # GemNav Status
 
 ## Current State
-- **Active MP**: MP-001 COMPLETE ✅
+- **Active MP**: MP-002 COMPLETE ✅
 - **Last Update**: 2025-11-21
 - **GitHub**: https://github.com/personshane/GemNav
-- **Next**: Ready to begin MP-002
+- **Next**: Ready to begin MP-003
 
 ## Quick Resume
-MP-001 complete: 36 files pushed to GitHub
-Local: C:\Users\perso\GemNav
-Remote: personshane/GemNav (main branch)
+MP-002 complete: Product Requirements Document created
+File: docs/product_requirements.md (500+ lines)
+Complete tier definitions, monetization, technical specs, legal constraints
 
 ## Next Micro-Project
-MP-002: Define Product Requirements
-- Expand tier documentation
-- Detail legal constraints
-- Specify AI behaviors
-- Platform implementation notes
+MP-003: Android Intent System (Free Tier)
+- Implement Maps intent generation
+- Gemini Nano integration
+- Intent flow architecture
 
 ## Session Context
-See HANDOFF.md for full MP-001 summary
+See HANDOFF.md for full MP-002 summary
+See docs/product_requirements.md for complete requirements
 See docs/microproject_index.md for roadmap
