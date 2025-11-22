@@ -1,7 +1,7 @@
 # MP-007 Prompt Creation - Progress Tracking
 
 **Date**: 2025-11-21  
-**Current Status**: 2 of 5 prompts complete
+**Current Status**: 4 of 5 prompts complete
 
 ---
 
@@ -13,57 +13,49 @@
 - Privacy-first, intent generation, session memory
 - Committed to GitHub: YES
 
-✅ **2. prompts/gemini_plus_mode_prompt.txt** (502 lines)
-- Commit: 3ecd0f8
+✅ **2. prompts/gemini_plus_mode_prompt.txt** (453 lines)
+- Commit: 9f6835e
 - Cloud Gemini with full Google Maps SDK integration
 - Multi-stop routing, traffic, place search, proactive features
+- Committed to GitHub: YES
+
+✅ **3. prompts/gemini_pro_mode_prompt.txt** (555 lines)
+- Commit: 5a5ca74
+- HERE SDK commercial truck routing + Google Maps car mode toggle
+- Vehicle profiles, hazmat, multi-day trips, fuel optimization
+- Committed to GitHub: YES
+
+✅ **4. prompts/ai_sales_agent_prompt.txt** (489 lines)
+- Commit: a843276
+- Tier upgrade logic, triggers, templates, conversion flow, frequency caps
 - Committed to GitHub: YES
 
 ---
 
 ## Next Prompt to Create
 
-⬜ **3. prompts/gemini_pro_mode_prompt.txt** (Target: 383 lines)
+⬜ **5. prompts/claude_core_prompt.txt** (Target: 284 lines)
 
-**Objective**: HERE SDK commercial truck routing + Google Maps toggle
+**Objective**: Alternative AI using Claude instead of Gemini
 
 **Key Sections to Include:**
-- Identity & mission (Pro tier, commercial focus)
-- HERE SDK truck routing capabilities
-- Vehicle profile system (weight, height, hazmat, axles)
-- Google Maps toggle for car mode
-- Multi-day trip planning
-- Cost optimization (fuel, tolls, time)
-- Compliance features (HOS, weight stations, restrictions)
-- Legal constraints (HERE SDK terms)
-- Route preferences (truck-friendly stops)
-- Offline functionality
-- Upsell clarity (when to use truck vs car mode)
+- Identity & mission (tier-aware Claude assistant)
+- Tier detection and capabilities
+- Free tier behavior (minimal, helpful)
+- Plus tier behavior (conversational, advanced)
+- Pro tier behavior (commercial focus)
+- Google/HERE separation rules
+- Legal constraints (Google Maps terms, HERE terms)
+- Upsell triggers (same as Gemini versions)
+- Response style (Claude-like but tier-appropriate)
 
 **After Creating This File:**
 1. git fetch origin main
 2. git pull origin main
-3. git add prompts/gemini_pro_mode_prompt.txt
-4. git commit -m "MP-007: Gemini Pro Mode Prompt - Complete (383 lines)"
+3. git add prompts/claude_core_prompt.txt
+4. git commit -m "MP-007: Claude Core Prompt - Complete (284 lines)"
 5. git push origin main
-6. Update this file for next prompt
-7. ASK USER if they want to continue
-
----
-
-## Remaining Prompts (After Pro)
-
-⬜ **4. prompts/ai_sales_agent_prompt.txt** (Target: 362 lines)
-- Tier upgrade logic
-- Trigger conditions
-- Message templates
-- Conversion flow
-- Frequency caps
-
-⬜ **5. prompts/claude_core_prompt.txt** (Target: 284 lines)
-- Alternative AI if Claude used instead of Gemini
-- Tier-aware behavior
-- Same limitations as Gemini versions
+6. Update this file to mark MP-007 COMPLETE
 
 ---
 
@@ -80,6 +72,6 @@ git pull origin main
 
 ## Current Session
 
-**Working on**: Prompt 3 of 5 (gemini_pro_mode_prompt.txt)
-**Status**: PROMPT 2 COMPLETE - AWAITING USER DECISION
-**Next Action**: Create gemini_pro_mode_prompt.txt if user confirms continuation
+**Working on**: Prompt 5 of 5 (claude_core_prompt.txt)
+**Status**: PROMPT 4 COMPLETE - AWAITING USER DECISION
+**Next Action**: Create claude_core_prompt.txt if user confirms continuation
