@@ -18,8 +18,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.gemnav.android.voice.ui.VoiceButton
+import com.gemnav.android.voice.ui.VoiceFeedbackOverlay
+import com.gemnav.android.voice.ui.VoicePermissionDialog
+import com.gemnav.android.voice.ui.WakeWordIndicator
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLng
@@ -166,7 +171,15 @@ fun NavigationScreen(
     onExit: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val voiceState by viewModel.voiceState.collectAsState()
     val tier = uiState.tier
+    val context = LocalContext.current
+    
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        viewModel.initializeVoice(context)
+    }
     
     Scaffold(
         topBar = {
@@ -207,6 +220,23 @@ fun NavigationScreen(
                 }
             }
             
+            // Wake word indicator (Plus/Pro only)
+            if (tier in listOf("plus", "pro") && voiceState.wakeWordActive) {
+                WakeWordIndicator(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                )
+            }
+            
+            // Voice feedback overlay
+            VoiceFeedbackOverlay(
+                isVisible = voiceState.feedbackMessage != null,
+                message = voiceState.feedbackMessage ?: "",
+                type = voiceState.feedbackType,
+                onDismiss = { viewModel.clearVoiceFeedback() }
+            )
+            
             // Overlay navigation info
             Column(
                 modifier = Modifier
@@ -226,7 +256,19 @@ fun NavigationScreen(
                 NavigationControls(
                     onRecenter = { viewModel.recenterMap() },
                     onMute = { viewModel.toggleMute() },
-                    isMuted = uiState.isMuted
+                    isMuted = uiState.isMuted,
+                    voiceState = voiceState,
+                    onVoiceClick = {
+                        if (voiceState.permissionGranted) {
+                            if (voiceState.isListening) {
+                                viewModel.stopVoiceListening()
+                            } else {
+                                viewModel.startVoiceListening()
+                            }
+                        } else {
+                            showPermissionDialog = true
+                        }
+                    }
                 )
             }
             
@@ -237,6 +279,22 @@ fun NavigationScreen(
                 )
             }
         }
+    }
+    
+    // Voice permission dialog
+    if (showPermissionDialog) {
+        VoicePermissionDialog(
+            onGranted = {
+                viewModel.onVoicePermissionGranted()
+                showPermissionDialog = false
+            },
+            onDenied = {
+                showPermissionDialog = false
+            },
+            onDismiss = {
+                showPermissionDialog = false
+            }
+        )
     }
 }
 
@@ -432,7 +490,9 @@ fun NavigationInfoCard(
 fun NavigationControls(
     onRecenter: () -> Unit,
     onMute: () -> Unit,
-    isMuted: Boolean
+    isMuted: Boolean,
+    voiceState: VoiceState,
+    onVoiceClick: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -444,6 +504,12 @@ fun NavigationControls(
         ) {
             Icon(Icons.Default.MyLocation, "Recenter")
         }
+        
+        VoiceButton(
+            isListening = voiceState.isListening,
+            isProcessing = voiceState.isProcessing,
+            onClick = onVoiceClick
+        )
         
         FloatingActionButton(
             onClick = onMute,

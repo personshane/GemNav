@@ -1,17 +1,25 @@
 package com.gemnav.android.navigation
 
+import android.content.Context
 import android.location.Location
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gemnav.android.voice.VoiceCommandManager
+import com.gemnav.android.voice.VoiceCommand
+import com.gemnav.android.voice.ui.FeedbackType
+import com.gemnav.android.permissions.MicrophonePermissionManager
 import com.google.android.gms.maps.model.LatLng
 import com.here.sdk.routing.Route as HereRoute
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -32,9 +40,25 @@ data class NavigationUiState(
     val error: String? = null
 )
 
-class NavigationViewModel : ViewModel() {
+data class VoiceState(
+    val isListening: Boolean = false,
+    val isProcessing: Boolean = false,
+    val wakeWordActive: Boolean = false,
+    val permissionGranted: Boolean = false,
+    val feedbackMessage: String? = null,
+    val feedbackType: FeedbackType = FeedbackType.INFO
+)
+
+@HiltViewModel
+class NavigationViewModel @Inject constructor(
+    private val voiceCommandManager: VoiceCommandManager,
+    private val permissionManager: MicrophonePermissionManager
+) : ViewModel() {
     private val _uiState = MutableStateFlow(NavigationUiState())
     val uiState: StateFlow<NavigationUiState> = _uiState.asStateFlow()
+    
+    private val _voiceState = MutableStateFlow(VoiceState())
+    val voiceState: StateFlow<VoiceState> = _voiceState.asStateFlow()
     
     private var routePoints: List<LatLng> = emptyList()
     private var instructions: List<NavigationInstruction> = emptyList()
@@ -324,6 +348,99 @@ class NavigationViewModel : ViewModel() {
     
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+    
+    // Voice integration methods
+    fun initializeVoice(context: Context) {
+        viewModelScope.launch {
+            voiceCommandManager.initialize(_uiState.value.tier, context)
+            observeVoiceCommands()
+            checkMicrophonePermission()
+        }
+    }
+    
+    private fun observeVoiceCommands() {
+        viewModelScope.launch {
+            voiceCommandManager.commandFlow.collect { command ->
+                handleVoiceCommand(command)
+            }
+        }
+    }
+    
+    private fun checkMicrophonePermission() {
+        _voiceState.update { it.copy(permissionGranted = permissionManager.hasPermission()) }
+    }
+    
+    fun startVoiceListening() {
+        viewModelScope.launch {
+            voiceCommandManager.startListening()
+            _voiceState.update { it.copy(isListening = true) }
+        }
+    }
+    
+    fun stopVoiceListening() {
+        voiceCommandManager.stopListening()
+        _voiceState.update { it.copy(isListening = false) }
+    }
+    
+    private fun handleVoiceCommand(command: VoiceCommand) {
+        _voiceState.update { it.copy(isProcessing = true) }
+        
+        try {
+            when (command) {
+                is VoiceCommand.NavigateTo -> {
+                    showVoiceFeedback("Searching for ${command.location}", FeedbackType.INFO)
+                    // Trigger new search/route - implementation depends on search integration
+                }
+                is VoiceCommand.Mute -> {
+                    toggleMute()
+                    showVoiceFeedback("Audio muted", FeedbackType.SUCCESS)
+                }
+                is VoiceCommand.Unmute -> {
+                    if (_uiState.value.isMuted) toggleMute()
+                    showVoiceFeedback("Audio unmuted", FeedbackType.SUCCESS)
+                }
+                is VoiceCommand.Recenter -> {
+                    recenterMap()
+                    showVoiceFeedback("Map recentered", FeedbackType.SUCCESS)
+                }
+                is VoiceCommand.AlternateRoute -> {
+                    showVoiceFeedback("Calculating alternate route", FeedbackType.INFO)
+                    // Trigger alternate route calculation
+                }
+                is VoiceCommand.CancelNavigation -> {
+                    showVoiceFeedback("Navigation cancelled", FeedbackType.WARNING)
+                    stopNavigation()
+                }
+                else -> {
+                    showVoiceFeedback("Command not supported", FeedbackType.ERROR)
+                }
+            }
+        } finally {
+            _voiceState.update { it.copy(isProcessing = false) }
+        }
+    }
+    
+    fun onVoicePermissionGranted() {
+        permissionManager.requestMicrophonePermission { granted ->
+            _voiceState.update { it.copy(permissionGranted = granted) }
+            if (granted) {
+                startVoiceListening()
+            }
+        }
+    }
+    
+    private fun showVoiceFeedback(message: String, type: FeedbackType) {
+        _voiceState.update {
+            it.copy(
+                feedbackMessage = message,
+                feedbackType = type
+            )
+        }
+    }
+    
+    fun clearVoiceFeedback() {
+        _voiceState.update { it.copy(feedbackMessage = null) }
     }
     
     fun cleanup() {

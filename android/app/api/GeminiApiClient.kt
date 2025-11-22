@@ -1,6 +1,7 @@
 package com.gemnav.app.api
 
 import android.content.Context
+import com.gemnav.app.core.SubscriptionTier
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.GenerateContentResponse
 import com.google.ai.client.generativeai.type.content
@@ -24,12 +25,12 @@ import kotlinx.coroutines.flow.Flow
 class GeminiApiClient(
     private val context: Context,
     private val apiKey: String? = null,
-    private val tier: UserTier
+    private val tier: SubscriptionTier
 ) {
     
     private val model: GenerativeModel by lazy {
         when (tier) {
-            UserTier.FREE -> {
+            SubscriptionTier.FREE -> {
                 // Gemini Nano on-device model
                 // Note: Actual implementation requires Gemini Nano SDK
                 // This is a placeholder structure
@@ -37,7 +38,7 @@ class GeminiApiClient(
                     "Gemini Nano on-device implementation pending SDK availability"
                 )
             }
-            UserTier.PLUS, UserTier.PRO -> {
+            SubscriptionTier.PLUS, SubscriptionTier.PRO -> {
                 // Gemini Cloud API
                 requireNotNull(apiKey) { "API key required for Plus/Pro tier" }
                 GenerativeModel(
@@ -183,15 +184,6 @@ For destination parsing, extract the key location and search terms.
 For route explanations, be brief but informative.
         """
     }
-}
-
-/**
- * User tier enum.
- */
-enum class UserTier {
-    FREE,
-    PLUS,
-    PRO
 }
 
 /**

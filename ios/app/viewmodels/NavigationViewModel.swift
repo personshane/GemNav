@@ -21,6 +21,19 @@ struct NavigationState {
     var error: String?
 }
 
+enum FeedbackType {
+    case info, success, warning, error
+}
+
+struct VoiceState {
+    var isListening: Bool = false
+    var isProcessing: Bool = false
+    var wakeWordActive: Bool = false
+    var permissionGranted: Bool = false
+    var feedbackMessage: String? = nil
+    var feedbackType: FeedbackType = .info
+}
+
 struct ETAInfo {
     let formattedTime: String
     let timestamp: TimeInterval
@@ -54,6 +67,10 @@ struct NavigationInstruction {
 @MainActor
 class NavigationViewModel: ObservableObject {
     @Published private(set) var state = NavigationState()
+    @Published var voiceState = VoiceState()
+    
+    private var voiceCommandManager: VoiceCommandManager?
+    private var cancellables = Set<AnyCancellable>()
     
     private var routePoints: [CLLocationCoordinate2D] = []
     private var instructions: [NavigationInstruction] = []
@@ -66,6 +83,16 @@ class NavigationViewModel: ObservableObject {
         formatter.dateFormat = "h:mm a"
         return formatter
     }()
+    
+    // Convenience properties for NavigationView
+    var tier: String { state.tier }
+    var destination: String? { state.destination }
+    var currentLocation: CLLocationCoordinate2D? { state.currentLocation }
+    var nextInstruction: String? { state.nextInstruction }
+    var distanceToNextTurn: String? { state.distanceToNextTurn }
+    var eta: String? { state.eta }
+    var remainingDistance: String? { state.remainingDistance }
+    var isMuted: Bool { state.voiceGuidanceMuted }
     
     // MARK: - Navigation Control
     
@@ -304,5 +331,104 @@ class NavigationViewModel: ObservableObject {
     
     func clearError() {
         state.error = nil
+    }
+    
+    // MARK: - Voice Integration
+    
+    func initializeVoice() {
+        voiceCommandManager = VoiceCommandManager(tier: state.tier)
+        voiceCommandManager?.initialize()
+        observeVoiceCommands()
+        checkMicrophonePermission()
+    }
+    
+    func toggleMute() {
+        state.voiceGuidanceMuted.toggle()
+    }
+    
+    private func observeVoiceCommands() {
+        voiceCommandManager?.commandPublisher
+            .sink { [weak self] command in
+                self?.handleVoiceCommand(command)
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func checkMicrophonePermission() {
+        voiceState.permissionGranted = MicrophonePermissionManager.shared.hasPermission()
+    }
+    
+    func startVoiceListening() {
+        voiceCommandManager?.startListening()
+        voiceState.isListening = true
+    }
+    
+    func stopVoiceListening() {
+        voiceCommandManager?.stopListening()
+        voiceState.isListening = false
+    }
+    
+    private func handleVoiceCommand(_ command: VoiceCommand) {
+        voiceState.isProcessing = true
+        
+        defer {
+            voiceState.isProcessing = false
+        }
+        
+        switch command {
+        case .navigateTo(let location):
+            showVoiceFeedback("Searching for \(location)", type: .info)
+            Task {
+                do {
+                    try await navigateTo(destination: location)
+                    showVoiceFeedback("Route calculated", type: .success)
+                } catch {
+                    showVoiceFeedback("Failed to calculate route", type: .error)
+                }
+            }
+            
+        case .mute:
+            setVoiceGuidanceMuted(true)
+            showVoiceFeedback("Audio muted", type: .success)
+            
+        case .unmute:
+            setVoiceGuidanceMuted(false)
+            showVoiceFeedback("Audio unmuted", type: .success)
+            
+        case .recenter:
+            recenterMap()
+            showVoiceFeedback("Map recentered", type: .success)
+            
+        case .alternateRoute:
+            showVoiceFeedback("Calculating alternate route", type: .info)
+            showAlternativeRoutes()
+            
+        case .cancelNavigation:
+            cancelNavigation()
+            showVoiceFeedback("Navigation cancelled", type: .warning)
+            
+        default:
+            showVoiceFeedback("Command not supported", type: .error)
+        }
+    }
+    
+    func onVoicePermissionGranted() {
+        MicrophonePermissionManager.shared.requestPermission { [weak self] granted in
+            DispatchQueue.main.async {
+                self?.voiceState.permissionGranted = granted
+                if granted {
+                    self?.startVoiceListening()
+                }
+            }
+        }
+    }
+    
+    private func showVoiceFeedback(_ message: String, type: FeedbackType) {
+        voiceState.feedbackMessage = message
+        voiceState.feedbackType = type
+    }
+    
+    func clearVoiceFeedback() {
+        voiceState.feedbackMessage = nil
     }
 }
