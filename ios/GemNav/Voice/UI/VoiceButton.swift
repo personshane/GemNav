@@ -1,71 +1,116 @@
 import SwiftUI
 
+/// Voice input button with animated states for iOS
+/// 
+/// States:
+/// - Idle: Gray microphone icon
+/// - Listening: Pulsing red animation
+/// - Processing: Spinner with mic icon
+/// - Error: Red background with shake animation
 struct VoiceButton: View {
-    let state: VoiceState
+    let state: VoiceButtonState
+    let enabled: Bool
     let action: () -> Void
-    var isEnabled: Bool = true
     
-    @State private var pulseScale: CGFloat = 1.0
+    @State private var scale: CGFloat = 1.0
+    @State private var rotation: Double = 0.0
+    
+    init(
+        state: VoiceButtonState,
+        enabled: Bool = true,
+        action: @escaping () -> Void
+    ) {
+        self.state = state
+        self.enabled = enabled
+        self.action = action
+    }
     
     var body: some View {
-        Button(action: {
-            if isEnabled {
-                action()
-            }
-        }) {
+        Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(buttonColor)
-                    .frame(width: 56, height: 56)
-                    .scaleEffect(state == .listening ? pulseScale : 1.0)
+                    .fill(backgroundColor)
+                    .frame(width: 64, height: 64)
+                    .opacity(enabled ? 1.0 : 0.5)
                 
                 if state == .processing {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .progressViewStyle(CircularProgressViewStyle(tint: iconColor))
+                        .scaleEffect(1.5)
                 } else {
                     Image(systemName: "mic.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.white)
+                        .font(.system(size: 28))
+                        .foregroundColor(iconColor)
                 }
             }
+            .scaleEffect(scale)
+            .rotationEffect(.degrees(rotation))
         }
-        .disabled(!isEnabled)
+        .disabled(!enabled)
+        .buttonStyle(PlainButtonStyle())
         .onAppear {
             if state == .listening {
-                withAnimation(
-                    Animation.easeInOut(duration: 0.8)
-                        .repeatForever(autoreverses: true)
-                ) {
-                    pulseScale = 1.15
-                }
+                startPulseAnimation()
             }
         }
         .onChange(of: state) { newState in
-            if newState == .listening {
-                withAnimation(
-                    Animation.easeInOut(duration: 0.8)
-                        .repeatForever(autoreverses: true)
-                ) {
-                    pulseScale = 1.15
-                }
-            } else {
-                pulseScale = 1.0
+            switch newState {
+            case .listening:
+                startPulseAnimation()
+            case .error:
+                startShakeAnimation()
+            default:
+                scale = 1.0
+                rotation = 0.0
             }
         }
     }
     
-    private var buttonColor: Color {
+    private var backgroundColor: Color {
         switch state {
         case .idle:
-            return .blue
+            return Color(.systemGray5)
         case .listening:
-            return Color(red: 0.9, green: 0.22, blue: 0.21)
+            return Color.red
         case .processing:
-            return .purple
-        case .speaking:
-            return .orange
+            return Color.blue
         case .error:
-            return .red
+            return Color.red
         }
     }
+    
+    private var iconColor: Color {
+        switch state {
+        case .idle:
+            return Color(.systemGray)
+        default:
+            return Color.white
+        }
+    }
+    
+    private func startPulseAnimation() {
+        withAnimation(
+            Animation.easeInOut(duration: 0.6)
+                .repeatForever(autoreverses: true)
+        ) {
+            scale = 1.2
+        }
+    }
+    
+    private func startShakeAnimation() {
+        withAnimation(Animation.default.repeatCount(3, autoreverses: true)) {
+            rotation = 5
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            rotation = 0
+        }
+    }
+}
+
+/// Voice button states for iOS
+enum VoiceButtonState {
+    case idle       // Ready for input
+    case listening  // Currently listening to user
+    case processing // Processing voice command
+    case error      // Error occurred
 }

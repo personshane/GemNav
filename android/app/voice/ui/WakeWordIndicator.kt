@@ -1,61 +1,57 @@
-package com.gemnav.android.voice.ui
+package com.gemnav.app.voice.ui
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Hearing
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
+/**
+ * Visual indicator for wake word detection status
+ * Shows "Hey GemNav" listening status for Plus/Pro tiers
+ */
 @Composable
 fun WakeWordIndicator(
     isActive: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha_pulse"
-    )
-
-    if (isActive) {
+    AnimatedVisibility(
+        visible = isActive,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+    ) {
         Surface(
-            modifier = modifier
-                .alpha(alpha)
+            modifier = Modifier
+                .wrapContentSize()
                 .padding(8.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF4CAF50).copy(alpha = 0.9f),
-            shadowElevation = 4.dp
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            tonalElevation = 2.dp
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Hearing,
+                    imageVector = Icons.Default.RecordVoiceOver,
                     contentDescription = "Wake word active",
-                    modifier = Modifier.size(16.dp),
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    "Say \"Hey GemNav\"",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    style = MaterialTheme.typography.labelMedium
+                    text = "\"Hey GemNav\" listening",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
         }
