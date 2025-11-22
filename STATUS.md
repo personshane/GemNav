@@ -134,3 +134,80 @@ Features:
 - Mute/unmute controls, map recentering
 
 Ready for: Integration testing, HERE MapView implementation, or MP-016+
+
+---
+
+## MP-016 STATUS: COMPLETE ✓
+
+Cross-platform voice command system delivered (3,349 lines):
+
+**Specification** (787 lines):
+- MP-016-voice-commands-spec.md: Complete voice command architecture
+- Wake word detection, speech recognition, NLU parsing, command execution
+- Tier-specific capabilities, error handling, fallback strategies
+
+**Android Implementation** (1,257 lines):
+- VoiceCommandManager.kt (243): Lifecycle coordinator with StateFlow
+- AndroidSpeechRecognitionService.kt (185): SpeechRecognizer wrapper
+- CommandParser.kt (221): Gemini NLU integration
+- CommandExecutor.kt (279): Routes commands to ViewModels
+- AndroidVoiceResponseService.kt (79): TextToSpeech wrapper
+- VoiceCommands.kt (143): Sealed class command definitions
+- WakeWordDetector.kt (107): Porcupine integration
+
+**iOS Implementation** (1,305 lines):
+- VoiceCommandManager.swift (226): ObservableObject coordinator
+- IOSSpeechRecognitionService.swift (165): SFSpeechRecognizer wrapper
+- CommandParser.swift (234): Gemini NLU for iOS
+- CommandExecutor.swift (300): Async command routing
+- IOSVoiceResponseService.swift (74): AVSpeechSynthesizer wrapper
+- VoiceCommands.swift (147): Swift command types
+- WakeWordDetector.swift (108): Porcupine iOS support
+
+---
+
+## MP-016-B STATUS: COMPLETE ✓
+
+ViewModel voice integration delivered (1,997 lines):
+
+**Specification** (803 lines):
+- MP-016-B-viewmodel-integration-spec.md: ViewModel voice method specs
+
+**Android Implementation** (709 lines):
+- NavigationViewModel.kt: +190 lines voice methods
+  * navigateTo, addWaypoint, cancelNavigation
+  * Voice guidance: setVoiceGuidanceMuted, getCurrentInstruction
+  * Info queries: getEstimatedArrival, getRemainingDistance, getTrafficStatus
+  * Route mods: setRoutePreference, optimizeRoute, showAlternativeRoutes
+  * Truck-specific (Pro): getBridgeClearances, getHeightRestrictions, getWeightLimits
+  * Data classes: ETAInfo, DistanceInfo, RouteFeature, OptimizationCriterion
+- SearchViewModel.kt (177 lines, new): Route-aware search
+  * searchAlongRoute: Places search along active route (Plus/Pro)
+  * findTruckPOI: Truck POI finder (Pro only)
+  * Repository interfaces: PlacesRepository, RouteRepository
+  * Models: SearchResult, SearchFilters, TruckPOIType
+
+**iOS Implementation** (485 lines):
+- NavigationViewModel.swift (309 lines, new): @MainActor ObservableObject
+  * All Android voice methods with async/await
+  * @Published NavigationState for SwiftUI
+  * CLLocationCoordinate2D location handling
+- SearchViewModel.swift (176 lines, new): Search ObservableObject
+  * Async searchAlongRoute and findTruckPOI
+  * Protocol-based repositories for testing
+
+**Integration**:
+- CommandExecutor → ViewModel flow complete on both platforms
+- Tier-based feature gating (Free/Plus/Pro)
+- StateFlow (Android) and @Published (iOS) reactive updates
+
+**Outstanding**:
+- Repository implementations (PlacesRepository, RouteRepository)
+- Dependency injection setup (Hilt for Android, manual DI for iOS)
+- Voice UI components (button, feedback overlays)
+- Microphone permission flows
+- Unit and integration tests
+
+**Total MP-016 + MP-016-B**: 5,346 lines (specs + implementations)
+
+Ready for: Repository implementations, DI setup, voice UI, permissions, testing, or MP-017+
