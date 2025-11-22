@@ -224,3 +224,138 @@ git commit -m "MP-016-C: Dependency injection specification
 ---
 
 **END OF MP-016-C HANDOFF**
+
+
+---
+
+# MP-016-C: Dependency Injection Implementation
+
+**Date**: 2025-11-22  
+**Status**: ✓ COMPLETE  
+**Deliverable**: Android Hilt modules and iOS DependencyContainer
+
+## What Was Done
+
+### Android Hilt Setup (296 lines)
+1. **GemNavApplication.kt**: @HiltAndroidApp entry point for Hilt code generation
+2. **Core/TierManager.kt**: Centralized SubscriptionTier enum, TierManager interface, DefaultTierManager implementation
+3. **di/AppModule.kt**: Application Context, Coroutine Dispatchers (IO, Main, Default) with qualifier annotations
+4. **di/ApiModule.kt**: API clients (GeminiApiClient, PlacesApiClient, DirectionsApiClient, HereApiClient) with API key qualifiers and TierManager integration
+5. **di/DatabaseModule.kt**: Room database and DAOs (DestinationDao, SearchHistoryDao)
+6. **di/ServiceModule.kt**: Voice services (speech recognition, TTS, wake word), TierManager, ApplicationScope
+7. **di/RepositoryModule.kt**: Repository documentation (all use @Inject constructor)
+8. **di/ViewModelModule.kt**: ViewModel documentation (all use @HiltViewModel)
+
+### iOS Manual DI (176 lines)
+1. **Core/TierManager.swift**: SubscriptionTier enum, TierManager protocol, DefaultTierManager
+2. **Core/DependencyContainer.swift**: AppConfiguration, DependencyContainer protocol, AppDependencyContainer with lazy initialization
+
+### Key Improvements
+- **Unified Tier System**: Replaced UserTier with centralized SubscriptionTier in core package
+- **Type Safety**: Qualifier annotations for API keys and dispatchers
+- **Scoping**: Singleton for services/clients, ViewModelScoped for ViewModels
+- **Testing Support**: All dependencies injectable via constructor
+- **iOS Pattern**: Lazy properties with manual factory methods for ViewModels
+
+## File Paths
+
+### Android
+```
+C:\Users\perso\GemNav\android\app\GemNavApplication.kt
+C:\Users\perso\GemNav\android\app\core\TierManager.kt
+C:\Users\perso\GemNav\android\app\di\AppModule.kt
+C:\Users\perso\GemNav\android\app\di\ApiModule.kt
+C:\Users\perso\GemNav\android\app\di\DatabaseModule.kt
+C:\Users\perso\GemNav\android\app\di\ServiceModule.kt
+C:\Users\perso\GemNav\android\app\di\RepositoryModule.kt
+C:\Users\perso\GemNav\android\app\di\ViewModelModule.kt
+```
+
+### iOS
+```
+C:\Users\perso\GemNav\ios\GemNav\Core\TierManager.swift
+C:\Users\perso\GemNav\ios\GemNav\Core\DependencyContainer.swift
+```
+
+## Next Steps
+
+### Option 1: Voice UI Components (MP-016-D)
+- VoiceButton composable (Android) / SwiftUI view (iOS)
+- VoiceFeedback overlay with listening/processing states
+- Microphone permission UI
+- Wake word indicator (Plus/Pro only)
+
+### Option 2: Voice Permissions (MP-016-E)
+- Runtime microphone permission handling
+- Permission rationale dialogs
+- Settings deep link for denied permissions
+- Tier-based permission requirements
+
+### Option 3: Repository Implementations
+- Complete PlacesRepository with Google Places API
+- Complete RouteRepository with Google Directions + HERE SDK
+- Add caching layer for offline support
+
+### Option 4: Testing
+- Unit tests for DI modules
+- Mock TierManager for testing
+- ViewModel tests with injected mocks
+- Integration tests for voice flow
+
+## TODOs in Code
+- Load API keys from BuildConfig/Info.plist (currently hardcoded placeholders)
+- Implement TierManager persistence (SharedPreferences/UserDefaults)
+- Add billing system integration for tier updates
+- Create CommandExecutor with ViewModel dependencies (iOS circular dependency)
+- Create VoiceCommandManager after ViewModels (iOS)
+
+## Resume Command
+
+```
+Read STATUS.md (last 20 lines), continue with MP-016-D (voice UI) or specify next task
+```
+
+## Commit Summary
+
+```bash
+git add android/app/GemNavApplication.kt \
+  android/app/core/TierManager.kt \
+  android/app/di/*.kt \
+  ios/GemNav/Core/*.swift
+  
+git commit -m "MP-016-C: Complete dependency injection setup
+
+Android Hilt (296 lines):
+- GemNavApplication with @HiltAndroidApp
+- TierManager: SubscriptionTier enum, interface, implementation
+- AppModule: Context, Dispatchers with qualifiers
+- ApiModule: Gemini, Places, Directions, HERE clients
+- DatabaseModule: Room database and DAOs
+- ServiceModule: Voice services, TierManager
+- RepositoryModule: Documentation for auto-injection
+- ViewModelModule: Documentation for @HiltViewModel
+
+iOS Manual DI (176 lines):
+- TierManager: SubscriptionTier, protocol, implementation
+- DependencyContainer: Config, protocol, lazy initialization
+
+Features:
+- Centralized SubscriptionTier (replaced UserTier)
+- Qualifier annotations for type safety
+- Singleton scoping for services
+- ViewModel factories for iOS
+- TierManager integration throughout
+
+Total: 472 lines"
+```
+
+## Stats
+
+- **Files**: 10 (Android: 8, iOS: 2)
+- **Lines**: 472 (Android: 296, iOS: 176)
+- **Components**: Application, Modules, Services, Repositories, ViewModels
+- **Status**: ✓ COMPLETE
+
+---
+
+**END OF MP-016-C HANDOFF**

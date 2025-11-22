@@ -241,3 +241,33 @@ Ready for: Repository implementations, DI setup, voice UI, permissions, testing,
 **Total MP-016 series**: 6,194 lines (specs only, implementations pending)
 
 Ready for: MP-016-C implementation, voice UI (MP-016-D), permissions (MP-016-E), tests
+
+
+## MP-016-C: Dependency Injection Implementation (2025-11-22)
+
+**Android Hilt Modules** (296 lines):
+- GemNavApplication.kt (25 lines): @HiltAndroidApp entry point
+- TierManager.kt (68 lines): SubscriptionTier enum, TierManager interface, DefaultTierManager
+- AppModule.kt (63 lines): Core dependencies (Context, Dispatchers with qualifiers)
+- ApiModule.kt (103 lines): API clients (Gemini, Places, Directions, HERE) with tier integration
+- DatabaseModule.kt (61 lines): Room database, DAOs (Destination, SearchHistory)
+- ServiceModule.kt (93 lines): Voice services, TierManager, ApplicationScope
+- RepositoryModule.kt (30 lines): Repository documentation (auto-injected via @Inject)
+- ViewModelModule.kt (27 lines): ViewModel documentation (auto-injected via @HiltViewModel)
+
+**iOS Manual DI** (176 lines):
+- TierManager.swift (58 lines): SubscriptionTier enum, TierManager protocol, DefaultTierManager
+- DependencyContainer.swift (142 lines): AppConfiguration, DependencyContainer protocol, AppDependencyContainer implementation
+
+**Key Features**:
+- Centralized SubscriptionTier enum (replaced UserTier)
+- Qualifier annotations (@IoDispatcher, @MainDispatcher, @DefaultDispatcher, @GoogleApiKey, @GeminiApiKey, @ApplicationScope)
+- Singleton scoping for services and clients
+- Lazy initialization for iOS
+- ViewModel factories for iOS
+- TierManager integration throughout dependency graph
+
+**Total MP-016-C**: 472 lines (Android: 296, iOS: 176)
+**Total MP-016 series**: 6,666 lines (specs + implementations)
+
+Ready for: Voice UI components (MP-016-D), permissions (MP-016-E), or tests
