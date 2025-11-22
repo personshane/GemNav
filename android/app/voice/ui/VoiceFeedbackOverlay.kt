@@ -1,44 +1,52 @@
-package com.gemnav.android.voice.ui
+package com.gemnav.app.voice.ui
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.gemnav.android.voice.VoiceState
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
+/**
+ * Full-screen overlay for voice feedback
+ * Shows listening/processing/speaking/error states with animations
+ */
 @Composable
 fun VoiceFeedbackOverlay(
-    state: VoiceState,
-    transcript: String,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    state: VoiceFeedbackState,
+    transcript: String = "",
+    response: String = "",
+    onDismiss: () -> Unit
 ) {
-    AnimatedVisibility(
-        visible = state != VoiceState.Idle,
-        enter = fadeIn() + slideInVertically(),
-        exit = fadeOut() + slideOutVertically()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
     ) {
         Box(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f))
+                .background(Color.Black.copy(alpha = 0.7f))
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
         ) {
             Card(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(32.dp)
-                    .widthIn(max = 400.dp),
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
@@ -48,92 +56,161 @@ fun VoiceFeedbackOverlay(
                     modifier = Modifier
                         .padding(24.dp)
                         .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // State icon and animation
                     when (state) {
-                        VoiceState.Listening -> {
-                            Icon(
-                                Icons.Default.Mic,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = Color(0xFFE53935)
-                            )
-                            Spacer(Modifier.height(16.dp))
+                        is VoiceFeedbackState.Listening -> {
+                            PulsingMicIcon()
                             Text(
-                                "Listening...",
+                                text = "Listening...",
                                 style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        VoiceState.Processing -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp),
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(Modifier.height(16.dp))
+                        }
+                        is VoiceFeedbackState.Processing -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(56.dp),
+                                strokeWidth = 4.dp
+                            )
                             Text(
-                                "Processing...",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
+                                text = "Processing command...",
+                                style = MaterialTheme.typography.headlineSmall
                             )
                         }
-                        VoiceState.Speaking -> {
-                            Icon(
-                                Icons.Default.VolumeUp,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.tertiary
-                            )
-                            Spacer(Modifier.height(16.dp))
+                        is VoiceFeedbackState.Speaking -> {
+                            SoundWaveAnimation()
                             Text(
-                                "Speaking...",
+                                text = "GemNav",
                                 style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        is VoiceState.Error -> {
+                        is VoiceFeedbackState.Error -> {
                             Icon(
-                                Icons.Default.Error,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.error
+                                imageVector = Icons.Default.Error,
+                                contentDescription = "Error",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(56.dp)
                             )
-                            Spacer(Modifier.height(16.dp))
                             Text(
-                                "Error",
+                                text = "Error",
                                 style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.error
                             )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                state.message,
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center
-                            )
                         }
-                        else -> {}
                     }
-
+                    
+                    // Transcript display
                     if (transcript.isNotEmpty()) {
-                        Spacer(Modifier.height(16.dp))
-                        Divider()
-                        Spacer(Modifier.height(16.dp))
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
-                            transcript,
+                            text = "You said:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = transcript,
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center
                         )
                     }
-
-                    if (state is VoiceState.Error) {
-                        Spacer(Modifier.height(16.dp))
-                        Button(onClick = onDismiss) {
-                            Text("Dismiss")
-                        }
+                    
+                    // Response display
+                    if (response.isNotEmpty()) {
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text(
+                            text = response,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
+                    // Error message
+                    if (state is VoiceFeedbackState.Error) {
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * Pulsing microphone icon animation
+ */
+@Composable
+private fun PulsingMicIcon() {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "mic_scale"
+    )
+    
+    Icon(
+        imageVector = Icons.Default.Mic,
+        contentDescription = "Listening",
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.size((56 * scale).dp)
+    )
+}
+
+/**
+ * Sound wave animation for speaking state
+ */
+@Composable
+private fun SoundWaveAnimation() {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(5) { index ->
+            val infiniteTransition = rememberInfiniteTransition(label = "wave_$index")
+            val height by infiniteTransition.animateFloat(
+                initialValue = 20f,
+                targetValue = 56f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(
+                        durationMillis = 600,
+                        delayMillis = index * 100,
+                        easing = FastOutSlowInEasing
+                    ),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "wave_height_$index"
+            )
+            
+            Box(
+                modifier = Modifier
+                    .width(8.dp)
+                    .height(height.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            )
+        }
+    }
+}
+
+/**
+ * Voice feedback states
+ */
+sealed class VoiceFeedbackState {
+    object Listening : VoiceFeedbackState()
+    object Processing : VoiceFeedbackState()
+    object Speaking : VoiceFeedbackState()
+    data class Error(val message: String) : VoiceFeedbackState()
 }

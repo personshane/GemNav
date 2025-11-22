@@ -1,66 +1,96 @@
-package com.gemnav.android.voice.ui
+package com.gemnav.app.voice.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+/**
+ * Dialog for requesting microphone permission
+ * Shows rationale and guides user through permission flow
+ */
 @Composable
 fun VoicePermissionDialog(
+    permissionState: PermissionState,
     onRequestPermission: () -> Unit,
-    onDismiss: () -> Unit,
-    showRationale: Boolean = false
+    onOpenSettings: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                Icons.Default.Mic,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp)
+                imageVector = Icons.Default.Mic,
+                contentDescription = "Microphone permission",
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
         },
         title = {
             Text(
-                if (showRationale) "Microphone Permission Required" 
-                else "Enable Voice Commands",
-                fontWeight = FontWeight.Bold
+                text = when (permissionState) {
+                    PermissionState.NotRequested -> "Enable Voice Commands"
+                    PermissionState.Denied -> "Microphone Access Required"
+                    PermissionState.PermanentlyDenied -> "Enable in Settings"
+                    else -> "Voice Commands"
+                },
+                style = MaterialTheme.typography.headlineSmall
             )
         },
         text = {
-            Column {
-                Text(
-                    if (showRationale) {
-                        "GemNav needs microphone access to enable voice commands during navigation. " +
-                        "Your voice is processed locally on your device (Free tier) or securely sent to " +
-                        "Google Cloud (Plus/Pro tiers) for enhanced understanding."
-                    } else {
-                        "Use voice commands to navigate hands-free. Say \"Navigate to [destination]\" " +
-                        "or \"Find gas stations nearby\" without touching your phone."
-                    }
-                )
-                if (showRationale) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Please grant permission in Settings to use this feature.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
+            Text(
+                text = when (permissionState) {
+                    PermissionState.NotRequested ->
+                        "GemNav uses your microphone to enable hands-free voice commands during navigation. " +
+                        "Your voice data is processed securely and never stored without your permission."
+                    PermissionState.Denied ->
+                        "Voice commands require microphone access. Please grant permission to use this feature. " +
+                        "You can always disable voice commands in settings."
+                    PermissionState.PermanentlyDenied ->
+                        "Microphone permission was denied. To enable voice commands, please go to Settings > " +
+                        "Apps > GemNav > Permissions and enable Microphone access."
+                    else -> ""
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Start
+            )
         },
         confirmButton = {
-            TextButton(onClick = onRequestPermission) {
-                Text(if (showRationale) "Open Settings" else "Allow")
+            TextButton(
+                onClick = {
+                    when (permissionState) {
+                        PermissionState.PermanentlyDenied -> onOpenSettings()
+                        else -> onRequestPermission()
+                    }
+                }
+            ) {
+                Text(
+                    text = when (permissionState) {
+                        PermissionState.PermanentlyDenied -> "Open Settings"
+                        else -> "Grant Permission"
+                    }
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(if (showRationale) "Not Now" else "Cancel")
+                Text("Not Now")
             }
         }
     )
+}
+
+/**
+ * Permission states for voice input
+ */
+enum class PermissionState {
+    NotRequested,       // Permission not yet requested
+    Granted,            // Permission granted
+    Denied,             // Permission denied but can be requested again
+    PermanentlyDenied   // Permission permanently denied (user must go to settings)
 }
