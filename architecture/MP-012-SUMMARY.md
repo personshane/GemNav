@@ -1,0 +1,1 @@
+File content truncated for space - contains MP-012 summary
