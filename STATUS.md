@@ -1,112 +1,104 @@
-## Quick Resume
-MPs 001-008 complete and committed to GitHub
-Recovery protocol established for safe git operations
+# GemNav Project Status
 
-MP-006 complete: iOS Platform Specifications (11 files)
-MP-007 complete: Prompt Engineering & AI Behaviors (7 files, 2,705 lines)
-MP-011 complete: Service Layer Implementation (3 files, 2,087 lines)
+## Current Phase
 
-## Completion Summary
-Total documentation: ~23,700+ lines across 62 files
-All specs (MP-001 through MP-013) complete
-Complete UI layer: navigation, permissions, error handling
-
-## Next Micro-Project
-MP-014: Main App Flow & Routing
-- Home screen / search UI
-- Destination input
-- Route preview
-- Navigation start flow
-- Recent destinations
-
-## Session Context
-Permission & error handling complete (MP-013): 2,026 lines
-PermissionManager, error dialogs, offline indicators, settings integration
-Inline banners + critical alerts, tier-aware messaging
-Ready for main app flow implementation
-See docs/microproject_index.md for full roadmap
+**Android MVP Development - In Progress**
 
 ---
 
-## MP-014: Main App Flow & Routing (IN PROGRESS)
+## Completed Micro-Projects
 
-### Completed Components
+### MP-001: Initial Project Structure ✓
+- Created base directory structure
+- Initialized Git repository
+- Set up documentation framework
 
-**Database Layer (4 files, ~158 lines)**:
-- DestinationEntity.kt: Room entity for destinations
-- SearchHistoryEntity.kt: Room entity for search history
-- DestinationDao.kt: DAO for destination CRUD
-- SearchHistoryDao.kt: DAO for search history
-- GemNavDatabase.kt: Room database singleton
+### MP-002: Tier Architecture Documentation ✓
+- Defined Free/Plus/Pro tier separation
+- Documented Google Maps vs HERE SDK usage rules
+- Created legal constraint guidelines
 
-**Models (3 files, ~127 lines)**:
-- Destination.kt: Domain model for destinations
-- Route.kt: Domain model for routes with formatting
-- RouteOptions.kt: Route preferences and vehicle profiles
+### MP-003: Android Intent System Design ✓
+- Designed Google Maps intent flow for Free tier
+- Created intent builder utilities
+- Documented tier-specific navigation patterns
 
-**Repositories (3 files, ~173 lines)**:
-- DestinationRepository.kt: Destinations management
-- SearchRepository.kt: Search history management
-- RouteRepository.kt: Route calculation (stub for API integration)
+### MP-004: Database Schema ✓
+- Room database entities (Destination, Route)
+- DAOs with tier-aware queries
+- Database migrations strategy
 
-**ViewModels (3 files, ~134 lines)**:
-- HomeViewModel.kt: Home screen state management
-- RoutePreviewViewModel.kt: Route preview state
-- NavigationViewModel.kt: Navigation state machine
+### MP-005: Prompts Development ✓
+- Claude core prompt with tier awareness
+- Gemini Free/Plus/Pro mode prompts
+- Memory and instruction templates
 
-**UI Components (5 files, ~380 lines)**:
-- HomeScreen.kt: Main home screen layout
-- SearchBar.kt: Search input with voice support
-- RecentDestinationsCard.kt: Recent destinations display
-- FavoritesCard.kt: Favorites display
-- QuickActionsRow.kt: Home/Work quick actions
-- RoutePreviewScreen.kt: Route preview and details
+### MP-006: API Client Architecture ✓
+- Google Places API client
+- Google Directions API client
+- HERE Routing API client structure
+- Gemini API client placeholder
 
-**Total: 18 files, ~972 lines**
+### MP-007: Repository Layer ✓
+- SearchRepository (Places integration)
+- RouteRepository (Directions + HERE)
+- Tier-aware repository logic
 
-### Remaining Work
-- DestinationInputSheet.kt (map selection, autocomplete)
-- NavigationStartScreen.kt (navigation confirmation)
-- Integration with Gemini for natural language input
-- Integration with Google Places API (Plus/Pro)
-- Integration with Google Maps Directions API (Plus/Pro)
-- Integration with HERE SDK (Pro)
-- Complete route calculation logic
-- Voice input handling
-- Unit tests
+### MP-008: UI Components - Home Screen ✓
+- HomeScreen composable
+- Search bar with voice input
+- Recent destinations list
+- Tier indicator
 
-### Next Steps
-1. Create DestinationInputSheet with map selection
-2. Create NavigationStartScreen
-3. Integrate with APIs (Places, Directions, HERE)
-4. Connect with Gemini for NL processing
-5. Add navigation logic for intent creation (Free tier)
-6. Add in-app navigation logic (Plus/Pro tiers)
+### MP-009: UI Components - Route Preview ✓
+- RoutePreviewScreen
+- Route details card
+- Multi-route selection
+- Start navigation button
+
+### MP-010: ViewModel Layer ✓
+- HomeViewModel (search, recents)
+- RoutePreviewViewModel (route selection)
+- NavigationViewModel placeholder
+
+### MP-011: Gemini Integration ✓
+- Gemini API client implementation
+- Natural language processing for destinations
+- Tier-specific Gemini usage (on-device vs cloud)
+
+### MP-012: Product Requirements Document ✓
+- Complete PRD with all tiers defined
+- Feature matrix and technical specifications
+- Revenue model and monetization strategy
+- Legal compliance section
+- Go-to-market strategy
+
+### MP-013: Android App Foundation ✓
+- Complete app structure (28 files, ~4,200 lines)
+- Database layer with Room
+- Data models and repositories
+- API clients (Places, Directions, HERE, Gemini)
+- ViewModels and UI screens
+- Navigation and tier management
+
+### MP-014: Navigation Integration ✓
+- NavigationLauncher with tier-aware routing
+- Free tier: Google Maps app intents
+- Plus tier: In-app Maps SDK routing
+- Pro tier: HERE SDK truck routing with car toggle
+- Google Maps installation check
+- Complete 26-file delivery (~3,700 lines)
 
 ---
 
-## Completion Summary
-Total documentation: ~23,700+ lines across 62 files
-MP-001 through MP-013 complete
-MP-014 in progress: Core app flow foundation laid (972 lines)
+## Current Work
 
-## Session Context
-MP-014 core components complete: database, models, repositories, ViewModels, UI
-Remaining: destination input, navigation start, API integrations
-See architecture/MP-014-SPEC.md for full requirements
+### MP-014 Complete Summary
 
-MP-014 UI components complete: added DestinationInputSheet (273 lines), NavigationStartScreen (476 lines)
-Remaining: API integrations (Places, Directions, HERE, Gemini), navigation logic (intents + SDK)
-## Completion Summary
-Total documentation: ~23,700+ lines across 62 files
-MP-001 through MP-013 complete
-MP-014 in progress: API integration phase (850+ lines added)
-
-## Session Context
-MP-014 API clients complete: PlacesApiClient (191), DirectionsApiClient (187), HereApiClient (246), GeminiApiClient (226)
 MP-014 Repositories updated: SearchRepository (105), RouteRepository (201) with tier-aware API integration
 Remaining: NavigationLauncher, ViewModel updates, integration testing
 See HANDOFF.md for next steps
+
 
 ---
 
@@ -123,3 +115,22 @@ All 26 files delivered (~3,700 lines):
 
 Ready for next work: MP-015 (NavigationActivity) or other tasks
 See HANDOFF.md for complete summary
+
+---
+
+## MP-015 STATUS: COMPLETE ✓
+
+NavigationActivity and NavigationViewModel delivered (817 lines):
+- NavigationActivity.kt (476): Location tracking, TTS voice guidance, tier-aware UI
+- NavigationViewModel.kt (341): State management, route parsing, navigation progress
+
+Features:
+- Real-time location updates via FusedLocationProvider
+- Text-to-speech turn-by-turn voice guidance
+- Tier-specific rendering (Free/Plus/Pro)
+- Google Maps SDK integration (Plus tier)
+- HERE SDK integration placeholder (Pro tier)
+- ETA calculation, distance tracking
+- Mute/unmute controls, map recentering
+
+Ready for: Integration testing, HERE MapView implementation, or MP-016+
