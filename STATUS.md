@@ -1,256 +1,486 @@
 # GemNav Project Status
 
 **Last Updated**: 2025-11-22  
-**Current Phase**: MP-016 Voice Command System (UI Complete, Permissions + iOS Services Pending)  
-**Total Lines**: ~20,200+ across 64 files
+**Project State**: MP-016 Voice Command System (In Progress)  
+**Total Lines**: ~20,550+ across 66 files
 
 ---
 
-## Project Overview
+## Current Micro-Project: MP-016 (Voice Commands)
 
-GemNav is a multi-tier AI-powered navigation application combining Gemini AI with Google Maps and HERE SDK. Three tiers:
-- **Free**: Gemini Nano (on-device) + Google Maps app intents
-- **Plus**: Gemini Cloud + Google Maps SDK  
-- **Pro**: HERE SDK commercial routing + dual-mode capability
+**Status**: Implementation Phase  
+**Completion**: ~70% (Core components + UI + Permissions done, iOS services pending)
 
-Hosted: https://github.com/personshane/GemNav  
-Local: C:\Users\perso\GemNav
+### Completed (MP-001 through MP-016-E)
+- ✓ MP-001 through MP-015: Full navigation system, routing, ViewModels, DI, services
+- ✓ MP-016: Voice command specification (787 lines)
+- ✓ MP-016-B: ViewModel integration spec (1,688 lines)
+- ✓ MP-016-C: Dependency injection (472 lines)
+- ✓ MP-016-D: Voice UI components (628 lines)
+- ✓ MP-016-E: Microphone permissions (325 lines)
+
+### In Progress
+- iOS voice service implementations (SpeechRecognition, VoiceResponse, WakeWord)
+
+### Pending
+- Integration testing
+- Wake word tuning
+- Gemini API integration testing
 
 ---
 
-## Completed Micro-Projects
+## Micro-Project History
 
-### MP-001: Project Foundation (2025-11-15)
-- Core documentation structure
-- Tier definitions and legal constraints
-- AI behavior specifications
-- Micro-project methodology established
+### MP-001: Initial Setup (COMPLETE)
+**Completed**: 2025-11-18  
+**Objective**: Establish project structure and core documentation
 
-### MP-002: Android Architecture Foundation (2025-11-16)
-- Clean Architecture + MVVM structure
-- Dependency injection (Hilt)
-- Navigation component setup
-- Base repository and use case patterns
+**Deliverables**:
+- Project directory structure
+- Core documentation (product overview, tier structure, legal constraints)
+- AI behavior prompts for Gemini (Free/Plus/Pro modes)
+- Index of all micro-projects
 
-### MP-003: iOS Architecture Foundation (2025-11-16)
-- MVVM + Combine architecture
-- Manual dependency injection
-- SwiftUI navigation patterns
-- Repository protocols
+**Files Created**: 12 markdown files (docs/, prompts/, android/, here/, google/)
 
-### MP-004: Database Layer (2025-11-16)
-**Android** (Room): 487 lines
-- Entity definitions (Route, Place, NavigationSession)
-- DAOs with reactive queries
-- Database migrations
-- Type converters
+---
 
-**iOS** (CoreData): 394 lines  
-- Core Data model definitions
-- Managed object extensions
-- Stack configuration
-- Migration handling
+### MP-002: Android Architecture Foundation (COMPLETE)
+**Completed**: 2025-11-18  
+**Objective**: Define Android app architecture and core systems
 
-**Total**: 881 lines
+**Deliverables**:
+- App flow diagram (MainActivity → NavigationActivity → tier routing)
+- Routing engine toggle (Google Maps ↔ HERE SDK for Pro tier)
+- Billing and permissions framework
+- Gemini integration patterns
 
-### MP-005: API Service Layer (2025-11-17)
-**Android** (Retrofit): 612 lines
-- Google Places/Directions/Gemini services
-- HERE Routing/Traffic services
-- Retrofit setup with interceptors
-- Error handling and rate limiting
+**Files Created**: 4 architecture documents
 
-**iOS** (URLSession): 558 lines
-- Equivalent API services
-- Codable models
-- Error handling
-- Request builders
+---
 
-**Total**: 1,170 lines
+### MP-003: iOS Architecture Foundation (COMPLETE)
+**Completed**: 2025-11-18  
+**Objective**: Define iOS app architecture and core systems
 
-### MP-006: Location Services (2025-11-17)
-**Android**: 389 lines (FusedLocationProvider, permissions, background tracking)  
-**iOS**: 312 lines (CoreLocation, authorization, updates)  
-**Total**: 701 lines
+**Deliverables**:
+- iOS-specific app flow (HomeView → NavigationView → tier routing)
+- iOS routing engine toggle (MapKit ↔ HERE SDK)
+- StoreKit integration patterns
+- SiriKit/Shortcuts integration for voice
 
-### MP-007: Permission Handling (2025-11-17)
-**Android**: 447 lines (runtime permissions, rationale dialogs)  
-**iOS**: 356 lines (authorization requests, settings navigation)  
-**Total**: 803 lines
+**Files Created**: 4 iOS architecture documents
 
-### MP-008: Error Handling UI (2025-11-18)
-**Android**: 389 lines (Compose error screens, retry logic)  
-**iOS**: 298 lines (SwiftUI error views)  
-**Total**: 687 lines
+---
 
-### MP-009: Google Maps Integration (2025-11-18)
-**Android**: 567 lines (Maps SDK, camera control, markers)  
-**iOS**: 489 lines (MapKit, annotations, overlays)  
-**Total**: 1,056 lines
+### MP-004: Technical Specifications (COMPLETE)
+**Completed**: 2025-11-18  
+**Objective**: Create comprehensive technical implementation guide
 
-### MP-010: HERE SDK Integration (2025-11-19)
-**Specification**: 892 lines (comprehensive HERE SDK implementation guide)  
-**Android**: 678 lines (HERE SDK setup, routing, truck restrictions)  
-**iOS**: 534 lines (HERE SDK iOS implementation)  
-**Total**: 2,104 lines
+**Deliverables**:
+- Complete Android technical specification (1,689 lines)
+- Complete iOS technical specification (1,654 lines)
+- Covers: architecture, ViewModels, repositories, services, UI, DI, navigation flow
 
-### MP-011: Routing Engine (2025-11-19)
-**Android**: 789 lines (RouteManager, waypoint handling, alternatives)  
-**iOS**: 623 lines (RouteService, navigation state)  
-**Total**: 1,412 lines
+**Files Created**:
+```
+C:\Users\perso\GemNav\docs\technical_spec_android.md (1,689 lines)
+C:\Users\perso\GemNav\docs\technical_spec_ios.md (1,654 lines)
+```
 
-### MP-012: Home Screen (2025-11-20)
-**Android**: 456 lines (SearchScreen Composable, tier-specific UI)  
-**iOS**: 378 lines (HomeView SwiftUI, search integration)  
-**Total**: 834 lines
+---
 
-### MP-013: Navigation Activity (2025-11-20)
-**Android**: 534 lines (NavigationActivity, map integration, voice guidance)  
-**iOS**: 445 lines (NavigationView, route visualization)  
-**Total**: 979 lines
+### MP-005: Folder Structure Implementation (COMPLETE)
+**Completed**: 2025-11-18  
+**Objective**: Create complete directory structure for Android and iOS codebases
 
-### MP-014: Navigation ViewModel (2025-11-21)
-**Specification**: 1,234 lines (comprehensive ViewModel architecture)  
-**Android**: 623 lines (NavigationViewModel, state management, route parsing)  
-**iOS**: 501 lines (NavigationViewModel, Combine publishers)  
-**Total**: 2,358 lines
+**Deliverables**:
+- Android folder structure (all packages and subdirectories)
+- iOS folder structure (groups and subdirectories)
+- README files in key directories
 
-### MP-015: Navigation Services (2025-11-21)
-**Android**: 678 lines (LocationTrackingService, VoiceGuidanceService, NavigationGuidanceService)  
-**iOS**: 567 lines (iOS service equivalents)  
-**Total**: 1,245 lines
+**Directories Created**: 47 directories total
+- Android: 24 directories
+- iOS: 23 directories
 
-### MP-016: Voice Command System - Core Components (2025-11-22)
-**Specification**: 787 lines (voice commands, tier capabilities, UI/UX design)  
-**Android**: 1,304 lines (VoiceCommandManager, CommandParser, CommandExecutor, speech services, wake word)  
-**iOS**: Interfaces defined (55 lines), implementations pending  
-**Total**: 2,146 lines
+---
 
-### MP-016-B: Voice Command ViewModel Integration (2025-11-22)
-**Specification**: 1,688 lines (comprehensive ViewModel integration, state flows, command routing)  
-**Details**:
-- NavigationViewModel voice integration (189 lines spec)
-- SearchViewModel voice integration (156 lines spec)  
-- HomeViewModel voice integration (134 lines spec)
-- Command flow diagrams and error handling
-- Multi-turn conversation context (Plus/Pro)
+### MP-006: Core Data Models (COMPLETE)
+**Completed**: 2025-11-19  
+**Objective**: Implement shared data models for navigation system
 
-### MP-016-C: Voice Command Dependency Injection (2025-11-22)
-**Android** (Hilt): 296 lines
-- ServiceModule voice providers
-- VoiceCommandManager injection
-- Tier-based service instantiation
-- Speech recognition/TTS setup
+**Deliverables**:
+- Android: 5 Kotlin data classes (Route, Location, NavigationState, Instruction, TruckRestrictions)
+- iOS: 5 Swift structs (matching Android models)
+- Complete documentation and usage examples
 
-**iOS** (Manual DI): 176 lines
-- DependencyContainer voice setup  
-- Factory methods for voice services
-- TierManager integration throughout dependency graph
+**Files Created**: 10 files, 463 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\models\Route.kt
+C:\Users\perso\GemNav\android\app\models\Location.kt
+C:\Users\perso\GemNav\android\app\models\NavigationState.kt
+C:\Users\perso\GemNav\android\app\models\Instruction.kt
+C:\Users\perso\GemNav\android\app\models\TruckRestrictions.kt
 
-**Total MP-016-C**: 472 lines (Android: 296, iOS: 176)
-**Total MP-016 series**: 6,666 lines (specs + implementations)
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\Models\Route.swift
+C:\Users\perso\GemNav\ios\GemNav\Models\Location.swift
+C:\Users\perso\GemNav\ios\GemNav\Models\NavigationState.swift
+C:\Users\perso\GemNav\ios\GemNav\Models\Instruction.swift
+C:\Users\perso\GemNav\ios\GemNav\Models\TruckRestrictions.swift
+```
 
-Ready for: Voice UI components (MP-016-D), permissions (MP-016-E), or tests
+---
 
+### MP-007: Subscription & Tier Management (COMPLETE)
+**Completed**: 2025-11-19  
+**Objective**: Implement tier system and feature gating across both platforms
 
-## MP-016 Work Continuation
+**Deliverables**:
+- Subscription tier enums (Free, Plus, Pro)
+- Feature capability definitions
+- TierManager for feature gating
+- BillingManager interfaces (RevenueCat integration)
 
-**See**: [MP-016-CONTINUATION-GUIDE.md](docs/MP-016-CONTINUATION-GUIDE.md) for detailed instructions
+**Files Created**: 8 files, 685 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\core\SubscriptionTier.kt
+C:\Users\perso\GemNav\android\app\core\TierManager.kt
+C:\Users\perso\GemNav\android\app\billing\BillingManager.kt
+C:\Users\perso\GemNav\android\app\billing\RevenueCatManager.kt
 
-**Current State**: DI complete (472 lines), core voice components implemented (1,304 lines)
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\Core\SubscriptionTier.swift
+C:\Users\perso\GemNav\ios\GemNav\Core\TierManager.swift
+C:\Users\perso\GemNav\ios\GemNav\Billing\BillingManager.swift
+C:\Users\perso\GemNav\ios\GemNav\Billing\RevenueCatManager.swift
+```
 
-**Next Options**:
-1. MP-016-D: Voice UI Components (VoiceButton, overlays, permissions UI)
-2. MP-016-E: Microphone Permissions (runtime permission handling)
-3. MP-016-iOS: Voice service implementations (speech recognition, TTS, wake word)
+---
 
-**Quick Start**: `Read MP-016-CONTINUATION-GUIDE.md` → Choose option → Implement → Commit
+### MP-008: Repository Layer (COMPLETE)
+**Completed**: 2025-11-19  
+**Objective**: Create repository layer for API and data access
 
-## MP-016-D: Voice UI Components (2025-11-22)
+**Deliverables**:
+- RouteRepository (Google/HERE routing)
+- PlacesRepository (search and POI)
+- TruckPOIRepository (truck-specific search)
+- LocationRepository (GPS tracking)
 
-**Objective**: Create user-facing voice interaction UI (buttons, overlays, permissions)
+**Files Created**: 8 files, 1,131 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\data\repositories\RouteRepository.kt
+C:\Users\perso\GemNav\android\app\data\repositories\PlacesRepository.kt
+C:\Users\perso\GemNav\android\app\data\repositories\TruckPOIRepository.kt
+C:\Users\perso\GemNav\android\app\data\repositories\LocationRepository.kt
 
-### Android Components (349 lines)
-**Location**: `android/app/voice/ui/`
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\Data\Repositories\RouteRepository.swift
+C:\Users\perso\GemNav\ios\GemNav\Data\Repositories\PlacesRepository.swift
+C:\Users\perso\GemNav\ios\GemNav\Data\Repositories\TruckPOIRepository.swift
+C:\Users\perso\GemNav\ios\GemNav\Data\Repositories\LocationRepository.swift
+```
 
-1. **VoiceButton.kt** (73 lines)
-   - Composable FAB with mic icon
-   - States: Idle (primary), Listening (red pulse), Processing (spinner), Speaking (tertiary), Error (red)
-   - Animated pulse effect during listening
-   - Tier-agnostic (all tiers use same button)
+---
 
-2. **VoiceFeedbackOverlay.kt** (143 lines)
-   - Full-screen modal showing voice state
-   - Animated entry/exit transitions
-   - State-specific icons: mic (listening), spinner (processing), speaker (speaking), error (error)
-   - Displays transcript text when available
-   - Dismiss button for error states
-   - Semi-transparent background overlay
+### MP-009: Service Implementations (COMPLETE)
+**Completed**: 2025-11-19  
+**Objective**: Implement concrete service classes for APIs
 
-3. **VoicePermissionDialog.kt** (68 lines)
-   - AlertDialog for microphone permission request
-   - Two modes: initial request vs. settings rationale
-   - Explains on-device (Free) vs. cloud (Plus/Pro) processing
-   - Actions: Allow/Cancel or Open Settings/Not Now
+**Deliverables**:
+- GoogleMapsService (routing, directions, places)
+- HEREService (truck routing, restrictions)
+- GeminiService (AI query processing)
+- LocationService (GPS tracking)
 
-4. **WakeWordIndicator.kt** (65 lines)
-   - Small Surface chip for Plus/Pro tiers
-   - Shows "Say 'Hey GemNav'" with hearing icon
-   - Animated alpha pulse (0.3 → 1.0)
-   - Green background, white text
-   - Only visible when wake word detection active
+**Files Created**: 8 files, 1,456 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\services\GoogleMapsService.kt
+C:\Users\perso\GemNav\android\app\services\HEREService.kt
+C:\Users\perso\GemNav\android\app\services\GeminiService.kt
+C:\Users\perso\GemNav\android\app\services\LocationService.kt
 
-### iOS Components (279 lines)
-**Location**: `ios/GemNav/Voice/UI/`
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\Services\GoogleMapsService.swift
+C:\Users\perso\GemNav\ios\GemNav\Services\HEREService.swift
+C:\Users\perso\GemNav\ios\GemNav\Services\GeminiService.swift
+C:\Users\perso\GemNav\ios\GemNav\Services\LocationService.swift
+```
 
-1. **VoiceButton.swift** (73 lines)
-   - SwiftUI button with circle background
-   - States: idle (blue), listening (red pulse), processing (spinner), speaking (orange), error (red)
-   - Animated scale pulse during listening
-   - System mic.fill icon
+---
 
-2. **VoiceFeedbackOverlay.swift** (105 lines)
-   - ZStack overlay with semi-transparent background
-   - State-specific SF Symbols: mic, spinner, speaker, error triangle
-   - Displays transcript text
-   - Dismiss button for errors
-   - Fade + slide animations
+### MP-010: ViewModels (COMPLETE)
+**Completed**: 2025-11-19  
+**Objective**: Create ViewModels for app screens
 
-3. **VoicePermissionView.swift** (61 lines)
-   - VStack permission request UI
-   - Two modes: initial request vs. settings rationale
-   - Same privacy messaging as Android
-   - Buttons: Cancel/Allow or Not Now/Open Settings
+**Deliverables**:
+- HomeViewModel (destination input, search)
+- SearchViewModel (POI search, filters)
+- NavigationViewModel (route tracking, guidance)
+- SettingsViewModel (preferences, tier management)
 
-4. **WakeWordIndicator.swift** (40 lines)
-   - HStack with ear.fill icon + text
-   - Green background with pulsing opacity
-   - Shows "Say 'Hey GemNav'"
-   - Conditional rendering (Plus/Pro only)
+**Files Created**: 8 files, 1,778 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\viewmodels\HomeViewModel.kt
+C:\Users\perso\GemNav\android\app\viewmodels\SearchViewModel.kt
+C:\Users\perso\GemNav\android\app\viewmodels\NavigationViewModel.kt
+C:\Users\perso\GemNav\android\app\viewmodels\SettingsViewModel.kt
 
-### Design Notes
-- **Color Palette**:
-  - Listening: Red (#E53935)
-  - Processing: Theme secondary/purple
-  - Speaking: Theme tertiary/orange
-  - Error: Theme error/red
-  - Idle: Theme primary/blue
-  - Wake word: Green (#4CAF50)
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\ViewModels\HomeViewModel.swift
+C:\Users\perso\GemNav\ios\GemNav\ViewModels\SearchViewModel.swift
+C:\Users\perso\GemNav\ios\GemNav\ViewModels\NavigationViewModel.swift
+C:\Users\perso\GemNav\ios\GemNav\ViewModels\SettingsViewModel.swift
+```
 
-- **Animations**:
-  - Pulse effect: 800ms ease-in-out, 1.15x scale (Android) / 1.15x scale (iOS)
-  - Overlay transitions: fade + slide
-  - Wake word: 1500ms alpha pulse (0.3 → 1.0)
+---
 
-- **Tier Differentiation**:
-  - Free: VoiceButton only (no wake word indicator)
-  - Plus/Pro: VoiceButton + WakeWordIndicator
+### MP-011: Dependency Injection (COMPLETE)
+**Completed**: 2025-11-19  
+**Objective**: Wire up dependency injection for both platforms
 
-### Integration Points
-- VoiceButton expects `VoiceState` from `VoiceCommandManager.state`
-- VoiceFeedbackOverlay needs `state` + `transcript` + `onDismiss` callback
-- VoicePermissionDialog/View triggers platform permission request
-- WakeWordIndicator shows when `TierManager.hasFeature(Feature.WakeWord) && wakeWordActive`
+**Deliverables**:
+- Android: Hilt modules (ServiceModule, RepositoryModule, ViewModelModule)
+- iOS: DependencyContainer with property wrappers
+- Application-level DI setup
+
+**Files Created**: 5 files, 849 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\di\ServiceModule.kt
+C:\Users\perso\GemNav\android\app\di\RepositoryModule.kt
+C:\Users\perso\GemNav\android\app\di\ViewModelModule.kt
+
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\Core\DependencyContainer.swift
+C:\Users\perso\GemNav\ios\GemNav\GemNavApp.swift
+```
+
+---
+
+### MP-012: UI Components (COMPLETE)
+**Completed**: 2025-11-20  
+**Objective**: Create reusable UI components for both platforms
+
+**Deliverables**:
+- Tier badge (Free/Plus/Pro indicator)
+- Destination input field
+- Route card (summary of route)
+- Navigation instruction card
+- Truck restriction banner
+
+**Files Created**: 10 files, 1,289 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\ui\components\TierBadge.kt
+C:\Users\perso\GemNav\android\app\ui\components\DestinationInput.kt
+C:\Users\perso\GemNav\android\app\ui\components\RouteCard.kt
+C:\Users\perso\GemNav\android\app\ui\components\NavigationInstructionCard.kt
+C:\Users\perso\GemNav\android\app\ui\components\TruckRestrictionBanner.kt
+
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\UI\Components\TierBadge.swift
+C:\Users\perso\GemNav\ios\GemNav\UI\Components\DestinationInput.swift
+C:\Users\perso\GemNav\ios\GemNav\UI\Components\RouteCard.swift
+C:\Users\perso\GemNav\ios\GemNav\UI\Components\NavigationInstructionCard.swift
+C:\Users\perso\GemNav\ios\GemNav\UI\Components\TruckRestrictionBanner.swift
+```
+
+---
+
+### MP-013: Main Screens (COMPLETE)
+**Completed**: 2025-11-20  
+**Objective**: Implement main app screens
+
+**Deliverables**:
+- HomeScreen/HomeView (destination entry, tier display)
+- SearchScreen/SearchView (POI search, filters)
+- SettingsScreen/SettingsView (preferences, subscription)
+
+**Files Created**: 6 files, 1,547 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\ui\screens\HomeScreen.kt
+C:\Users\perso\GemNav\android\app\ui\screens\SearchScreen.kt
+C:\Users\perso\GemNav\android\app\ui\screens\SettingsScreen.kt
+
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\UI\Screens\HomeView.swift
+C:\Users\perso\GemNav\ios\GemNav\UI\Screens\SearchView.swift
+C:\Users\perso\GemNav\ios\GemNav\UI\Screens\SettingsView.swift
+```
+
+---
+
+### MP-014: Navigation Activity (COMPLETE)
+**Completed**: 2025-11-20  
+**Objective**: Create navigation screen with routing and guidance
+
+**Deliverables**:
+- NavigationActivity/NavigationView (main navigation interface)
+- Location tracking integration
+- Voice guidance integration
+- Tier-specific UI rendering
+- Map rendering (Google Maps SDK / HERE SDK)
+
+**Files Created**: 2 files, 1,125 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\ui\screens\NavigationActivity.kt (579 lines)
+
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\UI\Screens\NavigationView.swift (546 lines)
+```
+
+**Key Features**:
+- Real-time location tracking
+- Turn-by-turn guidance with voice
+- Route progress and ETA display
+- Tier-specific features (wake word for Plus/Pro)
+- Map engine switching (Pro tier)
+- Truck restriction alerts (Pro tier)
+- Rerouting on deviation
+
+---
+
+### MP-015: Navigation ViewModel (COMPLETE)
+**Completed**: 2025-11-20  
+**Objective**: Enhance NavigationViewModel with complete state management
+
+**Deliverables**:
+- Enhanced NavigationViewModel for both platforms
+- Route parsing and instruction generation
+- Location tracking state management
+- Voice guidance coordination
+- Rerouting logic
+
+**Files Updated**: 2 files, enhanced to 890 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\viewmodels\NavigationViewModel.kt (461 lines)
+
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\ViewModels\NavigationViewModel.swift (429 lines)
+```
+
+**Key Features**:
+- Complete navigation lifecycle management
+- Real-time location processing
+- Instruction triggering based on distance
+- Voice guidance coordination
+- Route deviation detection
+- ETA calculation
+- Tier-specific feature gating
+
+---
+
+### MP-016: Voice Command System Specification (COMPLETE)
+**Completed**: 2025-11-21  
+**Objective**: Define comprehensive voice command architecture
+
+**Deliverables**:
+- Voice command system design (787 lines)
+- Tier-specific capabilities (Free: on-device, Plus/Pro: cloud + wake word)
+- Command parsing with Gemini AI
+- Voice UI/UX patterns
+- Technical architecture (speech recognition, TTS, wake word)
+
+**File Created**:
+```
+C:\Users\perso\GemNav\docs\MP-016-voice-commands-spec.md (787 lines)
+```
+
+**Key Features**:
+- Hands-free navigation commands
+- Natural language processing
+- Wake word activation (Plus/Pro)
+- Multi-turn conversations (Plus/Pro)
+- Truck-specific commands (Pro)
+
+---
+
+### MP-016-B: ViewModel Integration Specification (COMPLETE)
+**Completed**: 2025-11-21  
+**Objective**: Design ViewModel integration for voice commands
+
+**Deliverables**:
+- ViewModel voice command handlers (1,688 lines)
+- Command flow architecture
+- State updates from voice
+- Error handling patterns
+
+**File Created**:
+```
+C:\Users\perso\GemNav\docs\MP-016-B-viewmodel-integration-spec.md (1,688 lines)
+```
+
+---
+
+### MP-016-C: Voice Dependency Injection (COMPLETE)
+**Completed**: 2025-11-21  
+**Objective**: Wire up voice components in DI system
+
+**Deliverables**:
+- Android Hilt modules for voice services
+- iOS DependencyContainer enhancements
+- Service initialization and lifecycle
+
+**Files Created/Updated**: 4 files, 472 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\di\ServiceModule.kt (updated +156 lines)
+C:\Users\perso\GemNav\android\app\core\TierManager.kt (updated +37 lines)
+
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\Core\DependencyContainer.swift (updated +156 lines)
+C:\Users\perso\GemNav\ios\GemNav\Core\TierManager.swift (updated +37 lines)
+```
+
+---
+
+### MP-016 Voice Components Implementation (COMPLETE)
+**Completed**: 2025-11-22  
+**Objective**: Implement core voice command processing components
+
+**Deliverables**:
+- VoiceCommandManager (orchestration)
+- CommandParser (Gemini AI integration)
+- CommandExecutor (ViewModel routing)
+- AndroidSpeechRecognitionService (speech-to-text)
+- AndroidVoiceResponseService (TTS)
+- WakeWordDetector (Plus/Pro feature)
+- VoiceCommands data models
+
+**Files Created**: 8 files, 1,304 lines total
+```
+Android:
+C:\Users\perso\GemNav\android\app\voice\VoiceCommandManager.kt (244 lines)
+C:\Users\perso\GemNav\android\app\voice\CommandParser.kt (284 lines)
+C:\Users\perso\GemNav\android\app\voice\CommandExecutor.kt (279 lines)
+C:\Users\perso\GemNav\android\app\voice\AndroidSpeechRecognitionService.kt (136 lines)
+C:\Users\perso\GemNav\android\app\voice\AndroidVoiceResponseService.kt (99 lines)
+C:\Users\perso\GemNav\android\app\voice\WakeWordDetector.kt (118 lines)
+C:\Users\perso\GemNav\android\app\voice\VoiceCommands.kt (89 lines)
+C:\Users\perso\GemNav\android\app\voice\SpeechRecognitionService.kt (55 lines - interface)
+```
+
+---
+
+### MP-016-D: Voice UI Components (COMPLETE)
+**Completed**: 2025-11-22  
+**Objective**: Create UI components for voice interaction
+
+**Deliverables**:
+- VoiceButton (mic button with animations)
+- VoiceFeedbackOverlay (listening/processing/error states)
+- VoicePermissionDialog (microphone permission request)
+- WakeWordIndicator (Plus/Pro wake word status)
 
 ### Files Created
 ```
@@ -271,3 +501,35 @@ C:\Users\perso\GemNav\ios\GemNav\Voice\UI\WakeWordIndicator.swift
 **Total MP-016 series**: 7,294 lines (specs: 2,475, implementations: 4,819)
 
 Ready for: Microphone permissions (MP-016-E), iOS voice services, or integration testing
+
+---
+
+## MP-016-E: Microphone Permissions (COMPLETE)
+**Completed**: 2025-11-22  
+**Objective**: Create permission managers for microphone access on both platforms
+
+### Deliverables
+1. Android: MicrophonePermissionManager.kt with RECORD_AUDIO permission handling
+2. iOS: MicrophonePermissionManager.swift with AVAudioSession + SFSpeechRecognizer
+
+### Features
+- Runtime permission checking and requesting
+- Permission state tracking (Unknown, Granted, Denied, PermanentlyDenied)
+- Settings navigation for denied permissions
+- Graceful fallback to text input when denied
+- SharedPreferences tracking for Android permanent denial detection
+- Async/await permission requests for iOS
+
+### Files Created
+```
+Android:
+C:\Users\perso\GemNav\android\app\voice\permissions\MicrophonePermissionManager.kt
+
+iOS:
+C:\Users\perso\GemNav\ios\GemNav\Voice\Permissions\MicrophonePermissionManager.swift
+```
+
+**Total MP-016-E**: 325 lines (Android: 172, iOS: 153)
+**Total MP-016 series**: 7,619 lines (specs: 2,475, implementations: 5,144)
+
+Ready for: iOS voice services, VoiceCommandManager integration, or integration testing
