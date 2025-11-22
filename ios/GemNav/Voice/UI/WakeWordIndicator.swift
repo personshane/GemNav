@@ -1,38 +1,28 @@
 import SwiftUI
 
+/// Visual indicator for wake word detection status on iOS
+/// Shows "Hey GemNav" listening status for Plus/Pro tiers
 struct WakeWordIndicator: View {
     let isActive: Bool
     
-    @State private var pulseOpacity: Double = 0.3
-    
     var body: some View {
         if isActive {
-            HStack(spacing: 6) {
-                Image(systemName: "ear.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
+            HStack(spacing: 8) {
+                Image(systemName: "waveform")
+                    .font(.system(size: 16))
+                    .foregroundColor(.blue)
                 
-                Text("Say \"Hey GemNav\"")
+                Text("\"Hey GemNav\" listening")
                     .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
+                    .foregroundColor(.blue)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .background(
-                Color.green
-                    .opacity(pulseOpacity)
-                    .cornerRadius(16)
+                Capsule()
+                    .fill(Color.blue.opacity(0.1))
             )
-            .shadow(radius: 4)
-            .onAppear {
-                withAnimation(
-                    Animation.easeInOut(duration: 1.5)
-                        .repeatForever(autoreverses: true)
-                ) {
-                    pulseOpacity = 1.0
-                }
-            }
+            .transition(.opacity.combined(with: .scale))
         }
     }
 }
