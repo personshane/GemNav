@@ -49,40 +49,87 @@
 
 ---
 
-## MP-004: Plus Tier Architecture
-**Status**: ⬜ Not Started
+## MP-004: Android Platform Specifications
+**Status**: ✅ COMPLETE
 
-**Objective**: Design Plus tier with Google Maps SDK
+**Objective**: Complete Android technical specifications
 
-**Tasks**:
-- Maps SDK integration approach
-- Gemini Cloud API architecture
-- Multi-waypoint routing logic
-- In-app navigation flow
-- UI component specifications
+**Files Created**: 11 files covering UI, architecture, billing, Gemini integration
+- android/ui/free_mode_ui.md
+- android/ui/plus_mode_ui.md
+- android/ui/pro_mode_ui.md
+- android/architecture/app_flow_diagram.md
+- android/architecture/routing_engine_switch.md
+- android/architecture/billing_and_permissions.md
+- android/architecture/gemini_integration.md
+- Plus 4 additional files
 
 **Dependencies**: MP-002 ✅, MP-003 ✅
 
 ---
 
-## MP-005: Pro Tier HERE SDK Setup
-**Status**: ⬜ Not Started
+## MP-005: Google Platform Integration Specifications
+**Status**: ✅ COMPLETE
 
-**Objective**: Architect Pro tier with HERE SDK
+**Objective**: Document Google Maps and services integration
+
+**Files Created**: 4 files
+- google/maps_intents_list.md
+- google/maps_tier2_integration.md
+- google/no_mixing_rules.md
+- google/search_and_waypoints.md
 
 **Dependencies**: MP-002 ✅
 
 ---
 
-## MP-006: Subscription & Billing System
-**Status**: ⬜ Not Started
+## MP-006: iOS Platform Specifications
+**Status**: ✅ COMPLETE
 
-**Objective**: Implement Google Play Billing
+**Objective**: Complete iOS technical specifications
+
+**Files Created**: 11 files covering SwiftUI, deep links, and iOS-specific implementations
+
+**Dependencies**: MP-002 ✅
+
+---
+
+## MP-007: Prompt Engineering & AI Behaviors
+**Status**: ✅ COMPLETE
+
+**Objective**: Create AI prompts and behavior specifications
+
+**Files Created**: 7 files (2,705 lines)
+- prompts/claude_core_prompt.txt (586 lines)
+- prompts/claude_memory.txt (339 lines)
+- prompts/claude_instructions.txt (324 lines)
+- prompts/gemini_free_mode_prompt.txt (312 lines)
+- prompts/gemini_plus_mode_prompt.txt (401 lines)
+- prompts/gemini_pro_mode_prompt.txt (419 lines)
+- prompts/ai_sales_agent_prompt.txt (324 lines)
+
+**Dependencies**: MP-001 ✅, MP-002 ✅
+
+---
+
+## MP-008: HERE SDK Integration Specifications
+**Status**: ✅ COMPLETE
+
+**Objective**: Complete HERE SDK technical documentation for Pro tier
+
+**Files Created**: 5 files (4,104 lines)
+- here/sdk_setup.md (564 lines)
+- here/truck_routing_api.md (761 lines)
+- here/compliance_engine.md (817 lines)
+- here/restriction_database.md (1,005 lines)
+- here/cost_calculations.md (957 lines)
+
+**Outcome**: Comprehensive truck routing, compliance, and cost calculation specifications
 
 **Dependencies**: MP-002 ✅
 
 ---
 
 **Last Updated**: 2025-11-21  
-**Current Focus**: MP-003 complete, ready for MP-004
+**Current Focus**: MP-008 complete, all specifications documented (~11,000+ lines total)
 **GitHub**: https://github.com/personshane/GemNav

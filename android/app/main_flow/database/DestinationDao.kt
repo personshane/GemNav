@@ -32,4 +32,3 @@ interface DestinationDao {
     
     @Query("DELETE FROM destinations WHERE id = :id")
     suspend fun deleteById(id: Long)
-}
