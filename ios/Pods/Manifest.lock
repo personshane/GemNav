@@ -1,0 +1,5 @@
+# Placeholder Manifest.lock
+# This file will be populated by `pod install`
+PODFILE CHECKSUM: 0000000000000000000000000000000000000000
+
+COCOAPODS: 1.15.0
