@@ -271,3 +271,17 @@ Ready for: MP-016-C implementation, voice UI (MP-016-D), permissions (MP-016-E),
 **Total MP-016 series**: 6,666 lines (specs + implementations)
 
 Ready for: Voice UI components (MP-016-D), permissions (MP-016-E), or tests
+
+
+## MP-016 Work Continuation
+
+**See**: [MP-016-CONTINUATION-GUIDE.md](docs/MP-016-CONTINUATION-GUIDE.md) for detailed instructions
+
+**Current State**: DI complete (472 lines), core voice components implemented (1,304 lines)
+
+**Next Options**:
+1. MP-016-D: Voice UI Components (VoiceButton, overlays, permissions UI)
+2. MP-016-E: Microphone Permissions (runtime permission handling)
+3. MP-016-iOS: Voice service implementations (speech recognition, TTS, wake word)
+
+**Quick Start**: `Read MP-016-CONTINUATION-GUIDE.md` → Choose option → Implement → Commit

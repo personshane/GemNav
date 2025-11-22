@@ -359,3 +359,51 @@ Total: 472 lines"
 ---
 
 **END OF MP-016-C HANDOFF**
+
+
+---
+
+# MP-016 CONTINUATION GUIDE
+
+**For detailed MP-016 work instructions, see**:  
+📋 **[MP-016-CONTINUATION-GUIDE.md](docs/MP-016-CONTINUATION-GUIDE.md)**
+
+## Quick Reference
+
+### ✓ Completed (2025-11-22)
+- MP-016 Specification (787 lines)
+- MP-016-B Specification (1,688 lines)
+- MP-016-C Implementation: Dependency Injection (472 lines)
+- Core voice components (1,304 lines): VoiceCommandManager, CommandParser, CommandExecutor, Speech services
+
+### 🚧 Next Up (Choose One)
+
+**Option 1: MP-016-D - Voice UI Components** ⭐ RECOMMENDED
+- Create VoiceButton, VoiceFeedbackOverlay, VoicePermissionDialog
+- Android Compose + iOS SwiftUI
+- Tier-specific UI (wake word indicator for Plus/Pro)
+- Files: android/app/voice/ui/*.kt, ios/GemNav/Voice/UI/*.swift
+
+**Option 2: MP-016-E - Microphone Permissions**
+- Runtime permission handling
+- Permission rationale and settings deep link
+- Integration with voice services
+- Files: MicrophonePermissionManager (Android + iOS)
+
+**Option 3: MP-016-iOS - Voice Service Implementations**
+- IOSSpeechRecognitionService (SFSpeechRecognizer)
+- IOSVoiceResponseService (AVSpeechSynthesizer)
+- IOSWakeWordDetector
+- Files: ios/GemNav/Voice/*.swift
+
+### Resume Command
+```bash
+Read MP-016-CONTINUATION-GUIDE.md for detailed instructions
+Choose Option 1, 2, or 3 above
+Implement in 25-30 line chunks
+Update STATUS.md + commit + push
+```
+
+---
+
+**END OF MP-016 HANDOFF - SEE MP-016-CONTINUATION-GUIDE.md FOR FULL DETAILS**
