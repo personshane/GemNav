@@ -669,3 +669,69 @@ All HomeScreen navigation callbacks can now resolve:
 **Status**: MP-014 COMPLETE (Code), PENDING CLEANUP
 **Overall Project**: ~23,174 lines across 92 files (+338 lines from MP-010-014)
 **MP-010-014 Combined**: 307 lines new screens + 19 lines model/fixes + 12 lines navigation = 338 lines total
+
+
+---
+
+## MP-015: Complete HomeScreen Navigation Hookup
+
+**Date**: 2025-11-23
+**Status**: COMPLETE ✅
+
+### Modified Files
+- `android/app/src/main/java/com/gemnav/app/ui/mainflow/HomeScreen.kt` (6 navigation callbacks updated)
+
+### Navigation Callbacks Implemented
+
+**Settings Icon (TopAppBar)**:
+```kotlin
+onClick = { navController.navigate("settings") }
+```
+
+**Voice FAB**:
+```kotlin
+onClick = { navController.navigate("voice") }
+```
+
+**SearchBar**:
+```kotlin
+onSearch = { navController.navigate("search") }
+```
+
+**QuickActionsRow**:
+```kotlin
+onHomeClick = { navController.navigate("search") }
+onWorkClick = { navController.navigate("search") }
+```
+
+**FavoritesCard**:
+```kotlin
+onFavoriteClick = { destination ->
+    navController.navigate("routeDetails/${destination.id}")
+}
+```
+
+**RecentDestinationsCard**:
+```kotlin
+onDestinationClick = { destination ->
+    navController.navigate("routeDetails/${destination.id}")
+}
+```
+
+### Navigation TODO Status
+✅ All navigation TODOs removed
+⚠️ Feature TODOs remain: favorite toggle (non-navigation)
+
+### Build Status
+✅ BUILD SUCCESSFUL in 10s
+- 39 actionable tasks: 7 executed, 32 up-to-date
+- Clean compilation with no errors
+
+**MP-015 Total**: 6 navigation callbacks updated (minimal line count, ~6 LOC changed)
+
+---
+
+**Last Updated**: 2025-11-23
+**Status**: MP-015 COMPLETE
+**Overall Project**: ~23,180 lines across 92 files
+**Next Priority**: MP-016 (ViewModels) or placeholder file cleanup
