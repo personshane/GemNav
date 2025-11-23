@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.gemnav.app.models.Destination
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.UUID
 
 class HomeViewModel : ViewModel() {
     private val _favorites = MutableStateFlow<List<Destination>>(emptyList())
@@ -21,12 +22,14 @@ class HomeViewModel : ViewModel() {
     fun loadMockData() {
         _favorites.value = listOf(
             Destination(
+                id = UUID.randomUUID().toString(),
                 name = "Favorite 1",
                 address = "123 Main St",
                 latitude = 33.4484,
                 longitude = -112.0740
             ),
             Destination(
+                id = UUID.randomUUID().toString(),
                 name = "Favorite 2",
                 address = "555 Center Ave",
                 latitude = 33.5484,
@@ -35,12 +38,14 @@ class HomeViewModel : ViewModel() {
         )
         _recent.value = listOf(
             Destination(
+                id = UUID.randomUUID().toString(),
                 name = "Truck Stop",
                 address = "AZ-95 Exit 12",
                 latitude = 34.0484,
                 longitude = -113.0740
             ),
             Destination(
+                id = UUID.randomUUID().toString(),
                 name = "Warehouse 32A",
                 address = "Industrial Rd",
                 latitude = 33.3484,
@@ -48,12 +53,14 @@ class HomeViewModel : ViewModel() {
             )
         )
         _home.value = Destination(
+            id = UUID.randomUUID().toString(),
             name = "Home",
             address = "My House",
             latitude = 33.4484,
             longitude = -112.0740
         )
         _work.value = Destination(
+            id = UUID.randomUUID().toString(),
             name = "Work",
             address = "Distribution Center",
             latitude = 33.5484,

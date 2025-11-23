@@ -5,10 +5,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.gemnav.app.ui.mainflow.HomeScreen
-import com.gemnav.app.ui.search.SearchScreenPlaceholder
-import com.gemnav.app.ui.settings.SettingsScreenPlaceholder
-import com.gemnav.app.ui.voice.VoiceScreenPlaceholder
-import com.gemnav.app.ui.route.RouteDetailsScreenPlaceholder
+import com.gemnav.app.ui.search.SearchScreen
+import com.gemnav.app.ui.settings.SettingsScreen
+import com.gemnav.app.ui.voice.VoiceScreen
+import com.gemnav.app.ui.route.RouteDetailsScreen
 
 @Composable
 fun AppNavHost() {
@@ -23,20 +23,23 @@ fun AppNavHost() {
         }
         
         composable("search") {
-            SearchScreenPlaceholder()
+            SearchScreen(navController = navController)
         }
         
         composable("settings") {
-            SettingsScreenPlaceholder()
+            SettingsScreen(navController = navController)
         }
         
         composable("voice") {
-            VoiceScreenPlaceholder()
+            VoiceScreen(navController = navController)
         }
         
         composable("routeDetails/{id}") { backStackEntry ->
             val id = backStackEntry.arguments?.getString("id") ?: ""
-            RouteDetailsScreenPlaceholder(id)
+            RouteDetailsScreen(
+                navController = navController,
+                id = id
+            )
         }
     }
 }

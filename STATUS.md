@@ -523,3 +523,149 @@ All HomeScreen navigation callbacks can now resolve:
 **Status**: MP-009 COMPLETE
 **Overall Project**: ~22,836 lines across 88 files
 **MP-009 Total**: 40 lines new + 21 lines modified = 61 lines
+
+
+---
+
+## MP-010: Implement Real Search Screen
+
+**Date**: 2025-11-23
+**Status**: COMPLETE
+
+### Created Files
+- `android/app/src/main/java/com/gemnav/app/ui/search/SearchScreen.kt` (67 lines, later updated to 69 lines with @OptIn fixes)
+
+### Modified Files
+- `android/app/src/main/java/com/gemnav/app/ui/AppNavHost.kt` (updated search route)
+
+### Features Implemented
+- Search text field with live query state
+- Mock search results generation (5 results per query)
+- Click-to-navigate to routeDetails/{id}
+- Material3 compliant layout with LazyColumn
+- UUID-based String IDs for navigation
+
+### Notes
+- SearchScreenPlaceholder.kt still exists (pending manual deletion)
+- Added @OptIn(ExperimentalMaterial3Api::class) for Material3 experimental APIs
+
+**MP-010 Total**: 69 lines new + 2 lines modified in AppNavHost = 71 lines
+
+---
+
+## MP-011: Implement Real Settings Screen
+
+**Date**: 2025-11-23
+**Status**: COMPLETE
+
+### Created Files
+- `android/app/src/main/java/com/gemnav/app/ui/settings/SettingsScreen.kt` (78 lines)
+
+### Modified Files
+- `android/app/src/main/java/com/gemnav/app/ui/AppNavHost.kt` (updated settings route)
+
+### Features Implemented
+- Three toggles: Dark Mode, Voice Guidance, Use Metric Units (in-memory state)
+- App version display (v0.1 dev)
+- Manage Favorites button (TODO for future route)
+- Material3 Switch components with proper styling
+- SettingsToggle reusable composable
+
+### Notes
+- SettingsScreenPlaceholder.kt still exists (pending manual deletion)
+- All settings toggles use in-memory state only (no persistence)
+
+**MP-011 Total**: 78 lines new + 2 lines modified in AppNavHost = 80 lines
+
+---
+
+## MP-012: Implement Real Route Details Screen
+
+**Date**: 2025-11-23
+**Status**: COMPLETE
+
+### Created Files
+- `android/app/src/main/java/com/gemnav/app/ui/route/RouteDetailsScreen.kt` (80 lines)
+
+### Modified Files
+- `android/app/src/main/java/com/gemnav/app/ui/AppNavHost.kt` (updated routeDetails route)
+
+### Features Implemented
+- Destination display (name + address from mock data)
+- Three action buttons: Navigate (TODO), Favorite/Unfavorite (in-memory toggle), Share (TODO)
+- Recent Activity section with mock metadata
+- destinationProvider parameter for future integration
+- String ID support for navigation
+
+### Notes
+- RouteDetailsScreenPlaceholder.kt still exists (pending manual deletion)
+- Navigate and Share buttons have TODO placeholders
+- Favorite toggle works in-memory only
+
+**MP-012 Total**: 80 lines new + 4 lines modified in AppNavHost = 84 lines
+
+---
+
+## MP-013: Implement Real Voice Screen
+
+**Date**: 2025-11-23
+**Status**: COMPLETE
+
+### Created Files
+- `android/app/src/main/java/com/gemnav/app/ui/voice/VoiceScreen.kt` (82 lines)
+
+### Modified Files
+- `android/app/src/main/java/com/gemnav/app/ui/AppNavHost.kt` (updated voice route)
+
+### Features Implemented
+- Large circular mic button with listening state (visual only)
+- Listening state animation (color + opacity changes)
+- Transcription preview text field (editable)
+- Process Command button (navigates to search if transcript not blank)
+- Start/Stop Listening toggle button (temporary for testing)
+- Material3 layout with CircleShape and state management
+
+### Notes
+- VoiceScreenPlaceholder.kt still exists (pending manual deletion)
+- No actual audio capture yet (UI only)
+- No Gemini integration yet (TODO)
+- Process Command has TODO for speech-intent engine
+
+**MP-013 Total**: 82 lines new + 2 lines modified in AppNavHost = 84 lines
+
+---
+
+## MP-014: Standardize Destination Model + Cleanup
+
+**Date**: 2025-11-23
+**Status**: COMPLETE (Code Changes), PENDING (Manual File Deletion)
+
+### Modified Files
+- `android/app/src/main/java/com/gemnav/app/models/Destination.kt` (simplified to 10 lines)
+- `android/app/src/main/java/com/gemnav/app/ui/mainflow/HomeViewModel.kt` (added UUID IDs to 6 constructors)
+- `android/app/src/main/java/com/gemnav/app/ui/search/SearchScreen.kt` (added @OptIn annotations)
+
+### Changes Applied
+- **Destination.kt**: Changed `id` from `Long` to `String`, removed Parcelable, removed unused fields
+- **HomeViewModel.kt**: Added `import java.util.UUID`, added `id = UUID.randomUUID().toString()` to all 6 Destination constructors
+- **SearchScreen.kt**: Added `@OptIn(ExperimentalMaterial3Api::class)` to both composables
+
+### Files Pending Deletion (Manual)
+1. `android/app/src/main/java/com/gemnav/app/ui/search/SearchScreenPlaceholder.kt`
+2. `android/app/src/main/java/com/gemnav/app/ui/settings/SettingsScreenPlaceholder.kt`
+3. `android/app/src/main/java/com/gemnav/app/ui/voice/VoiceScreenPlaceholder.kt`
+4. `android/app/src/main/java/com/gemnav/app/ui/route/RouteDetailsScreenPlaceholder.kt`
+
+### Type Consistency Achieved
+- All Destination constructors now use String IDs
+- SearchScreen, RouteDetailsScreen, HomeViewModel all consistent
+- Navigation routeDetails/{id} fully functional with String parameters
+
+**MP-014 Total**: 10 lines rewritten in Destination.kt + 7 lines added to HomeViewModel.kt + 2 annotations in SearchScreen.kt = 19 lines
+
+---
+
+**Last Updated**: 2025-11-23
+**Status**: MP-014 COMPLETE (Code), PENDING CLEANUP
+**Overall Project**: ~23,174 lines across 92 files (+338 lines from MP-010-014)
+**MP-010-014 Combined**: 307 lines new screens + 19 lines model/fixes + 12 lines navigation = 338 lines total

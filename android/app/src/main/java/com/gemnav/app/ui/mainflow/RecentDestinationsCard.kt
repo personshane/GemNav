@@ -77,10 +77,9 @@ private fun DestinationItem(
         
         IconButton(onClick = onToggleFavorite) {
             Icon(
-                imageVector = if (destination.isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
-                contentDescription = if (destination.isFavorite) "Remove from favorites" else "Add to favorites",
-                tint = if (destination.isFavorite) MaterialTheme.colorScheme.primary 
-                       else MaterialTheme.colorScheme.onSurfaceVariant
+                imageVector = Icons.Outlined.StarOutline,
+                contentDescription = "Add to favorites",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

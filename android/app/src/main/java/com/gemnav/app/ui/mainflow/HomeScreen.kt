@@ -39,7 +39,7 @@ fun HomeScreen(
                 title = { Text("GemNav") },
                 actions = {
                     IconButton(
-                        onClick = { /* TODO: Navigate to settings when route exists */ }
+                        onClick = { navController.navigate("settings") }
                     ) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -49,7 +49,7 @@ fun HomeScreen(
         floatingActionButton = {
             VoiceButton(
                 state = VoiceButtonState.Idle,
-                onClick = { /* TODO: Navigate to voice when route exists */ }
+                onClick = { navController.navigate("voice") }
             )
         }
     ) { padding ->
@@ -66,21 +66,21 @@ fun HomeScreen(
             SearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it },
-                onSearch = { /* TODO: Navigate to search when route exists */ },
+                onSearch = { navController.navigate("search") },
                 isSearching = false
             )
             
             QuickActionsRow(
                 home = home,
                 work = work,
-                onHomeClick = { /* TODO: Navigate to search when route exists */ },
-                onWorkClick = { /* TODO: Navigate to search when route exists */ }
+                onHomeClick = { navController.navigate("search") },
+                onWorkClick = { navController.navigate("search") }
             )
             
             FavoritesCard(
                 favorites = favorites,
                 onFavoriteClick = { destination ->
-                    /* TODO: Navigate to routeDetails/${destination.id} when route exists */
+                    navController.navigate("routeDetails/${destination.id}")
                 },
                 onToggleFavorite = { /* TODO: Implement favorite toggle */ }
             )
@@ -88,7 +88,7 @@ fun HomeScreen(
             RecentDestinationsCard(
                 destinations = recentDestinations,
                 onDestinationClick = { destination ->
-                    /* TODO: Navigate to routeDetails/${destination.id} when route exists */
+                    navController.navigate("routeDetails/${destination.id}")
                 },
                 onToggleFavorite = { /* TODO: Implement favorite toggle */ }
             )

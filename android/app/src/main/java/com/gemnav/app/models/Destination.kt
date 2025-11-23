@@ -1,20 +1,9 @@
 package com.gemnav.app.models
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
-
-@Parcelize
 data class Destination(
-    val id: Long = 0,
+    val id: String,
     val name: String,
     val address: String,
-    val latitude: Double,
-    val longitude: Double,
-    val placeId: String? = null,
-    val isFavorite: Boolean = false,
-    val isHome: Boolean = false,
-    val isWork: Boolean = false
-) : Parcelable {
-    
-    fun toLatLngString(): String = "$latitude,$longitude"
-}
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
+)
