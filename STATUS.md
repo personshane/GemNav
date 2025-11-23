@@ -248,3 +248,66 @@ Complete NavigationView integration for iOS
 **Status**: MP-006 COMPLETE
 **Overall Project**: ~22,473 lines across 83 files
 **MP-006 Total**: 374 lines new + 83 lines modified = 457 lines
+
+
+## MICRO-PROJECT 007 — HOME SCREEN STATE MANAGEMENT + REAL DATA BINDING
+
+**Objective**: Implement HomeViewModel with StateFlows and wire real data into HomeScreen composable. No navigation hookups, no voice recognition, no network calls - pure state-to-UI binding.
+
+**Status**: COMPLETE ✅
+
+**Date**: 2025-11-23
+
+### Components Created
+
+**New Files**:
+- HomeViewModel.kt: ViewModel with StateFlows for favorites, recent, home, work locations (64 lines)
+
+**Modified Files**:
+- HomeScreen.kt: Integrated ViewModel, collectAsState, LaunchedEffect for mock data (94 lines)
+
+### State Management Implementation
+
+**StateFlows**:
+- favorites: StateFlow<List<Destination>>
+- recent: StateFlow<List<Destination>>
+- home: StateFlow<Destination?>
+- work: StateFlow<Destination?>
+
+**Mock Data**:
+- 2 favorites (Main St, Center Ave)
+- 2 recent destinations (Truck Stop, Warehouse)
+- Home and Work quick actions
+- All with valid lat/long coordinates (Phoenix area)
+
+### Parameters Now Supplied
+
+**QuickActionsRow**: home = viewModel.home.collectAsState().value, work = viewModel.work.collectAsState().value, onHomeClick = {}, onWorkClick = {}
+**FavoritesCard**: favorites = viewModel.favorites.collectAsState().value, onFavoriteClick = {}, onToggleFavorite = {}
+**RecentDestinationsCard**: destinations = viewModel.recent.collectAsState().value, onDestinationClick = {}, onToggleFavorite = {}
+**VoiceButton**: state = VoiceButtonState.Idle, onClick = {}
+
+### Imports Updated
+- androidx.lifecycle.viewmodel.compose.viewModel
+- androidx.compose.runtime.collectAsState
+- androidx.compose.runtime.LaunchedEffect
+- com.gemnav.app.models.Destination (NOT com.gemnav.android.app.main_flow.models.Destination)
+
+### Build Status
+✅ BUILD SUCCESSFUL - 39 tasks executed, ViewModel compiles and integrates properly
+⚠️ Warning: Parameter 'onNavigateToRoute' is never used (expected, navigation in future MP)
+
+### Package Structure Note
+UI components use `com.gemnav.app.*` while some legacy components use `com.gemnav.android.app.*`. MP-007 follows the new structure with `com.gemnav.app.models.Destination`.
+
+### Ready For
+- MP-008 (Repository implementation for persistence)
+- OR MP-009 (Navigation hookups and screen transitions)
+- OR MP-010 (Voice button integration with VoiceCommandManager)
+
+---
+
+**Last Updated**: 2025-11-23
+**Status**: MP-007 COMPLETE
+**Overall Project**: ~22,631 lines across 84 files
+**MP-007 Total**: 64 lines new + 11 lines modified = 75 lines
