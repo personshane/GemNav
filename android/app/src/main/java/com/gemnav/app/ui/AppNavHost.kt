@@ -15,10 +15,7 @@ fun AppNavHost() {
         startDestination = "home"
     ) {
         composable("home") {
-            HomeScreen(
-                onNavigateToRoute = { /* TODO: Navigate to route preview */ },
-                onSettingsClick = { /* TODO: Navigate to settings */ }
-            )
+            HomeScreen(navController = navController)
         }
     }
 }
