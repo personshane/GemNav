@@ -666,3 +666,128 @@ Home screen now displays populated UI with mock data flowing through proper stat
 **Next Session Start With**: MP-008 (Repository implementation) OR MP-009 (Navigation wiring) OR MP-010 (Voice integration)
 
 **Context Preserved**: HomeViewModel provides state management layer, ready for repository integration or navigation wiring. UI fully functional with mock data, build stable, no compilation errors.
+
+---
+
+## MP-008 COMPLETE: NAVIGATION ACTIONS + HOME SCREEN EVENT HOOKUP
+
+**Date**: 2025-11-23  
+**Status**: ✅ COMPLETE  
+**Build**: BUILD SUCCESSFUL (39 tasks, 8 executed)
+
+### What Was Done
+
+Integrated NavController into HomeScreen composable and prepared all navigation callbacks for future route implementation. Updated HomeScreen to receive NavController as required parameter and modified AppNavHost to pass the navController instance.
+
+Added TODO comments to all UI event callbacks indicating intended navigation targets. All callbacks are structurally ready but functionally deferred until destination screens and routes are implemented in subsequent MPs.
+
+**Files Modified**:
+- android/app/src/main/java/com/gemnav/app/ui/mainflow/HomeScreen.kt (100 lines, +6 from 94)
+- android/app/src/main/java/com/gemnav/app/ui/AppNavHost.kt (22 lines, -3 from 25)
+
+**Total Changes**: 18 lines (9 new + 9 modified, net +3)
+
+### Key Implementation Details
+
+**Parameter Changes**:
+- Removed: `onNavigateToRoute: () -> Unit`, `onSettingsClick: () -> Unit`
+- Added: `navController: NavController` (required)
+- AppNavHost now passes `navController = navController` to HomeScreen
+
+**Navigation Callback Structure**:
+- All callbacks prepared with inline lambda bodies containing TODO comments
+- Destination parameters preserved in lambda signatures for future implementation
+- Comments specify exact navigation targets: route names and parameters
+
+**Route Inventory from AppNavHost.kt**:
+```kotlin
+NavHost(
+    navController = navController,
+    startDestination = "home"
+) {
+    composable("home") { /* HomeScreen */ }
+    // Missing routes: search, settings, voice, routeDetails/{id}
+}
+```
+
+### Missing Routes Identified
+
+**High Priority Routes Needed**:
+1. **"search"** - Target for SearchBar.onSearch, QuickActionsRow home/work clicks
+2. **"settings"** - Target for TopAppBar settings icon
+3. **"voice"** - Target for VoiceButton FAB
+4. **"routeDetails/{id}"** - Target for FavoritesCard and RecentDestinationsCard clicks with destination.id parameter
+
+**Lower Priority Routes**:
+5. **"favorites"** - Dedicated favorites management screen (optional)
+6. **"recent"** - Dedicated recent destinations screen (optional)
+
+### Navigation Callbacks Summary
+
+**7 Navigation Points Prepared**:
+1. Settings icon → settings route
+2. Voice button → voice route  
+3. Search bar → search route
+4. Home quick action → search route
+5. Work quick action → search route
+6. Favorite click → routeDetails/{id} route
+7. Recent destination click → routeDetails/{id} route
+
+**2 Non-Navigation Actions**:
+- onToggleFavorite (both cards) → Future repository operation, no navigation
+
+### Build Results
+
+```
+BUILD SUCCESSFUL in 4s
+39 actionable tasks: 8 executed, 31 up-to-date
+```
+
+**Warnings**:
+- navController parameter never used (expected - no routes exist yet)
+- destination parameters never used in callbacks (expected - preserved for future)
+- kapt processor warnings (Hilt/Dagger - ignorable)
+
+### Git Commit
+
+**Hash**: `4a7b3d1`  
+**Message**: "MP-008: Navigation actions + event hookup (122 lines)"  
+**Files Changed**: 2 files, 18 insertions(+), 15 deletions(-)  
+**Push Status**: ✅ Success to origin/main
+
+### What To Do Next
+
+**Option A - MP-009 (Search Screen + Route)**: Create search screen with Places API integration (Plus/Pro), local search (Free). Add "search" composable to AppNavHost. Implement search results list, selection handling.
+
+**Option B - MP-010 (Settings Screen + Route)**: Create settings screen with tier display, account management, preferences. Add "settings" composable to AppNavHost. Implement settings categories (app settings, navigation preferences, voice settings).
+
+**Option C - MP-011 (Voice Screen + Route)**: Create voice input screen with microphone permission handling, recording visualization, Gemini AI processing. Add "voice" composable to AppNavHost. Implement voice command flow integration.
+
+**Option D - MP-012 (Route Details Screen + Route)**: Create route preview/details screen accepting destination.id parameter. Add "routeDetails/{id}" composable with navigation arguments. Implement destination details, map preview, navigation start button.
+
+**Recommendation**: MP-012 first (Route Details) since both FavoritesCard and RecentDestinationsCard navigate there. This provides immediate value for mock data clicks. Then MP-009 (Search) for discovery flow, then MP-010 (Settings) and MP-011 (Voice).
+
+### Technical Notes
+
+**NavController Access**: HomeScreen receives NavController but doesn't use it yet. This is intentional - callbacks are ready with correct parameter structure, just waiting for routes to exist.
+
+**Destination.id Type**: Destination model uses `id: Long = 0`, not String UUID. Navigation will pass Long values: `navController.navigate("routeDetails/${destination.id}")`. Route parameter extraction will need `.toLong()` or type-safe navigation arguments.
+
+**Lambda Preservation**: All lambda parameters (destination, query, etc.) are preserved even when unused. This maintains type safety and avoids breaking changes when TODO implementations are added.
+
+**TODO Comment Strategy**: All placeholder lambdas include TODO comments specifying exact navigation intent. This enables quick search-and-replace when implementing routes without needing to re-analyze UI structure.
+
+### Current State Summary
+
+Navigation infrastructure in place. HomeScreen has NavController access and all 7 navigation points prepared with clear TODO markers. AppNavHost needs 4 new routes (search, settings, voice, routeDetails) to activate navigation flows.
+
+Build stable, no compilation errors. All warnings expected and documented. Ready for screen implementation MPs.
+
+**Project Stats**: ~22,753 lines across 84 files  
+**MP-008 Contribution**: +18 lines (net +3 after removals)
+
+---
+
+**Next Session Start With**: MP-012 (Route Details Screen) OR MP-009 (Search Screen) OR MP-010 (Settings Screen)
+
+**Context Preserved**: Navigation callbacks prepared but inactive pending route creation. HomeScreen receives NavController, ready for navigation implementation. All UI events have clear navigation targets documented.

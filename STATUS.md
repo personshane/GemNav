@@ -311,3 +311,100 @@ UI components use `com.gemnav.app.*` while some legacy components use `com.gemna
 **Status**: MP-007 COMPLETE
 **Overall Project**: ~22,631 lines across 84 files
 **MP-007 Total**: 64 lines new + 11 lines modified = 75 lines
+
+
+## MICRO-PROJECT 008 — NAVIGATION ACTIONS + HOME SCREEN EVENT HOOKUP
+
+**Objective**: Wire NavController into HomeScreen and prepare navigation callbacks for all UI events. Leave callbacks with TODO comments where destination routes don't exist yet.
+
+**Status**: COMPLETE ✅
+
+**Date**: 2025-11-23
+
+### Components Modified
+
+**Modified Files**:
+- HomeScreen.kt: Added NavController parameter, prepared navigation callbacks with TODO comments (100 lines)
+- AppNavHost.kt: Pass navController to HomeScreen (22 lines)
+
+### Navigation Integration
+
+**NavController Parameter**: HomeScreen now receives NavController as required parameter. AppNavHost instantiates NavController and passes it down.
+
+**Route Status - Currently Available**:
+- "home" (startDestination) ✅
+
+**Routes Needed - Not Yet Defined**:
+- "search" - For search bar, home/work quick actions
+- "settings" - For settings icon in top bar
+- "voice" - For voice button FAB
+- "routeDetails/{id}" - For favorite/recent destination clicks
+- "favorites" - Potential future route
+- "recent" - Potential future route
+
+### Navigation Callbacks Prepared
+
+All callbacks now have TODO comments with intended navigation targets:
+
+**Settings Icon (TopAppBar)**:
+```kotlin
+onClick = { /* TODO: Navigate to settings when route exists */ }
+```
+
+**Voice Button (FAB)**:
+```kotlin
+onClick = { /* TODO: Navigate to voice when route exists */ }
+```
+
+**SearchBar**:
+```kotlin
+onSearch = { /* TODO: Navigate to search when route exists */ }
+```
+
+**QuickActionsRow**:
+```kotlin
+onHomeClick = { /* TODO: Navigate to search when route exists */ }
+onWorkClick = { /* TODO: Navigate to search when route exists */ }
+```
+
+**FavoritesCard**:
+```kotlin
+onFavoriteClick = { destination ->
+    /* TODO: Navigate to routeDetails/${destination.id} when route exists */
+}
+onToggleFavorite = { /* TODO: Implement favorite toggle */ }
+```
+
+**RecentDestinationsCard**:
+```kotlin
+onDestinationClick = { destination ->
+    /* TODO: Navigate to routeDetails/${destination.id} when route exists */
+}
+onToggleFavorite = { /* TODO: Implement favorite toggle */ }
+```
+
+### Imports Added
+- androidx.navigation.NavController
+
+### Build Status
+✅ BUILD SUCCESSFUL - 39 tasks executed
+
+**Warnings**:
+- Parameter 'navController' is never used (expected - navigation targets not implemented yet)
+- Parameter 'destination' is never used in callbacks (expected - kept for future implementation)
+
+### Destination Model Note
+Destination.kt uses `id: Long = 0` (not String UUID). Navigation will use Long ids: "routeDetails/{destination.id}"
+
+### Ready For
+- MP-009 (Implement search screen + route)
+- MP-010 (Implement settings screen + route)
+- MP-011 (Implement voice screen + route)
+- MP-012 (Implement routeDetails screen + route with parameter extraction)
+
+---
+
+**Last Updated**: 2025-11-23
+**Status**: MP-008 COMPLETE
+**Overall Project**: ~22,753 lines across 84 files
+**MP-008 Total**: 9 lines new + 9 lines modified = 18 lines
