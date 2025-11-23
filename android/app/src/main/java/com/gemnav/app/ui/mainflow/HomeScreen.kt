@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -20,6 +21,8 @@ fun HomeScreen(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -44,23 +47,18 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(8.dp))
-            SearchBarPlaceholder()
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                onSearch = { },
+                isSearching = false
+            )
             QuickActionsRowPlaceholder()
             FavoritesCardPlaceholder()
             RecentDestinationsCardPlaceholder()
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}
-
-@Composable
-private fun SearchBarPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp)
-            .background(Color.LightGray.copy(alpha = 0.3f))
-    )
 }
 
 @Composable
