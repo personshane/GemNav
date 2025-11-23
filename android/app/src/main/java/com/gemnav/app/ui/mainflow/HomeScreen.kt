@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gemnav.app.ui.voice.VoiceButton
 import com.gemnav.app.ui.voice.VoiceButtonState
 
@@ -20,7 +21,17 @@ fun HomeScreen(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val viewModel: HomeViewModel = viewModel()
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    
+    val favorites by viewModel.favorites.collectAsState()
+    val recentDestinations by viewModel.recent.collectAsState()
+    val home by viewModel.home.collectAsState()
+    val work by viewModel.work.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        viewModel.loadMockData()
+    }
     
     Scaffold(
         topBar = {
@@ -58,20 +69,20 @@ fun HomeScreen(
             )
             
             QuickActionsRow(
-                home = null,
-                work = null,
+                home = home,
+                work = work,
                 onHomeClick = { },
                 onWorkClick = { }
             )
             
             FavoritesCard(
-                favorites = emptyList(),
+                favorites = favorites,
                 onFavoriteClick = { },
                 onToggleFavorite = { }
             )
             
             RecentDestinationsCard(
-                destinations = emptyList(),
+                destinations = recentDestinations,
                 onDestinationClick = { },
                 onToggleFavorite = { }
             )
