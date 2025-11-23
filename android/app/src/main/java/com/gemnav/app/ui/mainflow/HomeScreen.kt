@@ -1,9 +1,7 @@
 package com.gemnav.app.ui.mainflow
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -11,8 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.gemnav.app.ui.voice.VoiceButton
+import com.gemnav.app.ui.voice.VoiceButtonState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +34,10 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            VoiceButtonPlaceholder()
+            VoiceButton(
+                state = VoiceButtonState.Idle,
+                onClick = { }
+            )
         }
     ) { padding ->
         Column(
@@ -47,58 +49,34 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(8.dp))
+            
             SearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it },
                 onSearch = { },
                 isSearching = false
             )
-            QuickActionsRowPlaceholder()
-            FavoritesCardPlaceholder()
-            RecentDestinationsCardPlaceholder()
+            
+            QuickActionsRow(
+                home = null,
+                work = null,
+                onHomeClick = { },
+                onWorkClick = { }
+            )
+            
+            FavoritesCard(
+                favorites = emptyList(),
+                onFavoriteClick = { },
+                onToggleFavorite = { }
+            )
+            
+            RecentDestinationsCard(
+                destinations = emptyList(),
+                onDestinationClick = { },
+                onToggleFavorite = { }
+            )
+            
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}
-
-@Composable
-private fun QuickActionsRowPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp)
-            .background(Color.LightGray.copy(alpha = 0.3f))
-    )
-}
-
-@Composable
-private fun FavoritesCardPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .background(Color.LightGray.copy(alpha = 0.3f))
-    )
-}
-
-@Composable
-private fun RecentDestinationsCardPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(150.dp)
-            .background(Color.LightGray.copy(alpha = 0.3f))
-    )
-}
-
-@Composable
-private fun VoiceButtonPlaceholder() {
-    Box(
-        modifier = Modifier
-            .size(56.dp)
-            .background(
-                color = Color.LightGray.copy(alpha = 0.3f),
-                shape = CircleShape
-            )
-    )
 }
