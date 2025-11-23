@@ -8,7 +8,8 @@ target 'GemNav' do
   
   # HERE SDK (binary XCFramework placeholder)
   # NOTE: Do NOT attempt to download. Only include this line.
-  pod 'HEREMapsSDK', :path => '../here-sdk'
+  # TEMPORARILY DISABLED: Uncomment when HERE SDK binary is available
+  # pod 'HEREMapsSDK', :path => '../here-sdk'
   
   # Firebase Crashlytics + Analytics
   pod 'Firebase/Crashlytics'

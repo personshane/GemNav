@@ -19,14 +19,6 @@ plugins {
     id("org.jetbrains.kotlin.android") version "1.9.20" apply false
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri("https://repo.here.com/artifactory/open-location-platform") }
-    }
-}
-
 tasks.register("clean", Delete::class) {
     delete(rootProject.buildDir)
 }

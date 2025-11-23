@@ -38,7 +38,7 @@ android {
     }
     
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.3"
+        kotlinCompilerExtensionVersion = "1.5.5"
     }
     
     packagingOptions {
@@ -64,8 +64,16 @@ dependencies {
     // Compose
     implementation("androidx.compose.ui:ui:1.5.3")
     implementation("androidx.compose.material:material:1.5.3")
+    implementation("androidx.compose.material3:material3:1.1.2")
+    implementation("com.google.android.material:material:1.10.0")
     implementation("androidx.compose.ui:ui-tooling-preview:1.5.3")
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.3")
+    
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.7.5")
+    
+    // Material Icons Extended
+    implementation("androidx.compose.material:material-icons-extended:1.5.3")
     
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48.1")
@@ -76,7 +84,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.0.1")
     
     // HERE SDK placeholder (exact import handled later)
-    implementation(files("libs/HERE-sdk-android.aar"))
+    // TODO: Add HERE SDK when available
+    // implementation(files("libs/HERE-sdk-android.aar"))
     
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
