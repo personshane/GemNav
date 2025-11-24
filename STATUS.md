@@ -763,3 +763,36 @@ onDestinationClick = { destination ->
 **Status**: MP-007 COMPLETE
 **Overall Project**: ~24,200 lines across 97 files
 **Next Priority**: MP-016 (ViewModels) or merge mp-007 branch to main
+
+
+---
+
+## MP-008: Initialize Shim Layer (COMPLETE)
+
+**Date**: 2025-11-23  
+**Branch**: `mp-008-initialize-shim-layer`  
+**Commit**: `051ac12`
+
+### Files Modified/Created
+- `android/app/src/main/java/com/gemnav/app/GemNavApplication.kt` (129 lines) - NEW
+- `android/app/src/main/java/com/gemnav/app/MainActivity.kt` (103 lines) - MODIFIED
+
+### Key Features
+- GemNavApplication initializes shield layer before any SDK usage
+- VersionCheck runs at startup, enables SafeMode on failures
+- All three shims (Maps, Gemini, HERE) initialize sequentially
+- SafeModeListener wired for app-wide state changes
+- MainActivity exposes safe mode via StateFlow for Compose
+- areAdvancedFeaturesEnabled() helper for feature gating
+
+### Build Status
+✅ BUILD SUCCESSFUL (compileDebugKotlin)
+
+**MP-008 Total**: 189 lines added/modified
+
+---
+
+**Last Updated**: 2025-11-23
+**Status**: MP-008 COMPLETE
+**Overall Project**: ~24,400 lines across 98 files
+**Next Priority**: MP-009 (Feature gating in ViewModels) or merge branches
