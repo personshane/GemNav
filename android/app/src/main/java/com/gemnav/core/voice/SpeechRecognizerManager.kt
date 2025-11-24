@@ -7,6 +7,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import com.gemnav.core.shim.SafeModeManager
 
 /**
  * SpeechRecognizerManager - Wrapper for Android's SpeechRecognizer API.
@@ -48,6 +49,13 @@ class SpeechRecognizerManager(private val context: Context) {
      * @return true if listening started successfully
      */
     fun startListening(languageCode: String? = null): Boolean {
+        // SafeMode check - defense in depth
+        if (SafeModeManager.isSafeModeEnabled()) {
+            Log.w(TAG, "Speech recognition blocked - SafeMode active")
+            listener?.onError(SpeechError.NOT_AVAILABLE)
+            return false
+        }
+        
         if (isListeningInternal) {
             Log.d(TAG, "Already listening, ignoring start request")
             return true

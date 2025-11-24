@@ -179,6 +179,25 @@ object HereEngineManager {
         // return sdkEngine?.context
         return "STUB_MAP_CONTEXT"
     }
+    
+    /**
+     * Cleanup HERE SDK resources to prevent memory leaks.
+     * Should be called when map composable leaves composition.
+     */
+    fun cleanup() {
+        if (!isInitialized) return
+        
+        try {
+            Log.i(TAG, "Cleaning up HERE SDK resources")
+            // TODO: When real SDK integrated:
+            // sdkEngine?.dispose()
+            // sdkEngine = null
+            // isInitialized = false
+            lastError = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during HERE SDK cleanup", e)
+        }
+    }
 }
 
 /**

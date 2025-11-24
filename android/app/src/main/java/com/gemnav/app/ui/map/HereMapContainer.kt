@@ -13,7 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.gemnav.app.BuildConfig
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.here.HereEngineManager
@@ -44,6 +47,7 @@ fun HereMapContainer(
     // State
     var mapState by remember { mutableStateOf<MapState>(MapState.Initializing) }
     var isMapReady by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
     
     // Check prerequisites
     val isSafeModeActive = SafeModeManager.isSafeModeEnabled()
@@ -83,6 +87,34 @@ fun HereMapContainer(
                     onMapError(error)
                 }
             }
+        }
+    }
+    
+    // Lifecycle-aware cleanup to prevent memory leaks
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    Log.d(TAG, "Lifecycle ON_PAUSE - pausing HERE map")
+                    // TODO: Pause map rendering when SDK integrated
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    Log.d(TAG, "Lifecycle ON_RESUME - resuming HERE map")
+                    // TODO: Resume map rendering when SDK integrated
+                }
+                Lifecycle.Event.ON_DESTROY -> {
+                    Log.d(TAG, "Lifecycle ON_DESTROY - cleaning up HERE resources")
+                    HereEngineManager.cleanup()
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        
+        onDispose {
+            Log.d(TAG, "DisposableEffect onDispose - removing observer and cleaning up")
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            HereEngineManager.cleanup()
         }
     }
     
