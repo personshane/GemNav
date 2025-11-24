@@ -5,11 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gemnav.app.models.Destination
 import com.gemnav.core.feature.FeatureGate
+import com.gemnav.core.here.TruckConfig
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
+import com.gemnav.data.route.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * RouteDetailsViewModel - Handles routing functionality with feature gating.
@@ -233,5 +237,82 @@ class RouteDetailsViewModel : ViewModel() {
      */
     fun refreshFeatureState() {
         _featureSummary.value = FeatureGate.getFeatureSummary()
+    }
+    
+    // ==================== New Truck Route API (MP-013) ====================
+    
+    private val _truckRouteState = MutableStateFlow<TruckRouteState>(TruckRouteState.Idle)
+    val truckRouteState: StateFlow<TruckRouteState> = _truckRouteState
+    
+    private val _currentTruckConfig = MutableStateFlow(TruckConfig())
+    val currentTruckConfig: StateFlow<TruckConfig> = _currentTruckConfig
+    
+    /**
+     * Update truck configuration.
+     */
+    fun updateTruckConfig(config: TruckConfig) {
+        _currentTruckConfig.value = config
+    }
+    
+    /**
+     * Request truck route using new sealed class API.
+     * Enforces Pro-tier gating through HereShim.
+     * 
+     * @param startLat Origin latitude
+     * @param startLng Origin longitude  
+     * @param endLat Destination latitude
+     * @param endLng Destination longitude
+     */
+    fun requestTruckRoute(startLat: Double, startLng: Double, endLat: Double, endLng: Double) {
+        // Quick gate check for UI feedback
+        if (!FeatureGate.areCommercialRoutingFeaturesEnabled()) {
+            _truckRouteState.value = TruckRouteState.Error(
+                message = "Truck routing requires Pro subscription",
+                code = TruckRouteError.FEATURE_NOT_ENABLED
+            )
+            return
+        }
+        
+        _truckRouteState.value = TruckRouteState.Loading
+        
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                HereShim.requestTruckRoute(
+                    start = LatLng(startLat, startLng),
+                    end = LatLng(endLat, endLng),
+                    truckConfig = _currentTruckConfig.value
+                )
+            }
+            
+            _truckRouteState.value = when (result) {
+                is TruckRouteResult.Success -> {
+                    Log.i(TAG, "Truck route success: ${result.route.distanceMeters}m")
+                    TruckRouteState.Success(result.route)
+                }
+                is TruckRouteResult.Failure -> {
+                    Log.w(TAG, "Truck route failed: ${result.errorMessage}")
+                    TruckRouteState.Error(result.errorMessage, result.errorCode)
+                }
+            }
+        }
+    }
+    
+    /**
+     * Request truck route using Destination objects.
+     */
+    fun requestTruckRoute(start: Destination, end: Destination) {
+        requestTruckRoute(start.latitude, start.longitude, end.latitude, end.longitude)
+    }
+    
+    /**
+     * Check if Pro tier features are available.
+     */
+    fun isProTier(): Boolean = FeatureGate.areCommercialRoutingFeaturesEnabled()
+    
+    /**
+     * Clear truck route state.
+     */
+    fun clearTruckRoute() {
+        _truckRouteState.value = TruckRouteState.Idle
     }
 }

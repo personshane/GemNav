@@ -2,6 +2,7 @@ package com.gemnav.app
 
 import android.app.Application
 import android.util.Log
+import com.gemnav.core.here.HereEngineManager
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
@@ -102,7 +103,13 @@ class GemNavApplication : Application() {
             Log.w(TAG, "HereShim initialization failed")
         }
         
-        Log.i(TAG, "Shim initialization complete: Maps=$mapsInitialized, Gemini=$geminiInitialized, HERE=$hereInitialized")
+        // Initialize HERE Engine Manager (Pro tier - requires credentials)
+        val hereEngineInitialized = HereEngineManager.initialize(this)
+        if (!hereEngineInitialized) {
+            Log.w(TAG, "HereEngineManager initialization failed: ${HereEngineManager.getError()}")
+        }
+        
+        Log.i(TAG, "Shim initialization complete: Maps=$mapsInitialized, Gemini=$geminiInitialized, HERE=$hereInitialized, HereEngine=$hereEngineInitialized")
     }
     
     /**

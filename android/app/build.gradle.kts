@@ -89,6 +89,13 @@ dependencies {
     
     // HERE SDK placeholder (exact import handled later)
     // TODO: Add HERE SDK when available
+    // Step 1: Add repository to settings.gradle.kts:
+    //   maven { url = uri("https://repo.heremaps.com/artifactory/HERE_SDK_Android") }
+    // Step 2: Add HERE SDK dependency:
+    //   implementation("com.here.platform.location:location:4.x.x")
+    // Step 3: Add credentials to local.properties:
+    //   HERE_ACCESS_KEY_ID=your_key_id
+    //   HERE_ACCESS_KEY_SECRET=your_key_secret
     // implementation(files("libs/HERE-sdk-android.aar"))
     
     // Networking

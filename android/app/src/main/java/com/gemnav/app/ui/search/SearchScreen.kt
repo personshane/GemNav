@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.gemnav.app.models.Destination
+import com.gemnav.app.ui.common.SafeModeBanner
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,6 +32,8 @@ fun SearchScreen(navController: NavController) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        SafeModeBanner()
+        
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
