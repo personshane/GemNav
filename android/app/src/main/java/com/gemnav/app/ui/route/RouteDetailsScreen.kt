@@ -17,6 +17,7 @@ import com.gemnav.app.models.Destination
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.app.ui.map.HereMapContainer
 import com.gemnav.app.ui.map.GoogleMapContainer
+import com.gemnav.core.location.LocationViewModel
 import com.gemnav.data.route.LatLng
 import com.gemnav.data.route.TruckRouteData
 import com.gemnav.data.route.TruckRouteState
@@ -29,6 +30,7 @@ fun RouteDetailsScreen(
     destinationProvider: (String) -> Destination? = { null }
 ) {
     val viewModel: RouteDetailsViewModel = viewModel()
+    val locationViewModel: LocationViewModel = viewModel()
     
     val destination = destinationProvider(id) ?: Destination(
         name = "Mock Destination",
@@ -42,6 +44,23 @@ fun RouteDetailsScreen(
     val truckRouteState by viewModel.truckRouteState.collectAsState()
     val isProTier = viewModel.isProTier()
     val isPlusTier = viewModel.isPlusTier()
+    
+    val currentLocation by locationViewModel.currentLocation.collectAsState()
+    val locationStatus by locationViewModel.locationStatus.collectAsState()
+    
+    // Start location tracking for Plus/Pro tiers
+    LaunchedEffect(isPlusTier) {
+        if (isPlusTier) {
+            locationViewModel.startTracking()
+        }
+    }
+    
+    // Cleanup on dispose
+    DisposableEffect(Unit) {
+        onDispose {
+            locationViewModel.stopTracking()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -59,6 +78,15 @@ fun RouteDetailsScreen(
             text = destination.address,
             style = MaterialTheme.typography.bodyLarge
         )
+        
+        // Current Location Display (Plus/Pro tiers)
+        if (isPlusTier || isProTier) {
+            Spacer(modifier = Modifier.height(8.dp))
+            CurrentLocationIndicator(
+                location = currentLocation,
+                status = locationStatus
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -430,6 +458,70 @@ private fun PlusTierMapSection(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Navigate")
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Shows current GPS location for Plus/Pro tiers.
+ * TODO: Replace with navigation overlay in MP-017.
+ */
+@Composable
+private fun CurrentLocationIndicator(
+    location: LatLng?,
+    status: LocationViewModel.LocationStatus
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = MaterialTheme.shapes.small
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            when (status) {
+                is LocationViewModel.LocationStatus.Active -> {
+                    location?.let {
+                        Text(
+                            text = "📍 ${String.format("%.5f", it.latitude)}, ${String.format("%.5f", it.longitude)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                is LocationViewModel.LocationStatus.Searching -> {
+                    CircularProgressIndicator(modifier = Modifier.size(12.dp))
+                    Text(
+                        text = "Acquiring GPS...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                is LocationViewModel.LocationStatus.Error -> {
+                    Text(
+                        text = "GPS: ${status.message}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                is LocationViewModel.LocationStatus.PermissionDenied -> {
+                    Text(
+                        text = "GPS: Permission required",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                else -> {
+                    Text(
+                        text = "GPS: Idle",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

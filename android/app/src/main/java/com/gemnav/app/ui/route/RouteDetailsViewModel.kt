@@ -63,6 +63,62 @@ class RouteDetailsViewModel : ViewModel() {
     private val _featureSummary = MutableStateFlow(FeatureGate.getFeatureSummary())
     val featureSummary: StateFlow<FeatureGate.FeatureSummary> = _featureSummary
     
+    // ==================== LOCATION TRACKING (MP-018) ====================
+    
+    private val _currentUserLocation = MutableStateFlow<LatLng?>(null)
+    val currentUserLocation: StateFlow<LatLng?> = _currentUserLocation
+    
+    private val _isNavigating = MutableStateFlow(false)
+    val isNavigating: StateFlow<Boolean> = _isNavigating
+    
+    /**
+     * Update current user location from LocationViewModel.
+     * Called by UI when location changes.
+     */
+    fun updateUserLocation(location: LatLng?) {
+        _currentUserLocation.value = location
+        
+        // TODO MP-017: If navigation active, trigger:
+        // - upcomingStepDistance calculation
+        // - lane guidance updates
+        // - route deviation detection
+        // - recalculation triggers
+        if (_isNavigating.value && location != null) {
+            checkNavigationProgress(location)
+        }
+    }
+    
+    /**
+     * Check navigation progress against current route.
+     * TODO MP-017: Full turn-by-turn implementation
+     */
+    private fun checkNavigationProgress(location: LatLng) {
+        // Stub for MP-017 turn-by-turn navigation
+        Log.d(TAG, "Navigation progress check at: ${location.latitude}, ${location.longitude}")
+        // TODO: Calculate distance to next step
+        // TODO: Check if off-route (> 50m deviation)
+        // TODO: Trigger recalculation if needed
+    }
+    
+    /**
+     * Start turn-by-turn navigation.
+     * TODO MP-017: Full implementation
+     */
+    fun startNavigation() {
+        _isNavigating.value = true
+        Log.i(TAG, "Navigation started")
+        // TODO: Initialize TTS
+        // TODO: Start step announcements
+    }
+    
+    /**
+     * Stop navigation.
+     */
+    fun stopNavigation() {
+        _isNavigating.value = false
+        Log.i(TAG, "Navigation stopped")
+    }
+    
     /**
      * Set route origin.
      */

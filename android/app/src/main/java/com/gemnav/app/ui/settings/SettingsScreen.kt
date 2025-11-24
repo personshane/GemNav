@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.core.feature.FeatureGate
+import com.gemnav.core.location.LocationViewModel
 import com.gemnav.core.shim.SafeModeManager
 import com.gemnav.core.subscription.Tier
 import com.gemnav.core.subscription.TierManager
@@ -39,9 +40,17 @@ fun SettingsScreen(
     val featureSummary = FeatureGate.getFeatureSummary()
     val scrollState = rememberScrollState()
     
+    val locationViewModel: LocationViewModel = viewModel()
+    val hasLocationPermission by locationViewModel.hasPermission.collectAsState()
+    val locationStatus by locationViewModel.locationStatus.collectAsState()
+    
     var darkMode by remember { mutableStateOf(false) }
     var voiceGuidance by remember { mutableStateOf(true) }
     var metricUnits by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        locationViewModel.checkPermission()
+    }
     
     Scaffold(
         topBar = {
@@ -81,6 +90,15 @@ fun SettingsScreen(
             
             // Feature Status Section
             FeatureStatusSection(featureSummary)
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Location Permission Section
+            LocationPermissionSection(
+                hasPermission = hasLocationPermission,
+                status = locationStatus,
+                onRequestPermission = { /* TODO: Launch permission request */ }
+            )
             
             Spacer(modifier = Modifier.height(24.dp))
             
@@ -364,5 +382,77 @@ fun SettingsToggle(title: String, checked: Boolean, onCheckedChange: (Boolean) -
             checked = checked,
             onCheckedChange = onCheckedChange
         )
+    }
+}
+
+@Composable
+fun LocationPermissionSection(
+    hasPermission: Boolean,
+    status: LocationViewModel.LocationStatus,
+    onRequestPermission: () -> Unit
+) {
+    Text(
+        text = "Location",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (hasPermission) Icons.Default.LocationOn else Icons.Default.LocationOff,
+                        contentDescription = null,
+                        tint = if (hasPermission) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Location Permission",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                
+                Text(
+                    text = if (hasPermission) "Granted" else "Denied",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (hasPermission) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+                )
+            }
+            
+            if (!hasPermission) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Location is required for in-app navigation (Plus/Pro).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onRequestPermission,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Request Permission")
+                }
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+                val statusText = when (status) {
+                    is LocationViewModel.LocationStatus.Active -> "GPS Active"
+                    is LocationViewModel.LocationStatus.Searching -> "Searching..."
+                    is LocationViewModel.LocationStatus.Error -> "Error: ${status.message}"
+                    else -> "Idle"
+                }
+                Text(
+                    text = "Status: $statusText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
