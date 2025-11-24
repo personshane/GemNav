@@ -1063,3 +1063,36 @@ BUILD SUCCESSFUL in 6s
 - Fallback route with CRITICAL warning when SDK fails
 
 **Next MP**: MP-014 (HERE Map Rendering) or actual HERE SDK credentials
+
+
+---
+
+## MP-014: HERE Map Rendering + Secure Key Pipeline ✅
+**Date**: 2025-11-24
+**Branch**: mp-014-here-map-rendering
+
+### Files Created
+- HereMapContainer.kt (250 lines) - Pro-tier map composable with lifecycle
+- android/.gitignore (21 lines) - Excludes secrets and build artifacts
+- local.properties.template (15 lines) - Key configuration template
+
+### Files Modified
+- build.gradle.kts: +15 lines (buildConfig=true, key injection from local.properties)
+- HereEngineManager.kt: +25 lines (BuildConfig key access, hasValidKeys(), getMapStyle())
+- RouteDetailsScreen.kt: +18 lines (HereMapContainer integration)
+
+### Secure Key Pipeline
+```
+local.properties (NOT committed) → build.gradle.kts → BuildConfig.HERE_API_KEY
+```
+
+### Build: ✅ Gradle dry-run successful
+
+### HereMapContainer Features
+- SafeMode check → blocks map init
+- Pro-tier check → blocks for Free/Plus
+- Key validation → shows error if blank
+- MapState sealed class → Initializing/Ready/Error
+- RouteOverlayStub → shows polyline ready indicator
+
+**Next MP**: MP-015 (Google Maps SDK Integration) or obtain HERE SDK credentials

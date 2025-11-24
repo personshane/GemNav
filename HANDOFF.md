@@ -1,81 +1,78 @@
 # GEMNAV HANDOFF DOCUMENT
-## Session: MP-013 HERE SDK Integration Complete
+## Session: MP-014 HERE Map Rendering Complete
 
 ---
 
-## COMPLETED: MP-013 HERE SDK Integration
+## COMPLETED: MP-014 HERE Map Rendering + Secure Key Pipeline
 
 ### Branch
-`mp-013-here-sdk-integration` (commit ef57bbb)
+`mp-014-here-map-rendering`
 
 ### Files Created
 | File | Lines | Purpose |
 |------|-------|---------|
-| core/here/HereEngineManager.kt | 197 | SDK init, routing engine access, truck options |
-| data/route/TruckRouteResult.kt | 111 | Sealed class, models, warnings, state |
+| ui/map/HereMapContainer.kt | 250 | Pro-tier map composable |
+| android/.gitignore | 21 | Secrets/build exclusions |
+| local.properties.template | 15 | Key configuration template |
 
 ### Files Modified
 | File | Changes | Purpose |
 |------|---------|---------|
-| HereShim.kt | +175 | requestTruckRoute(), FeatureGate checks, fallback |
-| RouteDetailsViewModel.kt | +60 | New truck route API, StateFlow, Pro-tier check |
-| RouteDetailsScreen.kt | +150 | TruckRouteSection UI, loading/success/error states |
-| build.gradle.kts | +12 | HERE SDK placeholder with setup TODOs |
+| build.gradle.kts | +15 | buildConfig, key injection |
+| HereEngineManager.kt | +25 | BuildConfig keys, hasValidKeys() |
+| RouteDetailsScreen.kt | +18 | HereMapContainer integration |
 
-### Routing Pipeline Summary
+### Secure Key Pipeline
 ```
-User → RouteDetailsScreen.requestTruckRoute()
-  ↓
-RouteDetailsViewModel.requestTruckRoute(lat/lng)
-  ↓ (checks FeatureGate first)
-HereShim.requestTruckRoute(start, end, TruckConfig)
-  ↓ (checks SafeMode, FeatureGate, SDK init, config validity)
-HereEngineManager.getRoutingEngine() + createTruckOptions()
-  ↓
-TruckRouteResult (Success/Failure sealed class)
-  ↓
-TruckRouteState → UI displays result
+1. Create local.properties (from template):
+   here_api_key=YOUR_KEY
+   here_map_key=YOUR_KEY
+
+2. build.gradle.kts reads local.properties:
+   buildConfigField("String", "HERE_API_KEY", "...")
+
+3. Code accesses via BuildConfig:
+   BuildConfig.HERE_API_KEY
 ```
 
-### Key Implementations
-- **TruckConfig**: height/width/length/weight/axles/hazmat with validation
-- **30cm safety buffer**: getSafeHeight() adds clearance per spec
-- **Fallback route**: CRITICAL warning when SDK fails
-- **Mock data**: Pipeline testing with realistic route estimates
+### HereMapContainer Architecture
+```
+HereMapContainer(routeData, centerLocation)
+  ↓
+Check: SafeMode → Error state
+Check: !ProTier → Error state  
+Check: !hasValidKeys → Error state
+  ↓
+HereEngineManager.initialize()
+  ↓
+MapState.Ready → HereMapViewStub (pipeline testing)
+```
 
-### Pro-Tier Gating Points
-1. RouteDetailsViewModel.requestTruckRoute() - quick UI feedback
-2. HereShim.requestTruckRoute() - hard enforcement
-3. RouteDetailsScreen - UI shows upgrade prompt for non-Pro
+### States
+- MapState.Initializing → Loading spinner
+- MapState.Ready → Map stub with route overlay
+- MapState.Error → Warning icon + message
 
-### SafeMode Enforcement
-All HERE calls return cleanly with TruckRouteError.SAFE_MODE_ACTIVE
+### RouteDetailsScreen Integration
+When TruckRouteState.Success:
+- Shows HereMapContainer (200dp height)
+- Shows route stats (distance, duration, warnings)
+- Shows action buttons (Clear, Start Navigation)
 
 ---
 
-## PENDING: HERE SDK Credentials
+## TODO: Actual HERE SDK Integration
+```kotlin
+// Replace HereMapViewStub with:
+// AndroidView(factory = { MapView(it) })
+// Configure MapStyle, add Polyline from routeData
 ```
-// build.gradle.kts - TODOs for actual SDK
-1. Add maven repo: https://repo.heremaps.com/artifactory/HERE_SDK_Android
-2. Add dependency: com.here.platform.location:location:4.x.x
-3. Add credentials to local.properties:
-   HERE_ACCESS_KEY_ID=your_key_id
-   HERE_ACCESS_KEY_SECRET=your_key_secret
-```
-
----
-
-## NEXT ACTIONS
-1. **Merge to main**: mp-013-here-sdk-integration → main
-2. **MP-014**: HERE Map Rendering (draw route polylines on map)
-3. **OR**: Obtain HERE SDK credentials for real integration
 
 ---
 
 ## BUILD STATUS
-✅ Gradle dry-run successful (Windows/Java 17)
+✅ Gradle dry-run successful
 
 ---
 **Last Updated**: 2025-11-24
-**Branch**: mp-013-here-sdk-integration
-**Commit**: ef57bbb
+**Branch**: mp-014-here-map-rendering

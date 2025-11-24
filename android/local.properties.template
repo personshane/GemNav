@@ -1,0 +1,14 @@
+# GemNav API Keys Template
+# Copy this file to local.properties and add your actual keys.
+# DO NOT commit local.properties to version control!
+
+# HERE SDK Credentials (Pro tier)
+# Get keys from: https://developer.here.com/
+here_api_key=YOUR_HERE_API_KEY_HERE
+here_map_key=YOUR_HERE_MAP_KEY_HERE
+
+# Google Maps SDK (Plus/Pro tier) - future
+# google_maps_api_key=YOUR_GOOGLE_MAPS_KEY_HERE
+
+# Gemini API (Plus/Pro tier) - future
+# gemini_api_key=YOUR_GEMINI_API_KEY_HERE

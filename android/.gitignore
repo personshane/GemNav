@@ -1,0 +1,20 @@
+# Android/Gradle
+*.iml
+.gradle/
+build/
+local.properties
+*.log
+.idea/
+.DS_Store
+
+# API Keys and Secrets
+*.keystore
+*.jks
+secrets.properties
+api-keys.properties
+
+# Generated files
+app/release/
+*.apk
+*.aab
+*.hprof

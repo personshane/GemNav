@@ -14,6 +14,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.gemnav.app.models.Destination
 import com.gemnav.app.ui.common.SafeModeBanner
+import com.gemnav.app.ui.map.HereMapContainer
+import com.gemnav.data.route.LatLng
+import com.gemnav.data.route.TruckRouteData
 import com.gemnav.data.route.TruckRouteState
 import com.gemnav.data.route.WarningSeverity
 
@@ -196,6 +199,7 @@ private fun TruckRouteSection(
                     is TruckRouteState.Success -> {
                         val data = truckRouteState.data
                         TruckRouteResultCard(
+                            routeData = data,
                             distanceKm = data.distanceMeters / 1000.0,
                             durationMinutes = data.durationSeconds / 60,
                             warningCount = data.warnings.size,
@@ -234,6 +238,7 @@ private fun TruckRouteSection(
 
 @Composable
 private fun TruckRouteResultCard(
+    routeData: TruckRouteData,
     distanceKm: Double,
     durationMinutes: Long,
     warningCount: Int,
@@ -242,6 +247,19 @@ private fun TruckRouteResultCard(
     onClear: () -> Unit
 ) {
     Column {
+        // HERE Map Display (Pro tier only)
+        HereMapContainer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            routeData = routeData,
+            centerLocation = routeData.polylineCoordinates.firstOrNull(),
+            onMapReady = { /* Map ready */ },
+            onMapError = { /* Handle error silently - UI shows fallback */ }
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
         if (isFallback) {
             Surface(
                 color = Color(0xFFFFEBEE),
@@ -308,15 +326,6 @@ private fun TruckRouteResultCard(
                 )
             }
         }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        // TODO: Add map rendering in MP-014
-        Text(
-            text = "Map rendering coming in future update",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline
-        )
         
         Spacer(modifier = Modifier.height(12.dp))
         

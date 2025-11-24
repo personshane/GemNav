@@ -2,6 +2,7 @@ package com.gemnav.core.here
 
 import android.content.Context
 import android.util.Log
+import com.gemnav.app.BuildConfig
 
 /**
  * HereEngineManager - Central HERE SDK initialization and access point.
@@ -139,23 +140,44 @@ object HereEngineManager {
     // ==================== Credential Management ====================
     
     /**
-     * Get HERE access key ID from secure storage.
-     * TODO: Implement secure key retrieval (BuildConfig, encrypted prefs, or remote config)
+     * Check if valid API keys are configured.
      */
-    private fun getAccessKeyId(): String {
-        // TODO: Replace with actual secure key retrieval
-        // return BuildConfig.HERE_ACCESS_KEY_ID
-        return "PLACEHOLDER_ACCESS_KEY_ID"
+    fun hasValidKeys(): Boolean {
+        return getAccessKeyId().isNotBlank() && getAccessKeySecret().isNotBlank()
     }
     
     /**
-     * Get HERE access key secret from secure storage.
-     * TODO: Implement secure key retrieval
+     * Get HERE access key ID from BuildConfig (injected from local.properties).
+     */
+    private fun getAccessKeyId(): String {
+        return BuildConfig.HERE_API_KEY
+    }
+    
+    /**
+     * Get HERE access key secret from BuildConfig (injected from local.properties).
      */
     private fun getAccessKeySecret(): String {
-        // TODO: Replace with actual secure key retrieval
-        // return BuildConfig.HERE_ACCESS_KEY_SECRET
-        return "PLACEHOLDER_ACCESS_KEY_SECRET"
+        return BuildConfig.HERE_MAP_KEY
+    }
+    
+    /**
+     * Get map style for rendering.
+     * TODO: Return actual HERE MapStyle when SDK added
+     */
+    fun getMapStyle(): Any? {
+        if (!isInitialized) return null
+        // return MapStyle.NORMAL_DAY
+        return "STUB_MAP_STYLE"
+    }
+    
+    /**
+     * Get HERE map context for view initialization.
+     * TODO: Return actual context when SDK added
+     */
+    fun getHereMapContext(): Any? {
+        if (!isInitialized) return null
+        // return sdkEngine?.context
+        return "STUB_MAP_CONTEXT"
     }
 }
 

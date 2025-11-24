@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -22,6 +24,19 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // Secure API key injection from local.properties
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { localProperties.load(it) }
+        }
+        
+        val hereApiKey = localProperties.getProperty("here_api_key") ?: ""
+        val hereMapKey = localProperties.getProperty("here_map_key") ?: ""
+        
+        buildConfigField("String", "HERE_API_KEY", "\"${hereApiKey}\"")
+        buildConfigField("String", "HERE_MAP_KEY", "\"${hereMapKey}\"")
     }
 
     buildTypes {
@@ -36,6 +51,7 @@ android {
     
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     
     composeOptions {
