@@ -1270,3 +1270,59 @@ NavigationComponents (UI Overlays)
 ### Build: ✅ Gradle dry-run successful (5s)
 
 **Next MP**: MP-019 (Google Directions API for Plus tier)
+
+
+---
+
+## MP-019: Google Directions API (Plus Tier) — COMPLETE ✅
+
+**Branch**: mp-019-google-directions
+**Commit**: 96051fc
+
+### Files Created
+- `core/maps/google/DirectionsModels.kt` (147 lines) — API response models
+- `core/maps/google/PolylineDecoder.kt` (175 lines) — Encoded polyline decoder
+- `core/maps/google/DirectionsApiClient.kt` (345 lines) — HTTP client with parsing
+
+### Files Modified
+- `core/shim/MapsShim.kt` — Added parseGoogleSteps(), createNavRoute(DirectionsResult.Success), mapGoogleManeuver()
+- `app/ui/route/RouteDetailsViewModel.kt` — Added GoogleRouteState, googleRouteState flow, requestGoogleRoute()
+- `app/ui/route/RouteDetailsScreen.kt` — Updated PlusTierMapSection with full route/nav integration
+
+### Architecture
+```
+DirectionsApiClient.getRoute(origin, dest, waypoints)
+    ↓ HTTP GET to maps.googleapis.com/maps/api/directions
+    ↓ JSON parsing → DirectionsResponse
+    ↓ PolylineDecoder.decode() → List<LatLng>
+    ↓ DirectionsResult.Success/Failure
+
+MapsShim.parseGoogleSteps(DirectionsResponse)
+    ↓ Strip HTML instructions
+    ↓ Map Google maneuvers → NavManeuver enum
+    ↓ Create List<NavStep>
+
+MapsShim.createNavRoute(DirectionsResult.Success)
+    ↓ NavRoute with steps + polyline
+    → NavigationEngine.startNavigation()
+
+RouteDetailsViewModel.requestGoogleRoute()
+    ↓ DirectionsApiClient.getRoute()
+    ↓ Update googleRouteState + currentGooglePolyline
+    ↓ Create NavRoute for navigation
+
+PlusTierMapSection
+    ↓ GoogleMapContainer with polyline
+    ↓ Route info (distance/duration)
+    ↓ Start/Stop Navigation buttons
+```
+
+### Tier Enforcement
+- SafeMode: Directions API disabled
+- Free: Blocked (returns FEATURE_NOT_ENABLED)
+- Plus: Full Google Directions routing + turn-by-turn
+- Pro: Google available as fallback (truck routes primary)
+
+### Build: ✅ Gradle dry-run successful (3s)
+
+**Next MP**: MP-020 (AI intent improvements + multi-step reasoning)

@@ -320,3 +320,64 @@ Location updates flow:
 **Last Updated**: 2025-11-24
 **Branch**: mp-017-turn-by-turn
 **Commit**: b013087
+
+
+---
+
+## HANDOFF — MP-019: Google Directions API (Plus Tier)
+
+**Session**: November 24, 2025
+**Branch**: mp-019-google-directions  
+**Commit**: 96051fc (6 files, +1044/-49)
+
+### What Was Done
+Implemented complete Google Directions API routing pipeline enabling Plus tier users to receive full turn-by-turn navigation with maneuver instructions, polyline rendering, and NavigationEngine integration.
+
+### Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `core/maps/google/DirectionsModels.kt` | 147 | API response data classes |
+| `core/maps/google/PolylineDecoder.kt` | 175 | Encoded polyline decoder |
+| `core/maps/google/DirectionsApiClient.kt` | 345 | HTTP client with JSON parsing |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `core/shim/MapsShim.kt` | +parseGoogleSteps(), +createNavRoute(DirectionsResult.Success), +mapGoogleManeuver(), +extractStreetName() |
+| `app/ui/route/RouteDetailsViewModel.kt` | +GoogleRouteState sealed class, +googleRouteState flow, +requestGoogleRoute(), updated calculateCarRoute() |
+| `app/ui/route/RouteDetailsScreen.kt` | +googleRouteState/googlePolyline collectors, redesigned PlusTierMapSection |
+
+### API Flow
+1. User taps "Get Route" → requestGoogleRoute()
+2. DirectionsApiClient.getRoute() → HTTP GET to Google
+3. JSON parsed into DirectionsResponse
+4. PolylineDecoder.decode() → List<LatLng>
+5. MapsShim.createNavRoute() → NavRoute with steps
+6. GoogleMapContainer renders polyline
+7. User taps "Start Navigation" → NavigationEngine starts
+
+### Key Implementation Details
+- Uses existing GOOGLE_MAPS_API_KEY from local.properties
+- HTML stripped from instructions via DirectionsApiClient.stripHtml()
+- 14 Google maneuver types mapped to NavManeuver enum
+- Street names extracted from instruction text via regex
+- SafeMode and tier gating enforced before API calls
+
+### What To Do Next
+**MP-020: AI Intent Improvements + Multi-Step Reasoning**
+- Enhance GeminiShim for complex navigation queries
+- Add multi-waypoint handling from natural language
+- Improve context retention between AI turns
+- Better error recovery when AI interpretation fails
+
+### Dependencies Satisfied
+- NavigationEngine fully works with Google routes (MP-017 integration)
+- GoogleMapContainer already supported polyline param
+- Tier gating infrastructure from FeatureGate
+
+### Testing Notes
+- Requires valid GOOGLE_MAPS_API_KEY in local.properties
+- Plus tier subscription needed for route requests
+- SafeMode must be disabled
+- Polyline renders immediately after route success
+- Navigation button enabled only after successful route
