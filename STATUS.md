@@ -1379,3 +1379,50 @@ TRUCK_STOP, GAS_STATION, DIESEL, REST_AREA, HOTEL, MOTEL, RESTAURANT, FAST_FOOD,
 ### Commit: b981dc2
 
 **Next MP**: MP-021 (Places API for real POI search)
+
+
+---
+
+## MP-021: Google Places API (Plus Tier Only) ✅ COMPLETE
+
+### What Was Built
+Plus-only Google Places REST API integration for AI-powered POI search. Strict tier enforcement: Free blocked, Plus uses Google Places, Pro blocked (future HERE POI).
+
+### Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `core/places/PlacesApiClient.kt` | 327 | REST-based Places API client with searchNearby/searchText |
+| `core/places/PoiTypeMapper.kt` | 105 | Maps GemNav POIType → Google Places types + keywords |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `build.gradle.kts` | +GOOGLE_PLACES_API_KEY BuildConfig field |
+| `local.properties.template` | +google_places_api_key entry |
+| `core/shim/GeminiShim.kt` | +PlacesApiClient integration in resolveFindPOI() with tier checks |
+
+### Tier Enforcement
+```
+FREE:  AI works but POI search → "Upgrade to Plus"
+PLUS:  Full Places API → searchNearby → route via Google Directions
+PRO:   POI search → "Truck POI coming soon (HERE-based)"
+```
+
+### Places API Features
+- Nearby search with radius (5km near me, 30km default)
+- POI type mapping (18 types → Google Places types/keywords)
+- Filter matching: showers, truck parking, overnight, diesel, hazmat, rating
+- Attribute inference from place name (Pilot, Flying J, Loves = truck stop features)
+
+### Flow: Voice "Find truck stop with showers"
+1. classifyIntent() → FindPOI(TRUCK_STOP, filters={hasShowers=true})
+2. resolveIntent() → PlacesApiClient.searchNearby()
+3. Places API → [Pilot Travel Center, Flying J, ...]
+4. Filter matches → best result
+5. AiRouteRequest → Google Directions → Navigation
+
+### Build: ✅ Gradle dry-run successful (10s)
+### Branch: mp-021-places-api-plus-only
+### Commit: 2cedfbb
+
+**Next MP**: MP-022 (Along-route POI filtering + HERE truck POI for Pro)

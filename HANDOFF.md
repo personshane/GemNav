@@ -441,3 +441,69 @@ User Input → classifyIntent() → NavigationIntent
 - GeminiShim.isNavigationQuery() for intent detection
 - FeatureGate.areAIFeaturesEnabled() for tier gating
 - TierManager.isPro() for truck mode access
+
+
+---
+
+## MP-021: Google Places API (Plus Tier Only) — HANDOFF
+
+### Summary
+Implemented Plus-only Google Places REST API integration. Users can now ask "Find nearest truck stop with showers" and GemNav will use Google Places to find matching POIs, then route via Google Directions. Strict tier enforcement prevents Free and Pro tiers from using Google Places.
+
+### Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `core/places/PlacesApiClient.kt` | 327 | REST-based Google Places API client |
+| `core/places/PoiTypeMapper.kt` | 105 | POIType → Google Places type/keyword mapping |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `build.gradle.kts` | +GOOGLE_PLACES_API_KEY from local.properties |
+| `local.properties.template` | +google_places_api_key entry |
+| `core/shim/GeminiShim.kt` | Replaced stub resolveFindPOI() with PlacesApiClient integration |
+
+### Tier Rules (CRITICAL)
+```kotlin
+// In PlacesApiClient.checkTierAccess() and GeminiShim.resolveFindPOI()
+FREE → "POI search requires Plus subscription"
+PLUS → PlacesApiClient.searchNearby() → full POI search
+PRO  → "Truck-specific POI coming soon (HERE-based)"
+```
+
+### API Endpoints Used
+- `maps.googleapis.com/maps/api/place/nearbysearch/json` - location-based POI
+- `maps.googleapis.com/maps/api/place/textsearch/json` - text query POI
+
+### POI Type Mapping
+```kotlin
+TRUCK_STOP → type="gas_station" + keyword="truck stop"
+DIESEL     → type="gas_station" + keyword="diesel fuel"
+HOTEL      → type="lodging"
+WALMART    → keyword="Walmart"
+RESTAURANT → type="restaurant"
+// ... see PoiTypeMapper.kt for full list
+```
+
+### Attribute Inference
+PlacesApiClient infers truck-friendly attributes from place names:
+- Contains "Pilot", "Flying J", "Loves", "TA ", "Petro" → truck stop features
+- hasShowers, truckParking, overnightAllowed, dieselAvailable, hazmatFriendly
+
+### What To Do Next
+**MP-022: Along-Route POI + HERE Truck POI**
+- Add along-route POI filtering (search POIs within corridor of current route)
+- Implement HERE-based truck POI for Pro tier
+- Add TTS feedback for voice POI results
+
+### Testing Notes
+- Requires valid google_places_api_key in local.properties
+- Plus tier subscription needed for POI search
+- Test queries: "Find truck stop with showers", "Find diesel nearby", "Find Walmart"
+- Free tier should see upgrade prompt
+- Pro tier should see "truck POI coming soon" message
+
+### Dependencies
+- PlacesApiClient requires GOOGLE_PLACES_API_KEY BuildConfig field
+- GeminiShim.resolveFindPOI() calls PlacesApiClient for Plus tier only
+- PoiTypeMapper provides type/keyword mapping for all 18 POI types
