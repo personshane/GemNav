@@ -12,8 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.app.ui.voice.VoiceButton
 import com.gemnav.app.ui.voice.VoiceButtonState
+import com.gemnav.core.feature.FeatureGate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,28 +30,46 @@ fun HomeScreen(
     val recentDestinations by viewModel.recent.collectAsState()
     val home by viewModel.home.collectAsState()
     val work by viewModel.work.collectAsState()
+    val featureSummary by viewModel.featureSummary.collectAsState()
+    
+    // Feature availability states
+    val isAIEnabled = featureSummary.aiFeatures
+    val isAdvancedVoiceEnabled = featureSummary.advancedVoice
+    val isSafeModeActive = featureSummary.isSafeModeActive
     
     LaunchedEffect(Unit) {
         viewModel.loadMockData()
+        viewModel.refreshFeatureState()
     }
     
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("GemNav") },
-                actions = {
-                    IconButton(
-                        onClick = { navController.navigate("settings") }
-                    ) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+            Column {
+                // Safe Mode Banner at top
+                SafeModeBanner(isVisible = isSafeModeActive)
+                
+                TopAppBar(
+                    title = { Text("GemNav") },
+                    actions = {
+                        IconButton(
+                            onClick = { navController.navigate("settings") }
+                        ) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        }
                     }
-                }
-            )
+                )
+            }
         },
         floatingActionButton = {
+            // Voice button - always visible but behavior changes based on tier
             VoiceButton(
-                state = VoiceButtonState.Idle,
-                onClick = { navController.navigate("voice") }
+                state = if (isSafeModeActive) VoiceButtonState.Disabled else VoiceButtonState.Idle,
+                onClick = {
+                    if (!isSafeModeActive) {
+                        navController.navigate("voice")
+                    }
+                    // TODO: Show safe mode message if disabled
+                }
             )
         }
     ) { padding ->
@@ -63,12 +83,32 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
             
+            // Search bar - AI suggestions disabled in safe mode
             SearchBar(
                 query = searchQuery,
-                onQueryChange = { searchQuery = it },
+                onQueryChange = { 
+                    searchQuery = it
+                    // Only trigger AI suggestions if enabled
+                    if (isAIEnabled && it.length >= 3) {
+                        viewModel.getAISuggestions(it)
+                    }
+                },
                 onSearch = { navController.navigate("search") },
                 isSearching = false
             )
+            
+            // Show hint when AI is disabled
+            if (!isAIEnabled && searchQuery.isNotEmpty()) {
+                Text(
+                    text = if (isSafeModeActive) {
+                        "AI suggestions unavailable in compatibility mode"
+                    } else {
+                        "Upgrade to Plus for AI-powered suggestions"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             
             QuickActionsRow(
                 home = home,

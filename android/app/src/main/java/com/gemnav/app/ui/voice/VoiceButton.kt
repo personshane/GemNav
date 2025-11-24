@@ -7,12 +7,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
@@ -23,24 +23,33 @@ import androidx.compose.ui.unit.dp
  * - Listening: Pulsing red animation
  * - Processing: Spinner with mic icon
  * - Error: Red background with shake animation
+ * - Disabled: Greyed out, non-interactive (SafeMode)
  */
 @Composable
 fun VoiceButton(
     state: VoiceButtonState,
-    enabled: Boolean = true,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isEnabled = state != VoiceButtonState.Disabled
+    
     val backgroundColor = when (state) {
         VoiceButtonState.Idle -> MaterialTheme.colorScheme.surfaceVariant
         VoiceButtonState.Listening -> MaterialTheme.colorScheme.error
         VoiceButtonState.Processing -> MaterialTheme.colorScheme.primary
         VoiceButtonState.Error -> MaterialTheme.colorScheme.error
+        VoiceButtonState.Disabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     }
     
     val iconColor = when (state) {
         VoiceButtonState.Idle -> MaterialTheme.colorScheme.onSurfaceVariant
+        VoiceButtonState.Disabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         else -> MaterialTheme.colorScheme.onPrimary
+    }
+    
+    val icon = when (state) {
+        VoiceButtonState.Disabled -> Icons.Default.MicOff
+        else -> Icons.Default.Mic
     }
     
     // Pulsing animation for listening state
@@ -55,30 +64,18 @@ fun VoiceButton(
         label = "pulse_scale"
     )
     
-    // Shake animation for error state
-    val shakeOffset by remember {
-        derivedStateOf {
-            if (state == VoiceButtonState.Error) {
-                listOf(-10f, 10f, -10f, 10f, 0f)
-            } else {
-                listOf(0f)
-            }
-        }
-    }
-    
     Box(
         modifier = modifier
             .size(64.dp)
             .scale(if (state == VoiceButtonState.Listening) pulseScale else 1f)
             .background(
-                color = backgroundColor.copy(alpha = if (enabled) 1f else 0.5f),
+                color = backgroundColor,
                 shape = CircleShape
             )
-            .clickable(enabled = enabled) { onClick() },
+            .clickable(enabled = isEnabled) { onClick() },
         contentAlignment = Alignment.Center
     ) {
         if (state == VoiceButtonState.Processing) {
-            // Show spinner for processing state
             CircularProgressIndicator(
                 modifier = Modifier.size(32.dp),
                 color = iconColor,
@@ -86,12 +83,13 @@ fun VoiceButton(
             )
         } else {
             Icon(
-                imageVector = Icons.Default.Mic,
+                imageVector = icon,
                 contentDescription = when (state) {
                     VoiceButtonState.Idle -> "Start voice input"
                     VoiceButtonState.Listening -> "Listening"
                     VoiceButtonState.Processing -> "Processing"
                     VoiceButtonState.Error -> "Voice input error"
+                    VoiceButtonState.Disabled -> "Voice input disabled"
                 },
                 tint = iconColor,
                 modifier = Modifier.size(32.dp)
@@ -107,5 +105,6 @@ enum class VoiceButtonState {
     Idle,       // Ready for input
     Listening,  // Currently listening to user
     Processing, // Processing voice command
-    Error       // Error occurred
+    Error,      // Error occurred
+    Disabled    // Feature disabled (SafeMode or tier-locked)
 }
