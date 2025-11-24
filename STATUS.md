@@ -1326,3 +1326,56 @@ PlusTierMapSection
 ### Build: ✅ Gradle dry-run successful (3s)
 
 **Next MP**: MP-020 (AI intent improvements + multi-step reasoning)
+
+
+---
+
+## MP-020: Advanced AI Intent System ✅ COMPLETE
+
+### What Was Built
+Multi-step intent classification and reasoning pipeline enabling natural language navigation queries:
+- "Route me to the nearest truck stop with showers"
+- "Find cheap diesel nearby"
+- "Avoid mountains - I'm overloaded today"
+- "Add a stop at Walmart on the way"
+
+### Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `data/ai/IntentModel.kt` | 185 | NavigationIntent sealed classes, POIType, POIFilters, RouteSettings |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `core/shim/GeminiShim.kt` | +classifyIntent(), +resolveIntent(), +heuristic classification, +intent resolution |
+| `data/ai/AiRouteModels.kt` | +AiIntentState sealed class (Idle/Classifying/Reasoning/Suggesting/Success/Error) |
+| `app/ui/search/SearchViewModel.kt` | Full intent pipeline: classifyIntent→resolveIntent→getRouteSuggestion |
+| `app/ui/search/SearchScreen.kt` | +AiIntentStatusPanel composable |
+| `app/ui/voice/VoiceViewModel.kt` | +aiIntentState flow, +classifiedIntent flow, +processNavigationWithAI() |
+| `app/ui/voice/VoiceScreen.kt` | +VoiceAiIntentStatusPanel composable |
+| `app/ui/route/RouteDetailsViewModel.kt` | +handleResolvedIntent() entry point |
+
+### Intent Types Supported
+```kotlin
+NavigationIntent.NavigateTo(destinationText, coords, confidence)
+NavigationIntent.FindPOI(poiType, filters, nearLocation)
+NavigationIntent.AddStop(stopType, destination, poiType)
+NavigationIntent.RoutePreferences(settings)
+NavigationIntent.Question(query)
+NavigationIntent.Unknown(raw, reason)
+```
+
+### POI Types (18)
+TRUCK_STOP, GAS_STATION, DIESEL, REST_AREA, HOTEL, MOTEL, RESTAURANT, FAST_FOOD, PARKING, TRUCK_PARKING, WALMART, GROCERY, WEIGH_STATION, REPAIR_SHOP, CAR_WASH, HOSPITAL, PHARMACY, ATM, OTHER
+
+### Safety/Tier Rules
+- SafeMode: All AI intent blocked → returns Unknown
+- Free: AI features blocked
+- Plus: classifyIntent + resolveIntent (car only)
+- Pro: Full truck + car intent resolution
+
+### Build: ✅ Gradle dry-run successful (3s)
+### Branch: mp-020-ai-intents
+### Commit: b981dc2
+
+**Next MP**: MP-021 (Places API for real POI search)

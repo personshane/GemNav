@@ -381,3 +381,63 @@ Implemented complete Google Directions API routing pipeline enabling Plus tier u
 - SafeMode must be disabled
 - Polyline renders immediately after route success
 - Navigation button enabled only after successful route
+
+
+---
+
+## MP-020: Advanced AI Intent System — HANDOFF
+
+### Summary
+Implemented complete multi-step AI intent classification and reasoning pipeline. Users can now speak/type complex natural language queries like "Find a truck stop with showers near Flagstaff" and GemNav will classify the intent, resolve it into an actionable route request, and trigger the appropriate routing engine.
+
+### Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `data/ai/IntentModel.kt` | 185 | NavigationIntent sealed class hierarchy, POI types/filters |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `core/shim/GeminiShim.kt` | +classifyIntent(), +resolveIntent(), +heuristic intent parsing |
+| `data/ai/AiRouteModels.kt` | +AiIntentState sealed class for UI state tracking |
+| `app/ui/search/SearchViewModel.kt` | Replaced direct AI calls with full intent pipeline |
+| `app/ui/search/SearchScreen.kt` | +AiIntentStatusPanel showing classification progress |
+| `app/ui/voice/VoiceViewModel.kt` | +aiIntentState, +classifiedIntent, +processNavigationWithAI() |
+| `app/ui/voice/VoiceScreen.kt` | +VoiceAiIntentStatusPanel for intent display |
+| `app/ui/route/RouteDetailsViewModel.kt` | +handleResolvedIntent() for pipeline integration |
+
+### AI Intent Flow
+```
+User Input → classifyIntent() → NavigationIntent
+                    ↓
+            resolveIntent() → IntentResolutionResult
+                    ↓
+            RouteRequest → getRouteSuggestion() → AiRouteSuggestion
+                    ↓
+            handleResolvedIntent() → HereShim (truck) / Google (car)
+```
+
+### Key Implementation Details
+- Heuristic intent classification (stub for actual Gemini API)
+- POI filters: showers, overnight parking, truck parking, hazmat, diesel, 24hr
+- Route settings: avoid tolls/highways/mountains/snow, prefer fastest/shortest/scenic
+- AiIntentState tracks: Idle → Classifying → Reasoning → Suggesting → Success/Error
+- Full tier gating: Free blocked, Plus car-only, Pro truck+car
+
+### What To Do Next
+**MP-021: Places API Integration**
+- Replace stub POI search with real Google Places API
+- Geocode destinations from natural language
+- Return actual LatLng coordinates for POI results
+- Price/rating filters for POI search
+
+### Testing Notes
+- Voice: Speak "Find nearest truck stop with showers" - should classify as FindPOI
+- Search: Type "Avoid tolls" - should classify as RoutePreferences
+- Pro tier required for truck mode intent resolution
+- UI shows intent classification status during processing
+
+### Dependencies
+- GeminiShim.isNavigationQuery() for intent detection
+- FeatureGate.areAIFeaturesEnabled() for tier gating
+- TierManager.isPro() for truck mode access
