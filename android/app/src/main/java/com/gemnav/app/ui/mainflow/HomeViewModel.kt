@@ -1,12 +1,23 @@
 package com.gemnav.app.ui.mainflow
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.gemnav.app.models.Destination
+import com.gemnav.core.feature.FeatureGate
+import com.gemnav.core.shim.GeminiShim
+import com.gemnav.core.shim.MapsShim
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class HomeViewModel : ViewModel() {
+    
+    companion object {
+        private const val TAG = "HomeViewModel"
+    }
+    
     private val _favorites = MutableStateFlow<List<Destination>>(emptyList())
     val favorites: StateFlow<List<Destination>> = _favorites
 
@@ -18,6 +29,76 @@ class HomeViewModel : ViewModel() {
 
     private val _work = MutableStateFlow<Destination?>(null)
     val work: StateFlow<Destination?> = _work
+    
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+    
+    private val _featureSummary = MutableStateFlow(FeatureGate.getFeatureSummary())
+    val featureSummary: StateFlow<FeatureGate.FeatureSummary> = _featureSummary
+
+    init {
+        refreshFeatureState()
+    }
+    
+    /**
+     * Refresh the feature gate state.
+     */
+    fun refreshFeatureState() {
+        _featureSummary.value = FeatureGate.getFeatureSummary()
+    }
+    
+    /**
+     * Get AI-powered destination suggestions.
+     * Gated by FeatureGate.areAIFeaturesEnabled()
+     */
+    fun getAISuggestions(query: String) {
+        if (!FeatureGate.areAIFeaturesEnabled()) {
+            Log.d(TAG, "AI suggestions blocked - feature not enabled")
+            // TODO: Show fallback suggestions (recent/favorites)
+            return
+        }
+        
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                // TODO: Implement actual AI suggestion logic
+                val response = GeminiShim.parseNavigationIntent(query)
+                if (response != null) {
+                    Log.d(TAG, "AI parsed intent: ${response.destination}")
+                    // TODO: Convert intent to suggestions
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "AI suggestions failed", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    /**
+     * Search for places using Maps SDK.
+     * Gated by FeatureGate.areInAppMapsEnabled() for SDK, falls back to intents.
+     */
+    fun searchPlaces(query: String) {
+        if (!FeatureGate.areInAppMapsEnabled()) {
+            Log.d(TAG, "In-app maps blocked - using intent fallback")
+            // TODO: Trigger Google Maps app via intent
+            return
+        }
+        
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val results = MapsShim.searchPlaces(query)
+                Log.d(TAG, "Found ${results.size} places")
+                // TODO: Convert to destinations and update state
+            } catch (e: Exception) {
+                Log.e(TAG, "Place search failed", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
 
     fun loadMockData() {
         _favorites.value = listOf(
