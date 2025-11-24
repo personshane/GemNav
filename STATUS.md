@@ -873,3 +873,95 @@ onDestinationClick = { destination ->
 **Status**: MP-010 COMPLETE
 **Overall Project**: ~26,400 lines across 104 files
 **Next Priority**: MP-011 (Speech recognition) or MP-012 (Billing)
+
+
+---
+
+## MP-012: SUBSCRIPTION TIER INTEGRATION ✅ COMPLETE
+
+### Objective
+Implement subscription awareness by integrating Google Play Billing into the app, creating TierManager, and wiring real entitlements into FeatureGate.
+
+### Files Created (4 files, 682 lines)
+- `android/app/src/main/java/com/gemnav/core/subscription/Tier.kt` (78 lines)
+  - Tier enum: FREE, PLUS, PRO
+  - SKU constants for Google Play products
+  - fromSku() conversion function
+  - Extension functions: displayName(), priceString(), description()
+
+- `android/app/src/main/java/com/gemnav/core/subscription/TierManager.kt` (160 lines)
+  - Central tier state holder with StateFlow<Tier>
+  - Cached tier in SharedPreferences
+  - Functions: getCurrentTier(), isPlus(), isPro(), isFree()
+  - updateTier(), onPurchaseCompleted(), onSubscriptionExpired()
+  - Debug: debugSetTier() for testing
+
+- `android/app/src/main/java/com/gemnav/core/subscription/BillingClientManager.kt` (295 lines)
+  - Google Play Billing integration skeleton
+  - startConnection(), queryPurchases(), launchPurchaseFlow()
+  - PurchasesUpdatedListener implementation
+  - Purchase acknowledgment handling
+  - Auto-updates TierManager on purchase changes
+
+- `android/app/src/main/java/com/gemnav/app/ui/common/SafeModeBanner.kt` (149 lines)
+  - SafeModeBanner composable with AnimatedVisibility
+  - FeatureLockedBanner for upgrade prompts
+  - SafeModeColors object
+  - Modifier.featureGated() extension
+
+### Files Modified (5 files, ~560 lines changed)
+- `build.gradle.kts` - Added billing-ktx:6.1.0 dependency
+- `GemNavApplication.kt` - Initialize TierManager + BillingClientManager on startup
+- `FeatureGate.kt` (244 lines) - Now reads tier from TierManager instead of hardcoded value
+- `SettingsScreen.kt` (369 lines) - Shows current tier, upgrade buttons, feature status
+- `SettingsViewModel.kt` - Uses Tier + TierManager
+
+### FeatureGate Tier Logic
+```
+areAIFeaturesEnabled():
+  - return false if SafeMode
+  - return true (all tiers - Free uses Nano, Plus/Pro use Cloud)
+
+areCloudAIFeaturesEnabled():
+  - return false if SafeMode or Free tier
+  - return true if Plus or Pro
+
+areCommercialRoutingFeaturesEnabled():
+  - return false if SafeMode or not Pro
+  - return true only if Pro tier
+
+areInAppMapsEnabled():
+  - return false if SafeMode or Free tier
+  - return true if Plus or Pro
+
+areAdvancedVoiceCommandsEnabled():
+  - return false if SafeMode or Free tier
+  - return true if Plus or Pro
+```
+
+### Tier Feature Matrix
+| Feature | FREE | PLUS | PRO |
+|---------|------|------|-----|
+| AI (Nano) | ✓ | ✓ | ✓ |
+| Cloud AI | ✗ | ✓ | ✓ |
+| In-App Maps | ✗ | ✓ | ✓ |
+| Advanced Voice | ✗ | ✓ | ✓ |
+| Multi-Waypoint | ✗ | ✓ (10) | ✓ (25) |
+| Truck Routing | ✗ | ✗ | ✓ |
+
+### Build Status
+✅ BUILD SUCCESSFUL (compileDebugKotlin in 8s)
+
+### Git
+- Branch: `mp-012-subscription-tier-integration`
+- Commit: b4ab541
+- 1,095 insertions, 88 deletions
+
+**MP-012 Total**: ~1,007 net lines added
+
+---
+
+**Last Updated**: 2025-11-24
+**Status**: MP-012 COMPLETE
+**Overall Project**: ~28,280 lines across 111 files
+**Next Priority**: MP-013 (HERE SDK integration) or MP-014 (Google Maps SDK)
