@@ -84,6 +84,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:18.1.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
     
+    // Google Play Billing
+    implementation("com.android.billingclient:billing-ktx:6.1.0")
+    
     // HERE SDK placeholder (exact import handled later)
     // TODO: Add HERE SDK when available
     // implementation(files("libs/HERE-sdk-android.aar"))

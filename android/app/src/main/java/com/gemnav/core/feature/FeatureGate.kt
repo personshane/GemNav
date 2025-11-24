@@ -5,40 +5,40 @@ import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
 import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.subscription.Tier
+import com.gemnav.core.subscription.TierManager
 
 /**
  * FeatureGate - Unified feature-gating system for GemNav.
  * Prevents ViewModels from calling Gemini or HERE when SafeMode is active
  * or when subscription tier doesn't allow the feature.
+ * 
+ * Now integrated with TierManager for real subscription state.
  */
 object FeatureGate {
     private const val TAG = "FeatureGate"
     
-    // TODO: Replace with actual subscription tier from billing/auth
-    private var currentTier: SubscriptionTier = SubscriptionTier.FREE
+    // ========== TIER ACCESS ==========
     
     /**
-     * Subscription tiers for GemNav.
+     * Get the current subscription tier from TierManager.
      */
-    enum class SubscriptionTier {
-        FREE,   // Gemini Nano + Google Maps intents only
-        PLUS,   // Gemini Cloud + Google Maps SDK
-        PRO     // Gemini Cloud + HERE SDK (truck routing)
-    }
+    fun getCurrentTier(): Tier = TierManager.getCurrentTier()
     
     /**
-     * Set the current subscription tier.
-     * TODO: Wire into billing/subscription system
+     * Check if user has Plus tier or higher.
      */
-    fun setSubscriptionTier(tier: SubscriptionTier) {
-        Log.i(TAG, "Subscription tier changed: $currentTier -> $tier")
-        currentTier = tier
-    }
+    fun isPlus(): Boolean = TierManager.isPlus()
     
     /**
-     * Get the current subscription tier.
+     * Check if user has Pro tier.
      */
-    fun getCurrentTier(): SubscriptionTier = currentTier
+    fun isPro(): Boolean = TierManager.isPro()
+    
+    /**
+     * Check if user is on Free tier.
+     */
+    fun isFree(): Boolean = TierManager.isFree()
     
     // ========== CORE FEATURE GATES ==========
     
@@ -57,6 +57,7 @@ object FeatureGate {
     /**
      * Check if AI features (Gemini) are enabled.
      * Requires: Not in SafeMode + appropriate tier.
+     * Note: Free tier uses Nano (on-device), Plus/Pro use Cloud.
      */
     fun areAIFeaturesEnabled(): Boolean {
         if (SafeModeManager.isSafeModeEnabled()) {
@@ -69,8 +70,7 @@ object FeatureGate {
             return false
         }
         
-        // TODO: Free tier uses Nano (on-device), Plus/Pro use Cloud
-        // For now, AI is available at all tiers (Nano for Free)
+        // AI is available at all tiers (Nano for Free, Cloud for Plus/Pro)
         return true
     }
     
@@ -83,15 +83,13 @@ object FeatureGate {
             return false
         }
         
-        // TODO: Free tier → no cloud AI, only Nano
-        // TODO: Plus tier → cloud AI enabled
-        // TODO: Pro tier → cloud AI enabled
-        return when (currentTier) {
-            SubscriptionTier.FREE -> {
+        val tier = getCurrentTier()
+        return when (tier) {
+            Tier.FREE -> {
                 logBlocked("Cloud AI", "Free tier - Nano only")
                 false
             }
-            SubscriptionTier.PLUS, SubscriptionTier.PRO -> true
+            Tier.PLUS, Tier.PRO -> true
         }
     }
     
@@ -110,15 +108,13 @@ object FeatureGate {
             return false
         }
         
-        // TODO: Free tier → no HERE
-        // TODO: Plus tier → no HERE
-        // TODO: Pro tier → HERE enabled
-        return when (currentTier) {
-            SubscriptionTier.FREE, SubscriptionTier.PLUS -> {
-                logBlocked("Commercial routing", "${currentTier.name} tier - Pro required")
+        val tier = getCurrentTier()
+        return when (tier) {
+            Tier.FREE, Tier.PLUS -> {
+                logBlocked("Commercial routing", "${tier.name} tier - Pro required")
                 false
             }
-            SubscriptionTier.PRO -> true
+            Tier.PRO -> true
         }
     }
     
@@ -137,19 +133,18 @@ object FeatureGate {
             return false
         }
         
-        // TODO: Free tier → Google Maps app via intents only
-        // TODO: Plus/Pro tier → in-app Google Maps SDK
-        return when (currentTier) {
-            SubscriptionTier.FREE -> {
+        val tier = getCurrentTier()
+        return when (tier) {
+            Tier.FREE -> {
                 logBlocked("In-app maps", "Free tier - intents only")
                 false
             }
-            SubscriptionTier.PLUS, SubscriptionTier.PRO -> true
+            Tier.PLUS, Tier.PRO -> true
         }
     }
     
     /**
-     * Check if voice command features are enabled.
+     * Check if advanced voice command features are enabled.
      * Basic voice available to all; advanced voice requires Plus/Pro.
      */
     fun areAdvancedVoiceCommandsEnabled(): Boolean {
@@ -158,12 +153,13 @@ object FeatureGate {
             return false
         }
         
-        return when (currentTier) {
-            SubscriptionTier.FREE -> {
+        val tier = getCurrentTier()
+        return when (tier) {
+            Tier.FREE -> {
                 logBlocked("Advanced voice", "Free tier - basic only")
                 false
             }
-            SubscriptionTier.PLUS, SubscriptionTier.PRO -> true
+            Tier.PLUS, Tier.PRO -> true
         }
     }
     
@@ -177,12 +173,24 @@ object FeatureGate {
             return false
         }
         
-        return when (currentTier) {
-            SubscriptionTier.FREE -> {
+        val tier = getCurrentTier()
+        return when (tier) {
+            Tier.FREE -> {
                 logBlocked("Multi-waypoint", "Free tier - single destination only")
                 false
             }
-            SubscriptionTier.PLUS, SubscriptionTier.PRO -> true
+            Tier.PLUS, Tier.PRO -> true
+        }
+    }
+    
+    /**
+     * Get maximum allowed waypoints based on tier.
+     */
+    fun getMaxWaypoints(): Int {
+        return when (getCurrentTier()) {
+            Tier.FREE -> 1
+            Tier.PLUS -> 10
+            Tier.PRO -> 25
         }
     }
     
@@ -200,7 +208,7 @@ object FeatureGate {
      */
     fun getFeatureSummary(): FeatureSummary {
         return FeatureSummary(
-            tier = currentTier,
+            tier = getCurrentTier(),
             isSafeModeActive = SafeModeManager.isSafeModeEnabled(),
             advancedFeatures = areAdvancedFeaturesEnabled(),
             aiFeatures = areAIFeaturesEnabled(),
@@ -208,7 +216,8 @@ object FeatureGate {
             commercialRouting = areCommercialRoutingFeaturesEnabled(),
             inAppMaps = areInAppMapsEnabled(),
             advancedVoice = areAdvancedVoiceCommandsEnabled(),
-            multiWaypoint = areMultiWaypointEnabled()
+            multiWaypoint = areMultiWaypointEnabled(),
+            maxWaypoints = getMaxWaypoints()
         )
     }
     
@@ -216,7 +225,7 @@ object FeatureGate {
      * Summary of all feature availability.
      */
     data class FeatureSummary(
-        val tier: SubscriptionTier,
+        val tier: Tier,
         val isSafeModeActive: Boolean,
         val advancedFeatures: Boolean,
         val aiFeatures: Boolean,
@@ -224,6 +233,11 @@ object FeatureGate {
         val commercialRouting: Boolean,
         val inAppMaps: Boolean,
         val advancedVoice: Boolean,
-        val multiWaypoint: Boolean
+        val multiWaypoint: Boolean,
+        val maxWaypoints: Int = 1
     )
+    
+    // TODO: Add caching for frequently checked features
+    // TODO: Add error screen handling when features fail
+    // TODO: Add analytics tracking for feature access
 }

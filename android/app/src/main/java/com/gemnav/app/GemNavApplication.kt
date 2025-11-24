@@ -7,6 +7,8 @@ import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
 import com.gemnav.core.shim.SafeModeManager
 import com.gemnav.core.shim.VersionCheck
+import com.gemnav.core.subscription.BillingClientManager
+import com.gemnav.core.subscription.TierManager
 import dagger.hilt.android.HiltAndroidApp
 
 /**
@@ -22,7 +24,24 @@ class GemNavApplication : Application() {
     
     override fun onCreate() {
         super.onCreate()
+        initializeSubscriptionSystem()
         initializeShieldLayer()
+    }
+    
+    /**
+     * Initialize subscription and billing system.
+     * Must run early to determine feature availability.
+     */
+    private fun initializeSubscriptionSystem() {
+        Log.i(TAG, "Initializing subscription system...")
+        
+        // Initialize TierManager first (loads cached tier)
+        TierManager.initialize(this)
+        Log.i(TAG, "TierManager initialized with tier: ${TierManager.getCurrentTier()}")
+        
+        // Initialize BillingClient (connects to Google Play)
+        BillingClientManager.initialize(this)
+        Log.i(TAG, "BillingClientManager initialized")
     }
     
     /**

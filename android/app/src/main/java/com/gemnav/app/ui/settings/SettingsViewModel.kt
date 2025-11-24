@@ -6,6 +6,8 @@ import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.SafeModeManager
 import com.gemnav.core.shim.VersionCheck
+import com.gemnav.core.subscription.Tier
+import com.gemnav.core.subscription.TierManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -152,8 +154,8 @@ class SettingsViewModel : ViewModel() {
      * Simulate tier change (for testing).
      * TODO: Wire into actual billing system
      */
-    fun setSubscriptionTier(tier: FeatureGate.SubscriptionTier) {
-        FeatureGate.setSubscriptionTier(tier)
+    fun setSubscriptionTier(tier: Tier) {
+        TierManager.debugSetTier(tier)
         refreshState()
         Log.d(TAG, "Subscription tier changed to: $tier")
     }
