@@ -1186,3 +1186,39 @@ local.properties (NOT committed) → build.gradle.kts → BuildConfig.GEMINI_API
 ### Build: ✅ Gradle dry-run successful
 
 **Next MP**: MP-017 (Turn-by-turn Navigation) or MP-018 (Location Provider Integration)
+
+
+---
+
+## MP-018: Location Provider Integration ✅
+**Branch**: `mp-018-location-provider`
+**Commit**: 5df059a
+
+### Files Created
+- `core/location/LocationService.kt` (199 lines) - FusedLocationProviderClient wrapper
+- `core/location/LocationViewModel.kt` (176 lines) - Location state management
+
+### Files Modified
+- `AndroidManifest.xml`: +GPS feature declaration, +background location TODO
+- `HomeScreen.kt`: +GpsStatusChip indicator, +LocationViewModel integration
+- `RouteDetailsScreen.kt`: +CurrentLocationIndicator, +location tracking lifecycle
+- `RouteDetailsViewModel.kt`: +currentUserLocation, +navigation stubs for MP-017
+- `SettingsScreen.kt`: +LocationPermissionSection, +permission status display
+
+### Architecture
+```
+LocationService (FusedLocationProviderClient)
+    ↓ onLocationChanged(LatLng)
+LocationViewModel (StateFlow)
+    ↓ currentLocation, locationStatus
+UI (HomeScreen, RouteDetailsScreen, SettingsScreen)
+```
+
+### Safety Enforcement
+- SafeModeManager.isSafeModeEnabled() → blocks all location updates
+- FeatureGate.areInAppMapsEnabled() → blocks for Free tier
+- Permission check before any location request
+
+### Build: ✅ Gradle dry-run successful (3s)
+
+**Next MP**: MP-017 (Turn-by-turn Navigation Engine)

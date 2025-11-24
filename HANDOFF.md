@@ -197,3 +197,51 @@ fun isNavigationQuery(query: String): Boolean
 ---
 **Last Updated**: 2025-11-24
 **Branch**: mp-016-gemini-routing-integration
+
+
+---
+
+# MP-018: LOCATION PROVIDER INTEGRATION - HANDOFF
+
+## What Was Done
+Implemented complete GPS location pipeline using FusedLocationProviderClient with ViewModel state management, SafeMode enforcement, and FeatureGate tier gating.
+
+## Files Created
+1. `android/app/src/main/java/com/gemnav/core/location/LocationService.kt` (199 lines)
+   - FusedLocationProviderClient wrapper
+   - startLocationUpdates() / stopLocationUpdates() / getLastKnownLocation()
+   - SafeMode + FeatureGate enforcement
+   - LocationListener interface for callbacks
+
+2. `android/app/src/main/java/com/gemnav/core/location/LocationViewModel.kt` (176 lines)
+   - StateFlows: currentLocation, lastKnownLocation, locationStatus, hasPermission
+   - LocationStatus sealed class: Idle/Active/Searching/Error/PermissionDenied
+   - Lifecycle-aware tracking management
+
+## Files Modified
+- `AndroidManifest.xml`: GPS feature declaration, background location placeholder
+- `HomeScreen.kt`: GpsStatusChip composable, LocationViewModel integration
+- `RouteDetailsScreen.kt`: CurrentLocationIndicator, location tracking lifecycle
+- `RouteDetailsViewModel.kt`: currentUserLocation StateFlow, navigation stubs for MP-017
+- `SettingsScreen.kt`: LocationPermissionSection with permission status
+
+## Tier Behavior
+- **Free**: Location blocked (FeatureGate.areInAppMapsEnabled() = false)
+- **Plus**: Location enabled for in-app maps
+- **Pro**: Location enabled for maps + truck navigation
+
+## What to Do Next
+**MP-017: Turn-by-turn Navigation Engine**
+- Implement TTS voice guidance
+- Route progress tracking (distance to next step)
+- Lane guidance UI
+- Off-route detection + recalculation
+- Step announcements
+
+## Build Status
+✅ Gradle dry-run successful (3s)
+
+---
+**Last Updated**: 2025-11-24
+**Branch**: mp-018-location-provider
+**Commit**: 5df059a
