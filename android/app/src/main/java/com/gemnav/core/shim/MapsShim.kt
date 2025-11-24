@@ -1,6 +1,7 @@
 package com.gemnav.core.shim
 
 import android.util.Log
+import com.gemnav.core.maps.google.*
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.LatLng
 
@@ -146,37 +147,97 @@ object MapsShim {
     )
     
     /**
-     * Parse navigation steps from Google route.
-     * TODO MP-019: Implement actual Google Directions API parsing
+     * Parse navigation steps from Google Directions API response.
+     * MP-019: Full implementation for Plus tier turn-by-turn.
      * 
-     * @param routeResult The route result from Google Maps SDK
-     * @return List of navigation steps (currently empty stub)
+     * @param response The DirectionsResponse from Google Directions API
+     * @return List of navigation steps for NavigationEngine
      */
+    fun parseGoogleSteps(response: DirectionsResponse): List<NavStep> {
+        if (response.routes.isEmpty()) {
+            logWarning("Cannot parse steps - no routes in response")
+            return emptyList()
+        }
+        
+        val route = response.routes.first()
+        val steps = mutableListOf<NavStep>()
+        
+        // Process all legs (supports multi-waypoint routes)
+        for (leg in route.legs) {
+            for (step in leg.steps) {
+                val instruction = DirectionsApiClient.stripHtml(step.htmlInstructions)
+                val maneuver = mapGoogleManeuver(step.maneuver)
+                
+                steps.add(NavStep(
+                    instruction = instruction,
+                    maneuverIcon = maneuver,
+                    distanceMeters = step.distance.value.toDouble(),
+                    streetName = extractStreetName(instruction),
+                    location = step.startLocation.toLatLng()
+                ))
+            }
+        }
+        
+        // Add arrival step
+        route.legs.lastOrNull()?.let { lastLeg ->
+            steps.add(NavStep(
+                instruction = "Arrive at destination",
+                maneuverIcon = NavManeuver.ARRIVE,
+                distanceMeters = 0.0,
+                streetName = lastLeg.endAddress,
+                location = lastLeg.endLocation.toLatLng()
+            ))
+        }
+        
+        logInfo("Parsed ${steps.size} navigation steps from Google Directions")
+        return steps
+    }
+    
+    /**
+     * Parse navigation steps from legacy RouteResult (deprecated stub).
+     * @deprecated Use parseGoogleSteps(DirectionsResponse) instead
+     */
+    @Deprecated("Use parseGoogleSteps(DirectionsResponse) instead", ReplaceWith("parseGoogleSteps(response)"))
     fun parseStepsGoogle(routeResult: RouteResult?): List<NavStep> {
         if (routeResult == null) {
             logWarning("Cannot parse steps - null route result")
             return emptyList()
         }
-        
-        // TODO MP-019: Implement Google Directions API step parsing
-        // The Google Directions API returns steps with:
-        // - html_instructions
-        // - maneuver (turn-left, turn-right, etc.)
-        // - distance.value (meters)
-        // - start_location {lat, lng}
-        // - end_location {lat, lng}
-        
-        logInfo("parseStepsGoogle: stub returning empty list - implement in MP-019")
+        logWarning("parseStepsGoogle: deprecated - use parseGoogleSteps(DirectionsResponse)")
         return emptyList()
     }
     
     /**
-     * Create a NavRoute from Google route data for navigation.
-     * TODO MP-019: Implement actual conversion
+     * Create a NavRoute from Google Directions API result.
+     * MP-019: Full implementation for Plus tier.
      */
+    fun createNavRoute(result: DirectionsResult.Success): NavRoute {
+        val steps = parseGoogleSteps(
+            DirectionsResponse(
+                status = "OK",
+                routes = listOf(result.route)
+            )
+        )
+        
+        return NavRoute(
+            steps = steps,
+            polylineCoordinates = result.polylineCoordinates,
+            totalDistanceMeters = result.totalDistanceMeters.toDouble(),
+            totalDurationSeconds = result.totalDurationSeconds.toLong(),
+            isTruckRoute = false,
+            isFallback = false
+        )
+    }
+    
+    /**
+     * Create a NavRoute from Google route data for navigation.
+     * @deprecated Use createNavRoute(DirectionsResult.Success) instead
+     */
+    @Deprecated("Use createNavRoute(DirectionsResult.Success) instead")
     fun createNavRoute(routeResult: RouteResult?, polylineCoordinates: List<LatLng>): NavRoute? {
         if (routeResult == null) return null
         
+        @Suppress("DEPRECATION")
         val steps = parseStepsGoogle(routeResult)
         if (steps.isEmpty()) {
             logWarning("Cannot create NavRoute - no steps parsed")
@@ -191,6 +252,50 @@ object MapsShim {
             isTruckRoute = false,
             isFallback = false
         )
+    }
+    
+    /**
+     * Map Google maneuver string to NavManeuver enum.
+     */
+    private fun mapGoogleManeuver(maneuver: String?): NavManeuver {
+        return when (maneuver) {
+            GoogleManeuverTypes.TURN_LEFT -> NavManeuver.LEFT
+            GoogleManeuverTypes.TURN_RIGHT -> NavManeuver.RIGHT
+            GoogleManeuverTypes.TURN_SLIGHT_LEFT -> NavManeuver.SLIGHT_LEFT
+            GoogleManeuverTypes.TURN_SLIGHT_RIGHT -> NavManeuver.SLIGHT_RIGHT
+            GoogleManeuverTypes.TURN_SHARP_LEFT -> NavManeuver.SHARP_LEFT
+            GoogleManeuverTypes.TURN_SHARP_RIGHT -> NavManeuver.SHARP_RIGHT
+            GoogleManeuverTypes.UTURN_LEFT, GoogleManeuverTypes.UTURN_RIGHT -> NavManeuver.UTURN
+            GoogleManeuverTypes.MERGE -> NavManeuver.MERGE
+            GoogleManeuverTypes.RAMP_LEFT, GoogleManeuverTypes.FORK_LEFT, GoogleManeuverTypes.KEEP_LEFT -> NavManeuver.SLIGHT_LEFT
+            GoogleManeuverTypes.RAMP_RIGHT, GoogleManeuverTypes.FORK_RIGHT, GoogleManeuverTypes.KEEP_RIGHT -> NavManeuver.SLIGHT_RIGHT
+            GoogleManeuverTypes.ROUNDABOUT_LEFT, GoogleManeuverTypes.ROUNDABOUT_RIGHT -> NavManeuver.ROUNDABOUT
+            GoogleManeuverTypes.FERRY, GoogleManeuverTypes.FERRY_TRAIN -> NavManeuver.FERRY
+            GoogleManeuverTypes.STRAIGHT -> NavManeuver.STRAIGHT
+            null -> NavManeuver.STRAIGHT
+            else -> NavManeuver.STRAIGHT
+        }
+    }
+    
+    /**
+     * Extract street name from instruction text.
+     */
+    private fun extractStreetName(instruction: String): String? {
+        // Common patterns: "Turn left onto Main St", "Continue on Highway 101"
+        val patterns = listOf(
+            Regex("onto (.+)$"),
+            Regex("on (.+)$"),
+            Regex("toward (.+)$"),
+            Regex("via (.+)$")
+        )
+        
+        for (pattern in patterns) {
+            pattern.find(instruction)?.let { match ->
+                return match.groupValues.getOrNull(1)?.trim()
+            }
+        }
+        
+        return null
     }
     
     /**

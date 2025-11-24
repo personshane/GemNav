@@ -52,6 +52,10 @@ fun RouteDetailsScreen(
     val isNavigating by viewModel.isNavigating.collectAsState()
     val currentNavRoute by viewModel.currentNavRoute.collectAsState()
     
+    // Google route state (MP-019)
+    val googleRouteState by viewModel.googleRouteState.collectAsState()
+    val googlePolyline by viewModel.currentGooglePolyline.collectAsState()
+    
     // Feed location updates to navigation engine
     LaunchedEffect(currentLocation) {
         currentLocation?.let { loc ->
@@ -174,12 +178,20 @@ fun RouteDetailsScreen(
             onClearRoute = { viewModel.clearTruckRoute() }
         )
         
-        // ==================== Plus Tier Map Section ====================
+        // ==================== Plus Tier Map Section (MP-019) ====================
         
         if (isPlusTier && !isProTier) {
             Spacer(modifier = Modifier.height(16.dp))
             PlusTierMapSection(
                 destination = destination,
+                googleRouteState = googleRouteState,
+                googlePolyline = googlePolyline,
+                isNavigating = isNavigating,
+                currentLocation = currentLocation?.let { LatLng(it.latitude, it.longitude) },
+                currentNavRoute = currentNavRoute,
+                onRequestRoute = { viewModel.requestGoogleRoute() },
+                onStartNavigation = { viewModel.startNavigation() },
+                onStopNavigation = { viewModel.stopNavigation() },
                 onMapReady = { viewModel.onGoogleMapReady() },
                 onMapError = { viewModel.onGoogleMapError(it) }
             )
@@ -466,14 +478,25 @@ private fun TruckRouteResultCard(
 }
 
 /**
- * Plus tier map section with Google Maps.
+ * Plus tier map section with Google Maps and turn-by-turn navigation.
+ * MP-019: Full Google Directions API integration.
  */
 @Composable
 private fun PlusTierMapSection(
     destination: Destination,
+    googleRouteState: RouteDetailsViewModel.GoogleRouteState,
+    googlePolyline: List<LatLng>,
+    isNavigating: Boolean,
+    currentLocation: LatLng?,
+    currentNavRoute: NavRoute?,
+    onRequestRoute: () -> Unit,
+    onStartNavigation: () -> Unit,
+    onStopNavigation: () -> Unit,
     onMapReady: () -> Unit,
     onMapError: (String) -> Unit
 ) {
+    val nextStep = currentNavRoute?.steps?.firstOrNull()
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -493,7 +516,7 @@ private fun PlusTierMapSection(
                     tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
-                    text = "Route Preview",
+                    text = if (isNavigating) "Navigation Active" else "Route Preview",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
@@ -505,36 +528,137 @@ private fun PlusTierMapSection(
             
             Spacer(modifier = Modifier.height(12.dp))
             
+            // Map with route polyline
             GoogleMapContainer(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
+                    .height(if (isNavigating) 300.dp else 200.dp),
                 destinationLocation = LatLng(destination.latitude, destination.longitude),
-                centerLocation = LatLng(destination.latitude, destination.longitude),
+                centerLocation = currentLocation ?: LatLng(destination.latitude, destination.longitude),
+                routePolyline = googlePolyline.takeIf { it.isNotEmpty() },
+                isNavigating = isNavigating,
+                currentLocation = currentLocation,
+                nextStep = nextStep,
                 onMapReady = onMapReady,
                 onMapError = onMapError
             )
             
             Spacer(modifier = Modifier.height(12.dp))
             
+            // Route info or loading state
+            when (googleRouteState) {
+                is RouteDetailsViewModel.GoogleRouteState.Loading -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Calculating route...")
+                    }
+                }
+                is RouteDetailsViewModel.GoogleRouteState.Success -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Distance", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                text = formatDistance(googleRouteState.distanceMeters),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Duration", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                text = formatDuration(googleRouteState.durationSeconds),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                is RouteDetailsViewModel.GoogleRouteState.Error -> {
+                    Text(
+                        text = "Route error: ${googleRouteState.message}",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                else -> { /* Idle state */ }
+            }
+            
+            // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
-                    onClick = { /* TODO: Open in Google Maps app */ },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Open in Maps")
-                }
-                Button(
-                    onClick = { /* TODO: Start turn-by-turn */ },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Navigate")
+                if (googleRouteState is RouteDetailsViewModel.GoogleRouteState.Success) {
+                    if (isNavigating) {
+                        Button(
+                            onClick = onStopNavigation,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Icon(Icons.Default.Stop, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Stop Navigation")
+                        }
+                    } else {
+                        Button(
+                            onClick = onStartNavigation,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Navigation, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Start Navigation")
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { /* TODO: Open in Google Maps app */ },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Open in Maps")
+                    }
+                    Button(
+                        onClick = onRequestRoute,
+                        modifier = Modifier.weight(1f),
+                        enabled = googleRouteState !is RouteDetailsViewModel.GoogleRouteState.Loading
+                    ) {
+                        Text("Get Route")
+                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * Format distance for display.
+ */
+private fun formatDistance(meters: Int): String {
+    return if (meters < 1000) {
+        "$meters m"
+    } else {
+        String.format("%.1f km", meters / 1000.0)
+    }
+}
+
+/**
+ * Format duration for display.
+ */
+private fun formatDuration(seconds: Int): String {
+    val minutes = seconds / 60
+    return if (minutes < 60) {
+        "$minutes min"
+    } else {
+        val hours = minutes / 60
+        val remainingMinutes = minutes % 60
+        "${hours}h ${remainingMinutes}m"
     }
 }
 

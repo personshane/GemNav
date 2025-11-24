@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.gemnav.app.models.Destination
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.here.TruckConfig
+import com.gemnav.core.maps.google.DirectionsApiClient
+import com.gemnav.core.maps.google.DirectionsResult
 import com.gemnav.core.navigation.NavigationEngine
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
@@ -83,6 +85,21 @@ class RouteDetailsViewModel : ViewModel() {
     
     private val _currentNavRoute = MutableStateFlow<NavRoute?>(null)
     val currentNavRoute: StateFlow<NavRoute?> = _currentNavRoute
+    
+    // ==================== GOOGLE DIRECTIONS API (MP-019) ====================
+    
+    sealed class GoogleRouteState {
+        object Idle : GoogleRouteState()
+        object Loading : GoogleRouteState()
+        data class Success(val polyline: List<LatLng>, val distanceMeters: Int, val durationSeconds: Int) : GoogleRouteState()
+        data class Error(val message: String) : GoogleRouteState()
+    }
+    
+    private val _googleRouteState = MutableStateFlow<GoogleRouteState>(GoogleRouteState.Idle)
+    val googleRouteState: StateFlow<GoogleRouteState> = _googleRouteState
+    
+    private val _currentGooglePolyline = MutableStateFlow<List<LatLng>>(emptyList())
+    val currentGooglePolyline: StateFlow<List<LatLng>> = _currentGooglePolyline
     
     /**
      * Update current user location from LocationViewModel.
@@ -358,35 +375,120 @@ class RouteDetailsViewModel : ViewModel() {
     }
     
     /**
-     * Calculate car route using Google Maps SDK.
+     * Calculate car route using Google Directions API.
+     * MP-019: Full implementation for Plus tier turn-by-turn.
      * Gated by FeatureGate.areInAppMapsEnabled()
      */
-    private fun calculateCarRoute(origin: Destination, dest: Destination): RouteInfo? {
+    private suspend fun calculateCarRoute(origin: Destination, dest: Destination): RouteInfo? {
         if (!FeatureGate.areInAppMapsEnabled()) {
             Log.d(TAG, "In-app routing blocked - would trigger Maps intent")
-            // TODO: Trigger Google Maps app via intent
             return null
         }
         
-        Log.d(TAG, "Calculating car route: ${origin.name} -> ${dest.name}")
+        Log.d(TAG, "Calculating car route via Google Directions: ${origin.name} -> ${dest.name}")
         
-        val mapsRoute = MapsShim.getRoute(
-            origin = Pair(origin.latitude, origin.longitude),
-            destination = Pair(dest.latitude, dest.longitude)
+        val waypoints = _waypoints.value.map { LatLng(it.latitude, it.longitude) }
+        
+        val result = DirectionsApiClient.getRoute(
+            origin = LatLng(origin.latitude, origin.longitude),
+            destination = LatLng(dest.latitude, dest.longitude),
+            waypoints = waypoints
         )
         
-        return if (mapsRoute != null) {
-            RouteInfo(
-                distanceMeters = mapsRoute.distanceMeters,
-                durationSeconds = mapsRoute.durationSeconds,
-                isTruckRoute = false,
-                isFallback = false,
-                warnings = emptyList(),
-                steps = mapsRoute.steps
-            )
-        } else {
-            null
+        return when (result) {
+            is DirectionsResult.Success -> {
+                // Store polyline for map rendering
+                _currentGooglePolyline.value = result.polylineCoordinates
+                _googleRouteState.value = GoogleRouteState.Success(
+                    polyline = result.polylineCoordinates,
+                    distanceMeters = result.totalDistanceMeters,
+                    durationSeconds = result.totalDurationSeconds
+                )
+                
+                // Create NavRoute for navigation
+                val navRoute = MapsShim.createNavRoute(result)
+                _currentNavRoute.value = navRoute
+                
+                Log.i(TAG, "Google route success: ${result.totalDistanceMeters}m, ${navRoute.steps.size} steps")
+                
+                RouteInfo(
+                    distanceMeters = result.totalDistanceMeters.toLong(),
+                    durationSeconds = result.totalDurationSeconds.toLong(),
+                    isTruckRoute = false,
+                    isFallback = false,
+                    warnings = result.route.warnings,
+                    steps = navRoute.steps.map { it.instruction }
+                )
+            }
+            is DirectionsResult.Failure -> {
+                Log.w(TAG, "Google route failed: ${result.errorMessage}")
+                _googleRouteState.value = GoogleRouteState.Error(result.errorMessage)
+                null
+            }
         }
+    }
+    
+    /**
+     * Request Google route (Plus tier).
+     * Public entry point for requesting Google Directions route.
+     */
+    fun requestGoogleRoute() {
+        val orig = _origin.value
+        val dest = _destination.value
+        
+        if (orig == null || dest == null) {
+            _googleRouteState.value = GoogleRouteState.Error("Please set origin and destination")
+            return
+        }
+        
+        _googleRouteState.value = GoogleRouteState.Loading
+        
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                DirectionsApiClient.getRoute(
+                    origin = LatLng(orig.latitude, orig.longitude),
+                    destination = LatLng(dest.latitude, dest.longitude),
+                    waypoints = _waypoints.value.map { LatLng(it.latitude, it.longitude) }
+                )
+            }
+            
+            when (result) {
+                is DirectionsResult.Success -> {
+                    _currentGooglePolyline.value = result.polylineCoordinates
+                    _googleRouteState.value = GoogleRouteState.Success(
+                        polyline = result.polylineCoordinates,
+                        distanceMeters = result.totalDistanceMeters,
+                        durationSeconds = result.totalDurationSeconds
+                    )
+                    
+                    val navRoute = MapsShim.createNavRoute(result)
+                    _currentNavRoute.value = navRoute
+                    
+                    _routeState.value = RouteState.Success(RouteInfo(
+                        distanceMeters = result.totalDistanceMeters.toLong(),
+                        durationSeconds = result.totalDurationSeconds.toLong(),
+                        isTruckRoute = false,
+                        isFallback = false,
+                        warnings = result.route.warnings,
+                        steps = navRoute.steps.map { it.instruction }
+                    ))
+                    
+                    Log.i(TAG, "Google route requested: ${result.totalDistanceMeters}m")
+                }
+                is DirectionsResult.Failure -> {
+                    _googleRouteState.value = GoogleRouteState.Error(result.errorMessage)
+                    _routeState.value = RouteState.Error(result.errorMessage)
+                }
+            }
+        }
+    }
+    
+    /**
+     * Clear Google route state.
+     */
+    fun clearGoogleRoute() {
+        _googleRouteState.value = GoogleRouteState.Idle
+        _currentGooglePolyline.value = emptyList()
     }
     
     /**
