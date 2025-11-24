@@ -10,7 +10,10 @@ import androidx.lifecycle.viewModelScope
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.subscription.TierManager
 import com.gemnav.core.voice.SpeechRecognizerManager
+import com.gemnav.data.ai.*
+import com.gemnav.data.route.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -53,6 +56,9 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
     
     private val _needsPermission = MutableStateFlow(false)
     val needsPermission: StateFlow<Boolean> = _needsPermission
+    
+    private val _voiceAiRouteState = MutableStateFlow<VoiceAiRouteState>(VoiceAiRouteState.Idle)
+    val voiceAiRouteState: StateFlow<VoiceAiRouteState> = _voiceAiRouteState
     
     private val speechRecognizerManager: SpeechRecognizerManager by lazy {
         SpeechRecognizerManager(getApplication<Application>().applicationContext).apply {
@@ -216,15 +222,59 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         }
         
         Log.d(TAG, "Processing with AI: $text")
-        // TODO: Send to Gemini for intent processing
-        val intent = GeminiShim.parseNavigationIntent(text)
         
-        if (intent != null) {
-            Log.d(TAG, "AI parsed intent: ${intent.destination}")
-            _voiceState.value = VoiceState.Result(text, intent)
+        // Check if this is a navigation query
+        if (GeminiShim.isNavigationQuery(text)) {
+            processNavigationWithAI(text)
         } else {
-            Log.d(TAG, "AI could not parse intent")
-            _voiceState.value = VoiceState.Result(text, null)
+            // Non-navigation query - use basic intent parsing
+            val intent = GeminiShim.parseNavigationIntent(text)
+            if (intent != null) {
+                Log.d(TAG, "AI parsed intent: ${intent.destination}")
+                _voiceState.value = VoiceState.Result(text, intent)
+            } else {
+                Log.d(TAG, "AI could not parse intent")
+                _voiceState.value = VoiceState.Result(text, null)
+            }
+        }
+    }
+    
+    /**
+     * Process navigation request with AI routing (MP-016).
+     */
+    private suspend fun processNavigationWithAI(text: String) {
+        _voiceAiRouteState.value = VoiceAiRouteState.AiRouting
+        
+        try {
+            val request = AiRouteRequest(
+                rawQuery = text,
+                currentLocation = null, // TODO: Hook up location provider
+                destinationHint = text,
+                tier = TierManager.getCurrentTier(),
+                isTruck = TierManager.isPro(),
+                maxStops = FeatureGate.getMaxWaypoints()
+            )
+            
+            val result = GeminiShim.getRouteSuggestion(request)
+            
+            when (result) {
+                is AiRouteResult.Success -> {
+                    Log.i(TAG, "Voice AI route success: ${result.suggestion.destinationName}")
+                    _voiceAiRouteState.value = VoiceAiRouteState.Success(result.suggestion)
+                    _voiceState.value = VoiceState.Result(text, GeminiShim.NavigationIntent(
+                        destination = result.suggestion.destinationName
+                    ))
+                }
+                is AiRouteResult.Failure -> {
+                    Log.w(TAG, "Voice AI route failed: ${result.reason}")
+                    _voiceAiRouteState.value = VoiceAiRouteState.Error(result.reason)
+                    _voiceState.value = VoiceState.Error(result.reason)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Voice AI routing exception", e)
+            _voiceAiRouteState.value = VoiceAiRouteState.Error("AI routing failed")
+            _voiceState.value = VoiceState.Error("Voice command processing failed")
         }
     }
     
@@ -262,7 +312,15 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         speechRecognizerManager.cancel()
         _isListening.value = false
         _voiceState.value = VoiceState.Idle
+        _voiceAiRouteState.value = VoiceAiRouteState.Idle
         _transcribedText.value = ""
+    }
+    
+    /**
+     * Clear AI route state.
+     */
+    fun clearAiRouteState() {
+        _voiceAiRouteState.value = VoiceAiRouteState.Idle
     }
     
     /**

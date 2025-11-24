@@ -1,6 +1,10 @@
 package com.gemnav.core.shim
 
 import android.util.Log
+import com.gemnav.app.BuildConfig
+import com.gemnav.core.feature.FeatureGate
+import com.gemnav.data.ai.*
+import com.gemnav.data.route.LatLng
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
@@ -191,4 +195,126 @@ object GeminiShim {
         val avoidTolls: Boolean = false,
         val avoidHighways: Boolean = false
     )
+    
+    // ==================== AI ROUTING (MP-016) ====================
+    
+    /**
+     * Get AI-generated route suggestion from Gemini.
+     * Enforces tier gating, SafeMode, and API key validation.
+     * 
+     * @param request AI route request containing query and context
+     * @return AiRouteResult with suggestion or failure reason
+     */
+    suspend fun getRouteSuggestion(request: AiRouteRequest): AiRouteResult {
+        // SafeMode check
+        if (SafeModeManager.isSafeModeEnabled()) {
+            logWarning("AI routing blocked - SafeMode active")
+            return AiRouteResult.Failure("Safe mode active - AI routing disabled")
+        }
+        
+        // Feature gate check
+        if (!FeatureGate.areAIFeaturesEnabled()) {
+            logWarning("AI routing blocked - feature not enabled for tier")
+            return AiRouteResult.Failure("AI features not available for your subscription tier")
+        }
+        
+        // API key check
+        if (BuildConfig.GEMINI_API_KEY.isBlank()) {
+            logWarning("AI routing blocked - Gemini API key not configured")
+            return AiRouteResult.Failure("Gemini API key not configured")
+        }
+        
+        // Validate request
+        if (request.rawQuery.isBlank()) {
+            return AiRouteResult.Failure("Empty query")
+        }
+        
+        logInfo("Processing AI route request: ${request.rawQuery.take(50)}...")
+        
+        return try {
+            // TODO: Implement real Gemini HTTP client call
+            // For now, return stub response with parsed destination
+            val stubSuggestion = parseStubRouteSuggestion(request)
+            
+            if (stubSuggestion != null) {
+                logInfo("AI route suggestion generated: ${stubSuggestion.destinationName}")
+                AiRouteResult.Success(stubSuggestion)
+            } else {
+                AiRouteResult.Failure("Could not parse navigation request")
+            }
+        } catch (e: Exception) {
+            logError("AI routing failed", e)
+            SafeModeManager.reportFailure("GeminiShim.getRouteSuggestion", e)
+            AiRouteResult.Failure(e.message ?: "AI routing failed")
+        }
+    }
+    
+    /**
+     * Stub implementation for route parsing.
+     * TODO: Replace with actual Gemini API call.
+     */
+    private fun parseStubRouteSuggestion(request: AiRouteRequest): AiRouteSuggestion? {
+        val query = request.rawQuery.lowercase()
+        
+        // Simple heuristic parsing (TODO: real Gemini call)
+        val destination = when {
+            query.contains("home") -> "Home"
+            query.contains("work") -> "Work"
+            query.contains("airport") -> "Airport"
+            query.contains("hospital") -> "Hospital"
+            else -> extractDestinationFromQuery(query)
+        }
+        
+        if (destination.isBlank()) return null
+        
+        // Use current location as origin or default
+        val origin = request.currentLocation ?: LatLng(33.4484, -112.0740) // Phoenix default
+        
+        // Generate stub destination coordinates (TODO: real geocoding)
+        val destCoords = LatLng(
+            origin.latitude + 0.05,
+            origin.longitude + 0.05
+        )
+        
+        return AiRouteSuggestion(
+            origin = origin,
+            destination = destCoords,
+            waypoints = emptyList(),
+            notes = "AI-generated route to $destination",
+            mode = if (request.isTruck) AiRouteMode.TRUCK else AiRouteMode.CAR,
+            destinationName = destination,
+            estimatedDurationMinutes = 15
+        )
+    }
+    
+    /**
+     * Extract destination from navigation query.
+     */
+    private fun extractDestinationFromQuery(query: String): String {
+        val prefixes = listOf(
+            "navigate to", "take me to", "go to", "route to",
+            "directions to", "drive to", "find"
+        )
+        
+        for (prefix in prefixes) {
+            if (query.contains(prefix)) {
+                return query.substringAfter(prefix).trim()
+                    .replaceFirstChar { it.uppercase() }
+            }
+        }
+        
+        return query.trim().replaceFirstChar { it.uppercase() }
+    }
+    
+    /**
+     * Check if a query looks like a navigation request.
+     */
+    fun isNavigationQuery(query: String): Boolean {
+        val lowerQuery = query.lowercase()
+        val navigationKeywords = listOf(
+            "navigate", "route", "take me", "go to", "directions",
+            "drive to", "how do i get", "find", "where is"
+        )
+        return navigationKeywords.any { lowerQuery.contains(it) }
+    }
 }

@@ -8,6 +8,7 @@ import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.here.TruckConfig
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
+import com.gemnav.data.ai.*
 import com.gemnav.data.route.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -330,6 +331,95 @@ class RouteDetailsViewModel : ViewModel() {
     fun onGoogleMapError(error: String) {
         Log.w(TAG, "Google Maps error: $error")
         // Silently handled - UI shows error state
+    }
+    
+    // ==================== AI ROUTE INTEGRATION (MP-016) ====================
+    
+    private val _aiRouteState = MutableStateFlow<AiRouteState>(AiRouteState.Idle)
+    val aiRouteState: StateFlow<AiRouteState> = _aiRouteState
+    
+    /**
+     * Apply AI-generated route suggestion to actual routing.
+     * Routes to appropriate engine based on mode.
+     */
+    fun applyAiRouteSuggestion(suggestion: AiRouteSuggestion) {
+        Log.i(TAG, "Applying AI route: ${suggestion.destinationName} (mode: ${suggestion.mode})")
+        
+        // Set origin and destination from suggestion
+        _origin.value = Destination(
+            id = "ai_origin",
+            name = "Current Location",
+            address = "",
+            latitude = suggestion.origin.latitude,
+            longitude = suggestion.origin.longitude
+        )
+        
+        _destination.value = Destination(
+            id = "ai_dest",
+            name = suggestion.destinationName,
+            address = suggestion.notes ?: "",
+            latitude = suggestion.destination.latitude,
+            longitude = suggestion.destination.longitude
+        )
+        
+        // Set waypoints if any
+        _waypoints.value = suggestion.waypoints.mapIndexed { index, latLng ->
+            Destination(
+                id = "ai_waypoint_$index",
+                name = "Waypoint ${index + 1}",
+                address = "",
+                latitude = latLng.latitude,
+                longitude = latLng.longitude
+            )
+        }
+        
+        // Route based on mode
+        when (suggestion.mode) {
+            AiRouteMode.CAR -> {
+                _isTruckMode.value = false
+                // Trigger car routing through existing flow
+                calculateRoute()
+            }
+            AiRouteMode.TRUCK -> {
+                if (FeatureGate.areCommercialRoutingFeaturesEnabled()) {
+                    _isTruckMode.value = true
+                    // Use HERE truck routing
+                    requestTruckRoute(
+                        suggestion.origin.latitude, suggestion.origin.longitude,
+                        suggestion.destination.latitude, suggestion.destination.longitude
+                    )
+                } else {
+                    // Fall back to car routing if truck not available
+                    Log.w(TAG, "Truck mode requested but not available - falling back to car")
+                    _isTruckMode.value = false
+                    calculateRoute()
+                }
+            }
+        }
+    }
+    
+    /**
+     * Handle AI route result from Search/Voice ViewModels.
+     */
+    fun onAiRouteResult(result: AiRouteResult) {
+        when (result) {
+            is AiRouteResult.Success -> {
+                Log.i(TAG, "Received AI route success: ${result.suggestion.destinationName}")
+                _aiRouteState.value = AiRouteState.Success(result.suggestion)
+                applyAiRouteSuggestion(result.suggestion)
+            }
+            is AiRouteResult.Failure -> {
+                Log.w(TAG, "Received AI route failure: ${result.reason}")
+                _aiRouteState.value = AiRouteState.Error(result.reason)
+            }
+        }
+    }
+    
+    /**
+     * Clear AI route state.
+     */
+    fun clearAiRouteState() {
+        _aiRouteState.value = AiRouteState.Idle
     }
     
     /**

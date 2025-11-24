@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.core.feature.FeatureGate
+import com.gemnav.data.ai.VoiceAiRouteState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,8 +42,19 @@ fun VoiceScreen(
     val audioLevel by viewModel.audioLevel.collectAsState()
     val needsPermission by viewModel.needsPermission.collectAsState()
     val featureSummary by viewModel.featureSummary.collectAsState()
+    val voiceAiRouteState by viewModel.voiceAiRouteState.collectAsState()
     
     val isVoiceEnabled = FeatureGate.areAdvancedFeaturesEnabled()
+    
+    // Handle AI route success - navigate to route details
+    LaunchedEffect(voiceAiRouteState) {
+        if (voiceAiRouteState is VoiceAiRouteState.Success) {
+            val suggestion = (voiceAiRouteState as VoiceAiRouteState.Success).suggestion
+            // TODO: Pass suggestion to RouteDetailsScreen
+            navController.navigate("routeDetails/ai_voice_route")
+            viewModel.clearAiRouteState()
+        }
+    }
     
     // Pulsing animation for listening state
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -242,6 +254,60 @@ fun VoiceScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             TextButton(onClick = { viewModel.startListening() }) {
                                 Text("Try Again")
+                            }
+                        }
+                    }
+                }
+                
+                // AI Route Status (MP-016)
+                AnimatedVisibility(
+                    visible = voiceAiRouteState is VoiceAiRouteState.AiRouting || 
+                              voiceAiRouteState is VoiceAiRouteState.Success ||
+                              voiceAiRouteState is VoiceAiRouteState.Error,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = when (voiceAiRouteState) {
+                                is VoiceAiRouteState.Success -> MaterialTheme.colorScheme.primaryContainer
+                                is VoiceAiRouteState.Error -> MaterialTheme.colorScheme.errorContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            when (voiceAiRouteState) {
+                                is VoiceAiRouteState.AiRouting -> {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("AI planning route...", style = MaterialTheme.typography.bodySmall)
+                                }
+                                is VoiceAiRouteState.Success -> {
+                                    val suggestion = (voiceAiRouteState as VoiceAiRouteState.Success).suggestion
+                                    Text(
+                                        text = "AI route to: ${suggestion.destinationName}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                is VoiceAiRouteState.Error -> {
+                                    Text(
+                                        text = (voiceAiRouteState as VoiceAiRouteState.Error).message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                                else -> {}
                             }
                         }
                     }

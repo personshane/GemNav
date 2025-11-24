@@ -11,5 +11,6 @@ here_map_key=YOUR_HERE_MAP_KEY_HERE
 # Get keys from: https://console.cloud.google.com/google/maps-apis
 google_maps_api_key=YOUR_GOOGLE_MAPS_KEY_HERE
 
-# Gemini API (Plus/Pro tier) - future
-# gemini_api_key=YOUR_GEMINI_API_KEY_HERE
+# Gemini API (Plus/Pro tier)
+# Get keys from: https://aistudio.google.com/apikey
+gemini_api_key=YOUR_GEMINI_API_KEY_HERE

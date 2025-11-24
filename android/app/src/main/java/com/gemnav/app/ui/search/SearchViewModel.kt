@@ -7,6 +7,9 @@ import com.gemnav.app.models.Destination
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.MapsShim
+import com.gemnav.core.subscription.TierManager
+import com.gemnav.data.ai.*
+import com.gemnav.data.route.LatLng
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +40,9 @@ class SearchViewModel : ViewModel() {
     
     private val _featureSummary = MutableStateFlow(FeatureGate.getFeatureSummary())
     val featureSummary: StateFlow<FeatureGate.FeatureSummary> = _featureSummary
+    
+    private val _aiRouteState = MutableStateFlow<AiRouteState>(AiRouteState.Idle)
+    val aiRouteState: StateFlow<AiRouteState> = _aiRouteState
     
     private var searchJob: Job? = null
     
@@ -160,6 +166,64 @@ class SearchViewModel : ViewModel() {
         _searchQuery.value = ""
         _searchResults.value = emptyList()
         _errorMessage.value = null
+        _aiRouteState.value = AiRouteState.Idle
+    }
+    
+    // ==================== AI ROUTING (MP-016) ====================
+    
+    /**
+     * Request AI-generated route suggestion for query.
+     * Gated by FeatureGate.areAIFeaturesEnabled()
+     */
+    fun onAiRouteRequested(query: String) {
+        if (!FeatureGate.areAIFeaturesEnabled()) {
+            Log.d(TAG, "AI routing blocked - feature not enabled")
+            _aiRouteState.value = AiRouteState.Error("AI routing not available for your subscription tier")
+            return
+        }
+        
+        if (query.isBlank()) {
+            _aiRouteState.value = AiRouteState.Error("Please enter a destination")
+            return
+        }
+        
+        _aiRouteState.value = AiRouteState.Loading
+        
+        viewModelScope.launch {
+            try {
+                val request = AiRouteRequest(
+                    rawQuery = query,
+                    currentLocation = null, // TODO: Hook up location provider
+                    destinationHint = query,
+                    tier = TierManager.getCurrentTier(),
+                    isTruck = TierManager.isPro(), // Pro tier defaults to truck mode option
+                    maxStops = FeatureGate.getMaxWaypoints()
+                )
+                
+                val result = GeminiShim.getRouteSuggestion(request)
+                
+                _aiRouteState.value = when (result) {
+                    is AiRouteResult.Success -> {
+                        Log.i(TAG, "AI route success: ${result.suggestion.destinationName}")
+                        AiRouteState.Success(result.suggestion)
+                    }
+                    is AiRouteResult.Failure -> {
+                        Log.w(TAG, "AI route failed: ${result.reason}")
+                        AiRouteState.Error(result.reason)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "AI routing exception", e)
+                _aiRouteState.value = AiRouteState.Error("AI routing failed. Please try again.")
+            }
+        }
+    }
+    
+    /**
+     * Clear AI route state.
+     */
+    fun clearAiRouteState() {
+        _aiRouteState.value = AiRouteState.Idle
     }
     
     /**
