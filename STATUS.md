@@ -1138,3 +1138,51 @@ local.properties (NOT committed) → build.gradle.kts → BuildConfig.GOOGLE_MAP
 ### Build: ✅ Gradle dry-run successful
 
 **Next MP**: MP-016 (Gemini Routing Integration) or MP-017 (Turn-by-turn Navigation)
+
+
+---
+
+## MP-016: Gemini Routing Integration (AI → Route Pipeline)
+**Status**: ✅ COMPLETE  
+**Branch**: mp-016-gemini-routing-integration  
+**Date**: 2025-01-XX
+
+### Summary
+Wired Gemini AI routing pipeline into Search/Voice ViewModels with secure key injection.
+
+### Files Created
+- `android/app/src/main/java/com/gemnav/data/ai/AiRouteModels.kt` (67 lines)
+  - AiRouteRequest, AiRouteSuggestion, AiRouteMode, AiRouteResult
+  - AiRouteState, VoiceAiRouteState (sealed classes for UI state)
+
+### Files Modified
+- `build.gradle.kts`: +GEMINI_API_KEY from local.properties
+- `local.properties.template`: Uncommented gemini_api_key
+- `GeminiShim.kt`: +getRouteSuggestion(), +isNavigationQuery(), stub parsing
+- `SearchViewModel.kt`: +aiRouteState, +onAiRouteRequested()
+- `VoiceViewModel.kt`: +voiceAiRouteState, +processNavigationWithAI()
+- `RouteDetailsViewModel.kt`: +aiRouteState, +applyAiRouteSuggestion(), +onAiRouteResult()
+- `SearchScreen.kt`: +AI Route button, +AiRouteState display
+- `VoiceScreen.kt`: +VoiceAiRouteState display, +LaunchedEffect navigation
+
+### AI → Route Pipeline
+```
+User Query (Search/Voice) → AiRouteRequest → GeminiShim.getRouteSuggestion()
+    → AiRouteResult.Success → applyAiRouteSuggestion() → 
+    → CAR mode: calculateRoute() (Google Maps)
+    → TRUCK mode: requestTruckRoute() (HERE SDK)
+```
+
+### Secure Key Pipeline
+```
+local.properties (NOT committed) → build.gradle.kts → BuildConfig.GEMINI_API_KEY
+```
+
+### Tier Enforcement
+- Free: AI routing blocked (feature gate)
+- Plus: AI → car routing only
+- Pro: AI → car or truck routing
+
+### Build: ✅ Gradle dry-run successful
+
+**Next MP**: MP-017 (Turn-by-turn Navigation) or MP-018 (Location Provider Integration)

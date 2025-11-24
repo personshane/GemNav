@@ -133,3 +133,67 @@ local.properties → build.gradle.kts → BuildConfig.GOOGLE_MAPS_API_KEY
 ---
 **Last Updated**: 2025-11-24
 **Branch**: mp-015-google-maps-integration
+
+
+---
+
+# MP-016: GEMINI ROUTING INTEGRATION (AI → ROUTE PIPELINE)
+
+## COMPLETED
+Full AI routing pipeline from Search/Voice → GeminiShim → RouteDetailsViewModel.
+
+## FILES CHANGED
+
+### Created
+- `android/app/src/main/java/com/gemnav/data/ai/AiRouteModels.kt`
+
+### Modified  
+- `android/app/build.gradle.kts` - Gemini API key injection
+- `android/local.properties.template` - Uncommented gemini_api_key
+- `android/app/src/main/java/com/gemnav/core/shim/GeminiShim.kt`
+- `android/app/src/main/java/com/gemnav/app/ui/search/SearchViewModel.kt`
+- `android/app/src/main/java/com/gemnav/app/ui/search/SearchScreen.kt`
+- `android/app/src/main/java/com/gemnav/app/ui/voice/VoiceViewModel.kt`
+- `android/app/src/main/java/com/gemnav/app/ui/voice/VoiceScreen.kt`
+- `android/app/src/main/java/com/gemnav/app/ui/route/RouteDetailsViewModel.kt`
+
+## KEY IMPLEMENTATIONS
+
+### AiRouteModels.kt
+```kotlin
+data class AiRouteRequest(rawQuery, currentLocation, tier, isTruck, maxStops)
+data class AiRouteSuggestion(origin, destination, waypoints, mode, destinationName)
+sealed class AiRouteResult { Success, Failure }
+sealed class AiRouteState { Idle, Loading, Success, Error }
+sealed class VoiceAiRouteState { Idle, Listening, AiRouting, Success, Error }
+```
+
+### GeminiShim.kt - New Functions
+```kotlin
+suspend fun getRouteSuggestion(request: AiRouteRequest): AiRouteResult
+fun isNavigationQuery(query: String): Boolean
+// Stub parsing with navigation keyword detection
+```
+
+### Pipeline Flow
+1. Search/Voice → builds AiRouteRequest
+2. GeminiShim.getRouteSuggestion() → validates tier + SafeMode + API key
+3. Returns AiRouteSuggestion with mode (CAR/TRUCK)
+4. RouteDetailsViewModel.applyAiRouteSuggestion() routes to engine:
+   - CAR → calculateRoute() (Google Maps)
+   - TRUCK → requestTruckRoute() (HERE SDK)
+
+## TODO for Real Implementation
+- Replace stub parsing with actual Gemini HTTP client
+- Integrate location provider for currentLocation
+- Add geocoding for destination coordinates
+- Design proper Gemini prompts for routing
+
+---
+
+## BUILD STATUS
+✅ Gradle dry-run successful
+
+---
+**Last Updated**: 2025-11-24
+**Branch**: mp-016-gemini-routing-integration
