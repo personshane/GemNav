@@ -1,18 +1,25 @@
 package com.gemnav.app.ui.voice
 
+import android.Manifest
+import android.app.Application
+import android.content.pm.PackageManager
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.shim.GeminiShim
+import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.voice.SpeechRecognizerManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
- * VoiceViewModel - Handles voice command functionality with feature gating.
+ * VoiceViewModel - Handles voice command functionality with SpeechRecognizer,
+ * SafeMode awareness, and feature gating.
  */
-class VoiceViewModel : ViewModel() {
+class VoiceViewModel(application: Application) : AndroidViewModel(application) {
     
     companion object {
         private const val TAG = "VoiceViewModel"
@@ -32,57 +39,154 @@ class VoiceViewModel : ViewModel() {
     private val _transcribedText = MutableStateFlow("")
     val transcribedText: StateFlow<String> = _transcribedText
     
+    private val _isListening = MutableStateFlow(false)
+    val isListening: StateFlow<Boolean> = _isListening
+    
+    private val _audioLevel = MutableStateFlow(0f)
+    val audioLevel: StateFlow<Float> = _audioLevel
+    
+    private val _lastError = MutableStateFlow<String?>(null)
+    val lastError: StateFlow<String?> = _lastError
+    
     private val _featureSummary = MutableStateFlow(FeatureGate.getFeatureSummary())
-    val featureSummary: StateFlow<FeatureGate.FeatureSummary> = _featureSummary
+    val featureSummary: StateFlow<FeatureSummary> = _featureSummary
+    
+    private val _needsPermission = MutableStateFlow(false)
+    val needsPermission: StateFlow<Boolean> = _needsPermission
+    
+    private val speechRecognizerManager: SpeechRecognizerManager by lazy {
+        SpeechRecognizerManager(getApplication<Application>().applicationContext).apply {
+            setListener(createSpeechListener())
+        }
+    }
+    
+    private fun createSpeechListener(): SpeechRecognizerManager.SpeechRecognizerListener {
+        return object : SpeechRecognizerManager.SpeechRecognizerListener {
+            override fun onPartialResult(text: String) {
+                Log.d(TAG, "Partial: $text")
+                _transcribedText.value = text
+            }
+            
+            override fun onFinalResult(text: String) {
+                Log.d(TAG, "Final: $text")
+                _transcribedText.value = text
+                _isListening.value = false
+                
+                if (text.isNotBlank()) {
+                    processVoiceCommand(text)
+                } else {
+                    _voiceState.value = VoiceState.Idle
+                }
+            }
+            
+            override fun onError(error: SpeechRecognizerManager.SpeechError) {
+                Log.w(TAG, "Speech error: $error")
+                _isListening.value = false
+                _lastError.value = error.name
+                
+                val message = when (error) {
+                    SpeechRecognizerManager.SpeechError.NOT_AVAILABLE -> 
+                        "Speech recognition not available"
+                    SpeechRecognizerManager.SpeechError.PERMISSION_DENIED -> {
+                        _needsPermission.value = true
+                        "Microphone permission required"
+                    }
+                    SpeechRecognizerManager.SpeechError.NO_MATCH -> 
+                        "Didn't catch that. Please try again."
+                    SpeechRecognizerManager.SpeechError.SPEECH_TIMEOUT -> 
+                        "No speech detected"
+                    SpeechRecognizerManager.SpeechError.NETWORK_ERROR,
+                    SpeechRecognizerManager.SpeechError.NETWORK_TIMEOUT -> 
+                        "Network error. Check connection."
+                    else -> "Voice input failed"
+                }
+                _voiceState.value = VoiceState.Error(message)
+            }
+            
+            override fun onListeningStateChanged(isListening: Boolean) {
+                _isListening.value = isListening
+                if (isListening) {
+                    _voiceState.value = VoiceState.Listening
+                }
+            }
+            
+            override fun onAudioLevelChanged(rmsdB: Float) {
+                _audioLevel.value = rmsdB
+            }
+        }
+    }
+    
+    /**
+     * Toggle voice listening on button press.
+     */
+    fun onVoiceButtonPressed() {
+        if (_isListening.value) {
+            stopListening()
+        } else {
+            startListening()
+        }
+    }
     
     /**
      * Start listening for voice input.
-     * Basic voice available to all tiers; advanced processing requires Plus/Pro.
      */
     fun startListening() {
-        if (!FeatureGate.areAdvancedFeaturesEnabled()) {
+        // Check SafeMode
+        if (SafeModeManager.isSafeModeEnabled()) {
             Log.d(TAG, "Voice blocked - SafeMode active")
             _voiceState.value = VoiceState.Error("Voice commands unavailable in Safe Mode")
             return
         }
         
-        _voiceState.value = VoiceState.Listening
-        _transcribedText.value = ""
+        // Check feature gate
+        if (!FeatureGate.areAdvancedFeaturesEnabled()) {
+            Log.d(TAG, "Voice blocked - Advanced features disabled")
+            _voiceState.value = VoiceState.Error("Voice features temporarily unavailable")
+            return
+        }
         
-        // TODO: Start actual speech recognition
-        Log.d(TAG, "Voice listening started")
+        // Check permission
+        if (!hasRecordAudioPermission()) {
+            Log.d(TAG, "Voice blocked - Permission not granted")
+            _needsPermission.value = true
+            _voiceState.value = VoiceState.Error("Microphone permission required")
+            // TODO: Trigger permission request via UI layer
+            return
+        }
+        
+        // Check availability
+        if (!speechRecognizerManager.isAvailable()) {
+            Log.d(TAG, "Voice blocked - SpeechRecognizer not available")
+            _voiceState.value = VoiceState.Error("Speech recognition not available on this device")
+            return
+        }
+        
+        // Clear previous state
+        _transcribedText.value = ""
+        _lastError.value = null
+        _voiceState.value = VoiceState.Listening
+        
+        // Start recognition
+        // TODO: Get language from Settings
+        val success = speechRecognizerManager.startListening(null)
+        if (!success) {
+            _voiceState.value = VoiceState.Error("Could not start voice input")
+        }
+        
+        Log.d(TAG, "Voice listening started: $success")
     }
     
     /**
      * Stop listening and process the voice input.
      */
     fun stopListening() {
-        if (_voiceState.value != VoiceState.Listening) {
-            return
-        }
-        
-        // TODO: Stop actual speech recognition
+        speechRecognizerManager.stopListening()
+        _isListening.value = false
         Log.d(TAG, "Voice listening stopped")
-        
-        // Process the transcribed text
-        val text = _transcribedText.value
-        if (text.isNotBlank()) {
-            processVoiceCommand(text)
-        } else {
-            _voiceState.value = VoiceState.Idle
-        }
-    }
-    
-    /**
-     * Handle transcription result from speech recognizer.
-     */
-    fun onTranscriptionResult(text: String) {
-        _transcribedText.value = text
     }
     
     /**
      * Process voice command with AI.
-     * Advanced processing gated by FeatureGate.areAdvancedVoiceCommandsEnabled()
      */
     private fun processVoiceCommand(text: String) {
         _voiceState.value = VoiceState.Processing
@@ -90,10 +194,8 @@ class VoiceViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 if (FeatureGate.areAdvancedVoiceCommandsEnabled()) {
-                    // Advanced AI processing for Plus/Pro tiers
                     processWithAI(text)
                 } else {
-                    // Basic processing for Free tier
                     processBasicCommand(text)
                 }
             } catch (e: Exception) {
@@ -114,6 +216,7 @@ class VoiceViewModel : ViewModel() {
         }
         
         Log.d(TAG, "Processing with AI: $text")
+        // TODO: Send to Gemini for intent processing
         val intent = GeminiShim.parseNavigationIntent(text)
         
         if (intent != null) {
@@ -127,15 +230,11 @@ class VoiceViewModel : ViewModel() {
     
     /**
      * Basic command processing (Free tier).
-     * Simple keyword matching without AI.
      */
     private fun processBasicCommand(text: String) {
         Log.d(TAG, "Processing basic command: $text")
         
-        // TODO: Implement basic keyword matching
-        // Examples: "navigate to [place]", "go home", "go to work"
         val lowerText = text.lowercase()
-        
         val basicIntent = when {
             lowerText.contains("home") -> {
                 GeminiShim.NavigationIntent(destination = "home")
@@ -160,9 +259,28 @@ class VoiceViewModel : ViewModel() {
      * Cancel current voice operation.
      */
     fun cancel() {
-        // TODO: Cancel speech recognition if active
+        speechRecognizerManager.cancel()
+        _isListening.value = false
         _voiceState.value = VoiceState.Idle
         _transcribedText.value = ""
+    }
+    
+    /**
+     * Check if RECORD_AUDIO permission is granted.
+     */
+    private fun hasRecordAudioPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            getApplication(),
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+    
+    /**
+     * Call after permission is granted.
+     */
+    fun onPermissionGranted() {
+        _needsPermission.value = false
+        startListening()
     }
     
     /**
@@ -171,4 +289,13 @@ class VoiceViewModel : ViewModel() {
     fun refreshFeatureState() {
         _featureSummary.value = FeatureGate.getFeatureSummary()
     }
+    
+    override fun onCleared() {
+        super.onCleared()
+        speechRecognizerManager.destroy()
+        Log.d(TAG, "VoiceViewModel cleared, SpeechRecognizer destroyed")
+    }
 }
+
+// Type alias for cleaner imports
+typealias FeatureSummary = FeatureGate.FeatureSummary
