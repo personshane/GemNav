@@ -1,81 +1,288 @@
 package com.gemnav.app.ui.voice
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.gemnav.app.ui.common.SafeModeBanner
+import com.gemnav.core.feature.FeatureGate
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VoiceScreen(navController: NavController) {
-
-    var isListening by remember { mutableStateOf(false) }
-    var transcript by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-
-        Text(
-            text = if (isListening) "Listening..." else "Hold to Speak",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Fake mic button (visual only)
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(if (isListening) Color.Red else Color.Gray)
-                .alpha(if (isListening) 0.9f else 0.7f)
-                .padding(16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Transcription Preview
-        OutlinedTextField(
-            value = transcript,
-            onValueChange = { transcript = it },
-            label = { Text("Transcript") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = {
-                // TODO: send transcript to Gemini speech-intent engine
-                if (transcript.isNotBlank()) {
-                    navController.navigate("search")
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Process Command")
+fun VoiceScreen(
+    navController: NavController,
+    viewModel: VoiceViewModel = viewModel()
+) {
+    val voiceState by viewModel.voiceState.collectAsState()
+    val transcribedText by viewModel.transcribedText.collectAsState()
+    val isListening by viewModel.isListening.collectAsState()
+    val audioLevel by viewModel.audioLevel.collectAsState()
+    val needsPermission by viewModel.needsPermission.collectAsState()
+    val featureSummary by viewModel.featureSummary.collectAsState()
+    
+    val isVoiceEnabled = FeatureGate.areAdvancedFeaturesEnabled()
+    
+    // Pulsing animation for listening state
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    
+    Scaffold(
+        topBar = {
+            Column {
+                SafeModeBanner()
+                TopAppBar(
+                    title = { Text("Voice Command") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Listening toggle (temporary for MP-013)
-        Button(
-            onClick = { isListening = !isListening },
-            modifier = Modifier.fillMaxWidth()
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(if (isListening) "Stop Listening" else "Start Listening")
+            // Status text
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    text = when {
+                        !isVoiceEnabled -> "Voice Unavailable"
+                        needsPermission -> "Permission Required"
+                        isListening -> "Listening..."
+                        voiceState is VoiceViewModel.VoiceState.Processing -> "Processing..."
+                        voiceState is VoiceViewModel.VoiceState.Error -> "Error"
+                        voiceState is VoiceViewModel.VoiceState.Result -> "Complete"
+                        else -> "Tap to Speak"
+                    },
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = when {
+                        !isVoiceEnabled -> MaterialTheme.colorScheme.error
+                        isListening -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Tier hint
+                if (!FeatureGate.areAdvancedVoiceCommandsEnabled()) {
+                    Text(
+                        text = "Basic voice (Upgrade for AI processing)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // Mic button with pulse animation
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(160.dp)
+                    .scale(if (isListening) pulseScale else 1f)
+                    .clip(CircleShape)
+                    .background(
+                        when {
+                            !isVoiceEnabled -> MaterialTheme.colorScheme.surfaceVariant
+                            isListening -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.primaryContainer
+                        }
+                    )
+                    .then(
+                        if (isListening) {
+                            Modifier.border(
+                                width = 4.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                shape = CircleShape
+                            )
+                        } else Modifier
+                    )
+                    .clickable(enabled = isVoiceEnabled) {
+                        viewModel.onVoiceButtonPressed()
+                    }
+            ) {
+                Icon(
+                    imageVector = when {
+                        !isVoiceEnabled -> Icons.Default.MicOff
+                        isListening -> Icons.Default.Stop
+                        else -> Icons.Default.Mic
+                    },
+                    contentDescription = if (isListening) "Stop" else "Start listening",
+                    modifier = Modifier.size(64.dp),
+                    tint = when {
+                        !isVoiceEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                        isListening -> MaterialTheme.colorScheme.onPrimary
+                        else -> MaterialTheme.colorScheme.onPrimaryContainer
+                    }
+                )
+            }
+            
+            // Transcription area
+            Column(
+                modifier = Modifier
+                    .weight(1.5f)
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Live transcription box
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 100.dp, max = 200.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = if (transcribedText.isEmpty()) Alignment.Center else Alignment.TopStart
+                    ) {
+                        if (transcribedText.isEmpty()) {
+                            Text(
+                                text = when {
+                                    isListening -> "Speak now..."
+                                    voiceState is VoiceViewModel.VoiceState.Error -> 
+                                        (voiceState as VoiceViewModel.VoiceState.Error).message
+                                    else -> "Your words will appear here"
+                                },
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        } else {
+                            Text(
+                                text = transcribedText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Result actions
+                AnimatedVisibility(
+                    visible = voiceState is VoiceViewModel.VoiceState.Result,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    val result = voiceState as? VoiceViewModel.VoiceState.Result
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (result?.intent != null) {
+                            Text(
+                                text = "Destination: ${result.intent.destination}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    // TODO: Navigate to route with intent
+                                    navController.navigate("route")
+                                },
+                                modifier = Modifier.fillMaxWidth(0.8f)
+                            ) {
+                                Text("Start Navigation")
+                            }
+                        } else if (transcribedText.isNotBlank()) {
+                            Text(
+                                text = "Could not understand destination",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = { viewModel.startListening() }) {
+                                Text("Try Again")
+                            }
+                        }
+                    }
+                }
+                
+                // Permission prompt
+                AnimatedVisibility(visible = needsPermission) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Microphone access is required for voice commands",
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // TODO: Wire to permission launcher
+                            Button(onClick = { /* TODO: Request permission */ }) {
+                                Text("Grant Permission")
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Cancel button when listening
+            AnimatedVisibility(visible = isListening) {
+                TextButton(
+                    onClick = { viewModel.cancel() },
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Text("Cancel")
+                }
+            }
         }
     }
 }
