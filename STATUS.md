@@ -1096,3 +1096,45 @@ local.properties (NOT committed) → build.gradle.kts → BuildConfig.HERE_API_K
 - RouteOverlayStub → shows polyline ready indicator
 
 **Next MP**: MP-015 (Google Maps SDK Integration) or obtain HERE SDK credentials
+
+
+---
+
+## MP-015: Google Maps SDK Integration (Plus Tier)
+**Status**: ✅ COMPLETE  
+**Branch**: mp-015-google-maps-integration  
+**Date**: 2025-01-XX
+
+### Summary
+Integrated Google Maps SDK for Plus tier map rendering with secure key pipeline.
+
+### Files Created
+- `android/app/src/main/java/com/gemnav/app/ui/map/GoogleMapContainer.kt` (283 lines)
+
+### Files Modified
+- `build.gradle.kts`: +Google Maps API key from local.properties, +maps-compose:2.11.4, updated play-services-maps:18.2.0
+- `local.properties.template`: Uncommented google_maps_api_key
+- `RouteDetailsScreen.kt`: +PlusTierMapSection with GoogleMapContainer, +isPlusTier check
+- `RouteDetailsViewModel.kt`: +isPlusTier(), +onGoogleMapReady(), +onGoogleMapError() stubs
+
+### Secure Key Pipeline
+```
+local.properties (NOT committed) → build.gradle.kts → BuildConfig.GOOGLE_MAPS_API_KEY
+```
+
+### GoogleMapContainer Features
+- SafeMode check → blocks map init
+- Tier check → Plus/Pro only (Free blocked)
+- Key validation → shows error if blank
+- GoogleMapState sealed class → Initializing/Ready/Error
+- Full Google Maps Compose integration with markers
+- TODO markers for route polyline rendering
+
+### RouteDetailsScreen Flow
+- Pro tier → Shows TruckRouteSection with HereMapContainer
+- Plus tier → Shows PlusTierMapSection with GoogleMapContainer
+- Free tier → No in-app maps (uses intents only)
+
+### Build: ✅ Gradle dry-run successful
+
+**Next MP**: MP-016 (Gemini Routing Integration) or MP-017 (Turn-by-turn Navigation)

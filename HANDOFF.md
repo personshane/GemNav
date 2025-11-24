@@ -76,3 +76,60 @@ When TruckRouteState.Success:
 ---
 **Last Updated**: 2025-11-24
 **Branch**: mp-014-here-map-rendering
+
+
+---
+
+# MP-015: GOOGLE MAPS SDK INTEGRATION (PLUS TIER)
+
+## COMPLETED
+Google Maps SDK integrated for Plus tier with secure key pipeline.
+
+## FILES CHANGED
+
+### Created
+- `android/app/src/main/java/com/gemnav/app/ui/map/GoogleMapContainer.kt`
+
+### Modified  
+- `android/app/build.gradle.kts` - Google Maps key + maps-compose dependency
+- `android/local.properties.template` - Uncommented google_maps_api_key
+- `android/app/src/main/java/com/gemnav/app/ui/route/RouteDetailsScreen.kt` - PlusTierMapSection
+- `android/app/src/main/java/com/gemnav/app/ui/route/RouteDetailsViewModel.kt` - isPlusTier() + callbacks
+
+## KEY IMPLEMENTATIONS
+
+### GoogleMapContainer.kt
+```kotlin
+// Tier-gated Google Maps composable
+@Composable fun GoogleMapContainer(
+    modifier: Modifier,
+    originLocation: LatLng?,
+    destinationLocation: LatLng?,
+    centerLocation: LatLng?,
+    onMapReady: () -> Unit,
+    onMapError: (String) -> Unit
+)
+```
+
+### Tier Flow in RouteDetailsScreen
+- Pro: TruckRouteSection → HereMapContainer
+- Plus (not Pro): PlusTierMapSection → GoogleMapContainer  
+- Free: No in-app maps
+
+### Secure Key Pipeline
+```
+local.properties → build.gradle.kts → BuildConfig.GOOGLE_MAPS_API_KEY
+```
+
+## TODO for Next MP
+- MP-016: Gemini routing integration (route polylines from AI)
+- MP-017: Turn-by-turn navigation flow
+
+---
+
+## BUILD STATUS
+✅ Gradle dry-run successful
+
+---
+**Last Updated**: 2025-11-24
+**Branch**: mp-015-google-maps-integration
