@@ -873,3 +873,72 @@ onDestinationClick = { destination ->
 **Status**: MP-010 COMPLETE
 **Overall Project**: ~26,400 lines across 104 files
 **Next Priority**: MP-011 (Speech recognition) or MP-012 (Billing)
+
+
+---
+
+## MP-011: ANDROID SPEECH RECOGNITION ✅ COMPLETE
+
+### Objective
+Implement Android's SpeechRecognizer-based speech input wired to VoiceViewModel with SafeMode and FeatureGate awareness.
+
+### Files Created (3 files, 535 lines)
+- `android/app/src/main/java/com/gemnav/core/voice/SpeechRecognizerManager.kt` (253 lines)
+  - Wraps Android SpeechRecognizer API
+  - Public: startListening(), stopListening(), destroy(), setListener()
+  - Handles all RecognitionListener callbacks
+  - Maps error codes to SpeechError enum
+  - Never throws - all errors via callback
+
+- `android/app/src/main/java/com/gemnav/app/ui/common/SafeModeBanner.kt` (150 lines)
+  - SafeModeBanner composable with AnimatedVisibility
+  - FeatureLockedBanner for upgrade prompts
+  - Modifier.featureGated() extension
+
+- `android/app/src/main/java/com/gemnav/app/ui/common/VoiceButton.kt` (126 lines)
+  - VoiceButtonState enum (Idle, Listening, Disabled)
+  - Pulsing animation for listening state
+  - CompactVoiceButton variant for embedding
+
+### Files Modified (3 files, 432 lines changed)
+- `AndroidManifest.xml` - Added RECORD_AUDIO permission and queries for RecognitionService
+- `VoiceViewModel.kt` (302 lines, was 175)
+  - Now extends AndroidViewModel for context access
+  - Lazy-init SpeechRecognizerManager
+  - Exposes: isListening, transcribedText, audioLevel, needsPermission StateFlows
+  - onVoiceButtonPressed() toggle method
+  - SafeMode + FeatureGate checks before listening
+  - Permission check via ContextCompat
+- `VoiceScreen.kt` (289 lines, was 82)
+  - Uses VoiceViewModel for all state
+  - Live transcription display
+  - Pulsing mic button animation
+  - Result display with navigation action
+  - Permission prompt card
+
+### VoiceViewModel Flow
+1. UI calls onVoiceButtonPressed()
+2. VM checks SafeModeManager.isSafeModeEnabled() → blocks if true
+3. VM checks FeatureGate.areAdvancedFeaturesEnabled() → blocks if false
+4. VM checks RECORD_AUDIO permission → sets needsPermission if missing
+5. VM checks SpeechRecognizer availability → blocks if unavailable
+6. VM calls SpeechRecognizerManager.startListening()
+7. Partial/final results update transcribedText StateFlow
+8. Final result triggers processVoiceCommand() for AI/basic processing
+
+### Build Status
+✅ BUILD SUCCESSFUL (compileDebugKotlin in 8s)
+
+### Git
+- Branch: `mp-011-speech-recognition`
+- Commit: 3544fba
+- 967 insertions, 97 deletions
+
+**MP-011 Total**: ~870 net lines added
+
+---
+
+**Last Updated**: 2025-11-24
+**Status**: MP-011 COMPLETE
+**Overall Project**: ~27,270 lines across 107 files
+**Next Priority**: MP-012 (Billing system) or MP-013 (HERE SDK integration)
