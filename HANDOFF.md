@@ -720,3 +720,92 @@ When SafeMode is enabled, these features should be disabled:
 ---
 
 **END OF MP-008 HANDOFF**
+
+
+---
+
+# MP-009 HANDOFF: Feature Gating in ViewModels
+
+**Date**: 2025-11-23  
+**Status**: COMPLETE  
+**Branch**: `mp-009-feature-gating`
+
+## Summary
+
+Created unified feature-gating system (FeatureGate.kt) and updated all ViewModels to enforce SafeMode and tier restrictions. No ViewModel can call Gemini or HERE when features are blocked.
+
+## Files Created/Modified
+
+| File | Lines | Action |
+|------|-------|--------|
+| `FeatureGate.kt` | 230 | NEW - Central feature gate |
+| `HomeViewModel.kt` | 152 | MODIFIED - Added AI/Maps gating |
+| `SearchViewModel.kt` | 172 | NEW - Search with fallbacks |
+| `VoiceViewModel.kt` | 175 | NEW - Voice with tier support |
+| `RouteDetailsViewModel.kt` | 238 | NEW - Truck/car routing |
+| `SettingsViewModel.kt` | 184 | NEW - Settings with tier controls |
+
+## FeatureGate Logic Summary
+
+**SafeMode Checks**: All feature gates return false when `SafeModeManager.isSafeModeEnabled()` is true.
+
+**Tier-Based Gates**:
+- FREE: Gemini Nano only, Maps intents only, basic voice only
+- PLUS: Cloud AI, Maps SDK, advanced voice, multi-waypoint
+- PRO: All Plus features + HERE truck routing
+
+**Shim Availability**: Gates also check `XxxShim.isAvailable()` before allowing access.
+
+## ViewModel Gating Patterns
+
+All ViewModels follow this pattern:
+```kotlin
+if (!FeatureGate.areXxxFeaturesEnabled()) {
+    Log.d(TAG, "Feature blocked - reason")
+    // Fallback logic or return early
+    return
+}
+// Proceed with feature
+```
+
+## Key Features Per ViewModel
+
+**HomeViewModel**: AI suggestions, Maps search with intent fallback
+
+**SearchViewModel**: AI-powered + Maps search, debounced queries, fallback to intents
+
+**VoiceViewModel**: Basic (keyword) vs Advanced (AI) processing, state machine
+
+**RouteDetailsViewModel**: Truck vs Car routing, multi-waypoint, specs management
+
+**SettingsViewModel**: Tier controls, SafeMode toggle, feature availability checks
+
+## Build Verification
+
+✅ compileDebugKotlin: SUCCESS (28.8s)
+✅ No compilation errors
+✅ All imports resolved
+
+## Git Operations
+
+✅ Branch created: `mp-009-feature-gating`
+✅ Committed: `ae3c126`
+✅ Pushed to origin
+
+## What's Next
+
+1. **Merge branches**: mp-007, mp-008, mp-009 to main
+2. **MP-010**: Wire safe mode state into UI (banners, disabled buttons)
+3. **MP-011**: Implement actual speech recognition in VoiceViewModel
+4. **MP-012**: Wire billing/subscription system to FeatureGate
+
+## Project Status
+
+- **Total Lines**: ~25,500 lines across 103 files
+- **New in MP-009**: 1,075 lines (6 files)
+- **Build**: Clean compilation
+- **Git**: Branch pushed
+
+---
+
+**END OF MP-009 HANDOFF**

@@ -796,3 +796,41 @@ onDestinationClick = { destination ->
 **Status**: MP-008 COMPLETE
 **Overall Project**: ~24,400 lines across 98 files
 **Next Priority**: MP-009 (Feature gating in ViewModels) or merge branches
+
+
+---
+
+## MP-009: Feature Gating in ViewModels (COMPLETE)
+
+**Date**: 2025-11-23  
+**Branch**: `mp-009-feature-gating`  
+**Commit**: `ae3c126`
+
+### Files Created (6 files, 1,075 lines)
+- `android/app/src/main/java/com/gemnav/core/feature/FeatureGate.kt` (230 lines) - NEW
+- `android/app/src/main/java/com/gemnav/app/ui/mainflow/HomeViewModel.kt` (152 lines) - MODIFIED
+- `android/app/src/main/java/com/gemnav/app/ui/search/SearchViewModel.kt` (172 lines) - NEW
+- `android/app/src/main/java/com/gemnav/app/ui/voice/VoiceViewModel.kt` (175 lines) - NEW
+- `android/app/src/main/java/com/gemnav/app/ui/route/RouteDetailsViewModel.kt` (238 lines) - NEW
+- `android/app/src/main/java/com/gemnav/app/ui/settings/SettingsViewModel.kt` (184 lines) - NEW
+
+### FeatureGate Functions
+- `areAdvancedFeaturesEnabled()` - SafeMode check
+- `areAIFeaturesEnabled()` - AI/Gemini availability
+- `areCloudAIFeaturesEnabled()` - Plus/Pro tier cloud AI
+- `areCommercialRoutingFeaturesEnabled()` - Pro tier HERE routing
+- `areInAppMapsEnabled()` - Plus/Pro tier Maps SDK
+- `areAdvancedVoiceCommandsEnabled()` - Plus/Pro voice
+- `areMultiWaypointEnabled()` - Plus/Pro multi-stop
+
+### Build Status
+✅ BUILD SUCCESSFUL (compileDebugKotlin)
+
+**MP-009 Total**: 1,075 lines added
+
+---
+
+**Last Updated**: 2025-11-23
+**Status**: MP-009 COMPLETE
+**Overall Project**: ~25,500 lines across 103 files
+**Next Priority**: MP-010 (UI Safe Mode indicators) or merge branches
