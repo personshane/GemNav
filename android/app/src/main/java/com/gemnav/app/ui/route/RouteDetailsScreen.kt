@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.gemnav.app.models.Destination
+import com.gemnav.app.ui.common.SafeModeBanner
 
 @Composable
 fun RouteDetailsScreen(
@@ -28,6 +29,7 @@ fun RouteDetailsScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        SafeModeBanner()
 
         Text(
             text = destination.name,

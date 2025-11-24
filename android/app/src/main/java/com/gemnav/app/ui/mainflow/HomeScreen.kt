@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.app.ui.voice.VoiceButton
 import com.gemnav.app.ui.voice.VoiceButtonState
 
@@ -61,6 +62,8 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            SafeModeBanner()
+            
             Spacer(modifier = Modifier.height(8.dp))
             
             SearchBar(
