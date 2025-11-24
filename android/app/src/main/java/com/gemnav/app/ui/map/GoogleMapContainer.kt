@@ -15,13 +15,16 @@ import androidx.compose.ui.unit.dp
 import com.gemnav.app.BuildConfig
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.data.navigation.NavStep
 import com.gemnav.data.route.LatLng
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.*
 
 /**
  * GoogleMapContainer - Plus/Pro tier Google Maps SDK composable.
  * Handles map initialization, lifecycle, and error states.
+ * Supports navigation mode with camera follow.
  * 
  * Note: Pro tier users will see HERE maps for truck routing,
  * but can switch to Google Maps for car routing.
@@ -32,6 +35,10 @@ fun GoogleMapContainer(
     originLocation: LatLng? = null,
     destinationLocation: LatLng? = null,
     centerLocation: LatLng? = null,
+    isNavigating: Boolean = false,
+    currentLocation: LatLng? = null,
+    nextStep: NavStep? = null,
+    routePolyline: List<LatLng>? = null,
     onMapReady: () -> Unit = {},
     onMapError: (String) -> Unit = {}
 ) {
@@ -86,7 +93,11 @@ fun GoogleMapContainer(
                 GoogleMapView(
                     centerLocation = centerLocation,
                     originLocation = originLocation,
-                    destinationLocation = destinationLocation
+                    destinationLocation = destinationLocation,
+                    isNavigating = isNavigating,
+                    currentLocation = currentLocation,
+                    nextStep = nextStep,
+                    routePolyline = routePolyline
                 )
             }
             is GoogleMapState.Error -> {
@@ -155,26 +166,64 @@ private fun GoogleMapErrorDisplay(message: String) {
 }
 
 /**
- * Google Maps Compose view with markers.
- * TODO: Add route polyline rendering when Gemini routing is implemented.
+ * Google Maps Compose view with markers and navigation support.
  */
 @Composable
 private fun GoogleMapView(
     centerLocation: LatLng?,
     originLocation: LatLng?,
-    destinationLocation: LatLng?
+    destinationLocation: LatLng?,
+    isNavigating: Boolean = false,
+    currentLocation: LatLng? = null,
+    nextStep: NavStep? = null,
+    routePolyline: List<LatLng>? = null
 ) {
     // Default to Phoenix, AZ if no location provided
     val defaultCenter = com.google.android.gms.maps.model.LatLng(33.4484, -112.0740)
     
-    val center = centerLocation?.let {
-        com.google.android.gms.maps.model.LatLng(it.latitude, it.longitude)
-    } ?: destinationLocation?.let {
-        com.google.android.gms.maps.model.LatLng(it.latitude, it.longitude)
-    } ?: defaultCenter
+    val center = when {
+        isNavigating && currentLocation != null -> {
+            com.google.android.gms.maps.model.LatLng(currentLocation.latitude, currentLocation.longitude)
+        }
+        centerLocation != null -> {
+            com.google.android.gms.maps.model.LatLng(centerLocation.latitude, centerLocation.longitude)
+        }
+        destinationLocation != null -> {
+            com.google.android.gms.maps.model.LatLng(destinationLocation.latitude, destinationLocation.longitude)
+        }
+        else -> defaultCenter
+    }
+    
+    // Calculate bearing if navigating
+    val bearing = if (isNavigating && currentLocation != null && nextStep != null) {
+        calculateBearing(currentLocation, nextStep.location)
+    } else {
+        0f
+    }
+    
+    // Zoom level: closer when navigating
+    val zoomLevel = if (isNavigating) 17f else 12f
     
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(center, 12f)
+        position = CameraPosition.Builder()
+            .target(center)
+            .zoom(zoomLevel)
+            .bearing(bearing)
+            .tilt(if (isNavigating) 45f else 0f)
+            .build()
+    }
+    
+    // Update camera when location changes during navigation
+    LaunchedEffect(currentLocation, isNavigating) {
+        if (isNavigating && currentLocation != null) {
+            val newPosition = CameraPosition.Builder()
+                .target(com.google.android.gms.maps.model.LatLng(currentLocation.latitude, currentLocation.longitude))
+                .zoom(17f)
+                .bearing(if (nextStep != null) calculateBearing(currentLocation, nextStep.location) else 0f)
+                .tilt(45f)
+                .build()
+            cameraPositionState.animate(CameraUpdateFactory.newCameraPosition(newPosition))
+        }
     }
     
     val mapProperties by remember {
@@ -186,12 +235,15 @@ private fun GoogleMapView(
         )
     }
     
-    val mapUiSettings by remember {
+    val mapUiSettings by remember(isNavigating) {
         mutableStateOf(
             MapUiSettings(
-                zoomControlsEnabled = true,
+                zoomControlsEnabled = !isNavigating,
                 compassEnabled = true,
-                myLocationButtonEnabled = false
+                myLocationButtonEnabled = false,
+                scrollGesturesEnabled = !isNavigating,
+                zoomGesturesEnabled = !isNavigating,
+                rotationGesturesEnabled = !isNavigating
             )
         )
     }
@@ -202,15 +254,28 @@ private fun GoogleMapView(
         properties = mapProperties,
         uiSettings = mapUiSettings
     ) {
-        // Origin marker
-        originLocation?.let { loc ->
+        // Current location marker (during navigation)
+        if (isNavigating && currentLocation != null) {
             Marker(
                 state = MarkerState(
-                    position = com.google.android.gms.maps.model.LatLng(loc.latitude, loc.longitude)
+                    position = com.google.android.gms.maps.model.LatLng(currentLocation.latitude, currentLocation.longitude)
                 ),
-                title = "Origin",
-                snippet = "Start point"
+                title = "You",
+                snippet = "Current location"
             )
+        }
+        
+        // Origin marker (not during navigation)
+        if (!isNavigating) {
+            originLocation?.let { loc ->
+                Marker(
+                    state = MarkerState(
+                        position = com.google.android.gms.maps.model.LatLng(loc.latitude, loc.longitude)
+                    ),
+                    title = "Origin",
+                    snippet = "Start point"
+                )
+            }
         }
         
         // Destination marker
@@ -224,13 +289,32 @@ private fun GoogleMapView(
             )
         }
         
-        // TODO: Add Polyline for navigation route when Gemini routing provides coordinates
-        // Polyline(
-        //     points = routePolylinePoints,
-        //     color = Color.Blue,
-        //     width = 8f
-        // )
+        // Route polyline
+        routePolyline?.takeIf { it.size >= 2 }?.let { points ->
+            Polyline(
+                points = points.map { com.google.android.gms.maps.model.LatLng(it.latitude, it.longitude) },
+                color = Color(0xFF1976D2),
+                width = 12f
+            )
+        }
     }
+}
+
+/**
+ * Calculate bearing from p1 to p2 in degrees.
+ */
+private fun calculateBearing(p1: LatLng, p2: LatLng): Float {
+    val lat1 = Math.toRadians(p1.latitude)
+    val lat2 = Math.toRadians(p2.latitude)
+    val dLon = Math.toRadians(p2.longitude - p1.longitude)
+    
+    val y = kotlin.math.sin(dLon) * kotlin.math.cos(lat2)
+    val x = kotlin.math.cos(lat1) * kotlin.math.sin(lat2) - kotlin.math.sin(lat1) * kotlin.math.cos(lat2) * kotlin.math.cos(dLon)
+    
+    var bearing = Math.toDegrees(kotlin.math.atan2(y, x))
+    bearing = (bearing + 360) % 360
+    
+    return bearing.toFloat()
 }
 
 /**

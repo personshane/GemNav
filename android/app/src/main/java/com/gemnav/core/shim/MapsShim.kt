@@ -1,6 +1,8 @@
 package com.gemnav.core.shim
 
 import android.util.Log
+import com.gemnav.data.navigation.*
+import com.gemnav.data.route.LatLng
 
 /**
  * MapsShim - Safe wrapper for all Google Maps SDK interactions.
@@ -142,6 +144,54 @@ object MapsShim {
         val polyline: String = "",
         val steps: List<String> = emptyList()
     )
+    
+    /**
+     * Parse navigation steps from Google route.
+     * TODO MP-019: Implement actual Google Directions API parsing
+     * 
+     * @param routeResult The route result from Google Maps SDK
+     * @return List of navigation steps (currently empty stub)
+     */
+    fun parseStepsGoogle(routeResult: RouteResult?): List<NavStep> {
+        if (routeResult == null) {
+            logWarning("Cannot parse steps - null route result")
+            return emptyList()
+        }
+        
+        // TODO MP-019: Implement Google Directions API step parsing
+        // The Google Directions API returns steps with:
+        // - html_instructions
+        // - maneuver (turn-left, turn-right, etc.)
+        // - distance.value (meters)
+        // - start_location {lat, lng}
+        // - end_location {lat, lng}
+        
+        logInfo("parseStepsGoogle: stub returning empty list - implement in MP-019")
+        return emptyList()
+    }
+    
+    /**
+     * Create a NavRoute from Google route data for navigation.
+     * TODO MP-019: Implement actual conversion
+     */
+    fun createNavRoute(routeResult: RouteResult?, polylineCoordinates: List<LatLng>): NavRoute? {
+        if (routeResult == null) return null
+        
+        val steps = parseStepsGoogle(routeResult)
+        if (steps.isEmpty()) {
+            logWarning("Cannot create NavRoute - no steps parsed")
+            return null
+        }
+        
+        return NavRoute(
+            steps = steps,
+            polylineCoordinates = polylineCoordinates,
+            totalDistanceMeters = routeResult.distanceMeters.toDouble(),
+            totalDurationSeconds = routeResult.durationSeconds,
+            isTruckRoute = false,
+            isFallback = false
+        )
+    }
     
     /**
      * Stub data class for place results.

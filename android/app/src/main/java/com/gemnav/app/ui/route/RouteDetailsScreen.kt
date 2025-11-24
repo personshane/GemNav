@@ -2,9 +2,7 @@ package com.gemnav.app.ui.route
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +16,7 @@ import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.app.ui.map.HereMapContainer
 import com.gemnav.app.ui.map.GoogleMapContainer
 import com.gemnav.core.location.LocationViewModel
+import com.gemnav.data.navigation.*
 import com.gemnav.data.route.LatLng
 import com.gemnav.data.route.TruckRouteData
 import com.gemnav.data.route.TruckRouteState
@@ -48,6 +47,18 @@ fun RouteDetailsScreen(
     val currentLocation by locationViewModel.currentLocation.collectAsState()
     val locationStatus by locationViewModel.locationStatus.collectAsState()
     
+    // Navigation state (MP-017)
+    val navigationState by viewModel.navigationState.collectAsState()
+    val isNavigating by viewModel.isNavigating.collectAsState()
+    val currentNavRoute by viewModel.currentNavRoute.collectAsState()
+    
+    // Feed location updates to navigation engine
+    LaunchedEffect(currentLocation) {
+        currentLocation?.let { loc ->
+            viewModel.updateUserLocation(LatLng(loc.latitude, loc.longitude))
+        }
+    }
+    
     // Start location tracking for Plus/Pro tiers
     LaunchedEffect(isPlusTier) {
         if (isPlusTier) {
@@ -68,6 +79,41 @@ fun RouteDetailsScreen(
             .padding(16.dp)
     ) {
         SafeModeBanner()
+        
+        // Navigation Mode UI (MP-017)
+        when (val navState = navigationState) {
+            is NavigationState.Navigating -> {
+                NavigationOverlay(
+                    state = navState,
+                    onStopNavigation = { viewModel.stopNavigation() }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            is NavigationState.OffRoute -> {
+                OffRouteOverlay(
+                    state = navState,
+                    onRecalculate = { viewModel.onOffRoute() },
+                    onStopNavigation = { viewModel.stopNavigation() }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            is NavigationState.Recalculating -> {
+                RecalculatingOverlay()
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            is NavigationState.Finished -> {
+                NavigationFinishedOverlay(
+                    state = navState,
+                    onDismiss = { viewModel.stopNavigation() }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            is NavigationState.Blocked -> {
+                BlockedOverlay(reason = navState.reason)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            else -> { /* Idle, LoadingRoute - no overlay */ }
+        }
 
         Text(
             text = destination.name,
@@ -158,8 +204,13 @@ fun RouteDetailsScreen(
 private fun TruckRouteSection(
     isProTier: Boolean,
     truckRouteState: TruckRouteState,
+    isNavigating: Boolean = false,
+    currentLocation: LatLng? = null,
+    nextStep: NavStep? = null,
     onRequestTruckRoute: () -> Unit,
-    onClearRoute: () -> Unit
+    onClearRoute: () -> Unit,
+    onStartNavigation: () -> Unit = {},
+    onStopNavigation: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -247,7 +298,12 @@ private fun TruckRouteSection(
                             warningCount = data.warnings.size,
                             criticalWarnings = data.warnings.count { it.severity == WarningSeverity.CRITICAL },
                             isFallback = data.isFallback,
-                            onClear = onClearRoute
+                            isNavigating = isNavigating,
+                            currentLocation = currentLocation,
+                            nextStep = nextStep,
+                            onClear = onClearRoute,
+                            onStartNavigation = onStartNavigation,
+                            onStopNavigation = onStopNavigation
                         )
                     }
                     
@@ -286,7 +342,12 @@ private fun TruckRouteResultCard(
     warningCount: Int,
     criticalWarnings: Int,
     isFallback: Boolean,
-    onClear: () -> Unit
+    isNavigating: Boolean = false,
+    currentLocation: LatLng? = null,
+    nextStep: NavStep? = null,
+    onClear: () -> Unit,
+    onStartNavigation: () -> Unit = {},
+    onStopNavigation: () -> Unit = {}
 ) {
     Column {
         // HERE Map Display (Pro tier only)
@@ -296,6 +357,9 @@ private fun TruckRouteResultCard(
                 .height(200.dp),
             routeData = routeData,
             centerLocation = routeData.polylineCoordinates.firstOrNull(),
+            isNavigating = isNavigating,
+            currentLocation = currentLocation,
+            nextStep = nextStep,
             onMapReady = { /* Map ready */ },
             onMapError = { /* Handle error silently - UI shows fallback */ }
         )
@@ -377,15 +441,25 @@ private fun TruckRouteResultCard(
         ) {
             OutlinedButton(
                 onClick = onClear,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                enabled = !isNavigating
             ) {
                 Text("Clear")
             }
             Button(
-                onClick = { /* TODO: Start navigation */ },
-                modifier = Modifier.weight(1f)
+                onClick = if (isNavigating) onStopNavigation else onStartNavigation,
+                modifier = Modifier.weight(1f),
+                colors = if (isNavigating) 
+                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                else 
+                    ButtonDefaults.buttonColors()
             ) {
-                Text("Start Navigation")
+                Icon(
+                    if (isNavigating) Icons.Default.Stop else Icons.Default.Navigation,
+                    contentDescription = null
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(if (isNavigating) "Stop" else "Navigate")
             }
         }
     }

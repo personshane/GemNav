@@ -4,6 +4,7 @@ import android.util.Log
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.here.HereEngineManager
 import com.gemnav.core.here.TruckConfig
+import com.gemnav.data.navigation.*
 import com.gemnav.data.route.*
 
 /**
@@ -176,6 +177,145 @@ object HereShim {
                 tollPoints = (distanceKm / 50).toInt().coerceAtLeast(1)
             ),
             isFallback = false
+        )
+    }
+    
+    /**
+     * Parse navigation steps from TruckRouteData.
+     * Converts HERE route data to navigation steps for turn-by-turn.
+     * 
+     * @param routeData The truck route data from HERE SDK
+     * @return List of navigation steps
+     */
+    fun parseSteps(routeData: TruckRouteData): List<NavStep> {
+        if (routeData.polylineCoordinates.size < 2) {
+            logWarning("Cannot parse steps - insufficient route points")
+            return emptyList()
+        }
+        
+        val steps = mutableListOf<NavStep>()
+        val coordinates = routeData.polylineCoordinates
+        
+        // Generate mock steps along the route
+        // TODO: Replace with actual HERE SDK maneuver parsing
+        
+        // Start step
+        steps.add(NavStep(
+            instruction = "Start route",
+            maneuverIcon = NavManeuver.DEPART,
+            distanceMeters = 0.0,
+            streetName = null,
+            location = coordinates.first()
+        ))
+        
+        // For real HERE SDK integration:
+        // route.sections.forEach { section ->
+        //     section.maneuvers.forEach { maneuver ->
+        //         steps.add(NavStep(
+        //             instruction = maneuver.text,
+        //             maneuverIcon = mapHereManeuverAction(maneuver.action),
+        //             distanceMeters = maneuver.lengthInMeters.toDouble(),
+        //             streetName = maneuver.roadName,
+        //             location = LatLng(maneuver.coordinates.latitude, maneuver.coordinates.longitude)
+        //         ))
+        //     }
+        // }
+        
+        // Mock intermediate steps based on distance
+        val totalDistance = routeData.distanceMeters.toDouble()
+        val numSteps = (totalDistance / 2000).toInt().coerceIn(1, 10) // One step per ~2km
+        
+        for (i in 1..numSteps) {
+            val progress = i.toDouble() / (numSteps + 1)
+            val lat = coordinates.first().latitude + 
+                (coordinates.last().latitude - coordinates.first().latitude) * progress
+            val lng = coordinates.first().longitude + 
+                (coordinates.last().longitude - coordinates.first().longitude) * progress
+            
+            val maneuver = when {
+                i % 3 == 0 -> NavManeuver.RIGHT
+                i % 3 == 1 -> NavManeuver.LEFT
+                else -> NavManeuver.STRAIGHT
+            }
+            
+            steps.add(NavStep(
+                instruction = "${getManeuverText(maneuver)} onto Route $i",
+                maneuverIcon = maneuver,
+                distanceMeters = totalDistance / (numSteps + 1),
+                streetName = "Route $i",
+                location = LatLng(lat, lng)
+            ))
+        }
+        
+        // Arrival step
+        steps.add(NavStep(
+            instruction = "Arrive at destination",
+            maneuverIcon = NavManeuver.ARRIVE,
+            distanceMeters = 0.0,
+            streetName = null,
+            location = coordinates.last()
+        ))
+        
+        logInfo("Parsed ${steps.size} navigation steps")
+        return steps
+    }
+    
+    /**
+     * Map HERE SDK maneuver action to NavManeuver enum.
+     * TODO: Implement actual mapping when HERE SDK integrated
+     */
+    private fun mapHereManeuverAction(action: String): NavManeuver {
+        return when (action.lowercase()) {
+            "turn_left" -> NavManeuver.LEFT
+            "turn_right" -> NavManeuver.RIGHT
+            "turn_slight_left" -> NavManeuver.SLIGHT_LEFT
+            "turn_slight_right" -> NavManeuver.SLIGHT_RIGHT
+            "turn_sharp_left" -> NavManeuver.SHARP_LEFT
+            "turn_sharp_right" -> NavManeuver.SHARP_RIGHT
+            "u_turn" -> NavManeuver.UTURN
+            "enter_highway", "merge" -> NavManeuver.MERGE
+            "exit_highway", "exit" -> NavManeuver.EXIT
+            "roundabout" -> NavManeuver.ROUNDABOUT
+            "ferry" -> NavManeuver.FERRY
+            "arrive" -> NavManeuver.ARRIVE
+            "depart" -> NavManeuver.DEPART
+            else -> NavManeuver.STRAIGHT
+        }
+    }
+    
+    /**
+     * Get human-readable text for a maneuver type.
+     */
+    private fun getManeuverText(maneuver: NavManeuver): String {
+        return when (maneuver) {
+            NavManeuver.STRAIGHT -> "Continue straight"
+            NavManeuver.LEFT -> "Turn left"
+            NavManeuver.RIGHT -> "Turn right"
+            NavManeuver.SLIGHT_LEFT -> "Bear left"
+            NavManeuver.SLIGHT_RIGHT -> "Bear right"
+            NavManeuver.SHARP_LEFT -> "Sharp left"
+            NavManeuver.SHARP_RIGHT -> "Sharp right"
+            NavManeuver.UTURN -> "Make a U-turn"
+            NavManeuver.MERGE -> "Merge"
+            NavManeuver.EXIT -> "Take exit"
+            NavManeuver.ROUNDABOUT -> "Enter roundabout"
+            NavManeuver.FERRY -> "Board ferry"
+            NavManeuver.ARRIVE -> "Arrive"
+            NavManeuver.DEPART -> "Depart"
+        }
+    }
+    
+    /**
+     * Create a NavRoute from TruckRouteData for navigation.
+     */
+    fun createNavRoute(routeData: TruckRouteData): NavRoute {
+        return NavRoute(
+            steps = parseSteps(routeData),
+            polylineCoordinates = routeData.polylineCoordinates,
+            totalDistanceMeters = routeData.distanceMeters.toDouble(),
+            totalDurationSeconds = routeData.durationSeconds,
+            isTruckRoute = true,
+            isFallback = routeData.isFallback
         )
     }
     

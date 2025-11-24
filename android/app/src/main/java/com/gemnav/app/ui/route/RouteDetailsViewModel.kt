@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.gemnav.app.models.Destination
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.here.TruckConfig
+import com.gemnav.core.navigation.NavigationEngine
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
+import com.gemnav.core.shim.SafeModeManager
 import com.gemnav.data.ai.*
+import com.gemnav.data.navigation.*
 import com.gemnav.data.route.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,6 +74,16 @@ class RouteDetailsViewModel : ViewModel() {
     private val _isNavigating = MutableStateFlow(false)
     val isNavigating: StateFlow<Boolean> = _isNavigating
     
+    // ==================== NAVIGATION ENGINE (MP-017) ====================
+    
+    private val navigationEngine = NavigationEngine()
+    
+    val navigationState: StateFlow<NavigationState> = navigationEngine.navigationState
+    val navigationEvents = navigationEngine.navigationEvents
+    
+    private val _currentNavRoute = MutableStateFlow<NavRoute?>(null)
+    val currentNavRoute: StateFlow<NavRoute?> = _currentNavRoute
+    
     /**
      * Update current user location from LocationViewModel.
      * Called by UI when location changes.
@@ -78,45 +91,142 @@ class RouteDetailsViewModel : ViewModel() {
     fun updateUserLocation(location: LatLng?) {
         _currentUserLocation.value = location
         
-        // TODO MP-017: If navigation active, trigger:
-        // - upcomingStepDistance calculation
-        // - lane guidance updates
-        // - route deviation detection
-        // - recalculation triggers
+        // Feed location to navigation engine if navigating
         if (_isNavigating.value && location != null) {
-            checkNavigationProgress(location)
+            navigationEngine.updateLocation(location)
         }
     }
     
     /**
-     * Check navigation progress against current route.
-     * TODO MP-017: Full turn-by-turn implementation
-     */
-    private fun checkNavigationProgress(location: LatLng) {
-        // Stub for MP-017 turn-by-turn navigation
-        Log.d(TAG, "Navigation progress check at: ${location.latitude}, ${location.longitude}")
-        // TODO: Calculate distance to next step
-        // TODO: Check if off-route (> 50m deviation)
-        // TODO: Trigger recalculation if needed
-    }
-    
-    /**
      * Start turn-by-turn navigation.
-     * TODO MP-017: Full implementation
+     * Requires Plus/Pro tier and valid route.
      */
     fun startNavigation() {
-        _isNavigating.value = true
-        Log.i(TAG, "Navigation started")
-        // TODO: Initialize TTS
-        // TODO: Start step announcements
+        // SafeMode check
+        if (SafeModeManager.isSafeModeEnabled()) {
+            Log.w(TAG, "Navigation blocked - SafeMode active")
+            return
+        }
+        
+        // Tier check
+        if (!FeatureGate.areInAppMapsEnabled()) {
+            Log.w(TAG, "Navigation blocked - Free tier")
+            return
+        }
+        
+        // Get route to navigate
+        val navRoute = _currentNavRoute.value
+        if (navRoute == null || navRoute.steps.isEmpty()) {
+            Log.w(TAG, "Cannot start navigation - no valid route")
+            return
+        }
+        
+        val started = navigationEngine.startNavigation(navRoute)
+        if (started) {
+            _isNavigating.value = true
+            Log.i(TAG, "Navigation started with ${navRoute.steps.size} steps")
+        }
     }
     
     /**
      * Stop navigation.
      */
     fun stopNavigation() {
+        navigationEngine.stopNavigation()
         _isNavigating.value = false
         Log.i(TAG, "Navigation stopped")
+    }
+    
+    /**
+     * Handle off-route detection - request recalculation.
+     */
+    fun onOffRoute() {
+        Log.w(TAG, "Off route - requesting recalculation")
+        navigationEngine.requestRecalc()
+        
+        // Trigger route recalculation
+        viewModelScope.launch {
+            val location = _currentUserLocation.value ?: return@launch
+            val dest = _destination.value ?: return@launch
+            
+            // Update origin to current location
+            _origin.value = Destination(
+                id = "recalc_origin",
+                name = "Current Location",
+                address = "",
+                latitude = location.latitude,
+                longitude = location.longitude
+            )
+            
+            // Recalculate route
+            calculateRouteWithNavigation()
+        }
+    }
+    
+    /**
+     * Calculate route and prepare for navigation.
+     */
+    private fun calculateRouteWithNavigation() {
+        val orig = _origin.value
+        val dest = _destination.value
+        
+        if (orig == null || dest == null) {
+            _routeState.value = RouteState.Error("Please set origin and destination")
+            return
+        }
+        
+        _routeState.value = RouteState.Loading
+        
+        viewModelScope.launch {
+            try {
+                if (_isTruckMode.value && FeatureGate.areCommercialRoutingFeaturesEnabled()) {
+                    // Truck routing with navigation
+                    val result = withContext(Dispatchers.IO) {
+                        HereShim.requestTruckRoute(
+                            start = LatLng(orig.latitude, orig.longitude),
+                            end = LatLng(dest.latitude, dest.longitude),
+                            truckConfig = _currentTruckConfig.value
+                        )
+                    }
+                    
+                    when (result) {
+                        is TruckRouteResult.Success -> {
+                            val navRoute = HereShim.createNavRoute(result.route)
+                            _currentNavRoute.value = navRoute
+                            
+                            // If navigation was active, update the route
+                            if (_isNavigating.value) {
+                                navigationEngine.updateRoute(navRoute)
+                            }
+                            
+                            _routeState.value = RouteState.Success(RouteInfo(
+                                distanceMeters = result.route.distanceMeters,
+                                durationSeconds = result.route.durationSeconds,
+                                isTruckRoute = true,
+                                isFallback = result.route.isFallback,
+                                warnings = result.route.warnings.map { it.description },
+                                steps = navRoute.steps.map { it.instruction }
+                            ))
+                        }
+                        is TruckRouteResult.Failure -> {
+                            _routeState.value = RouteState.Error(result.errorMessage)
+                        }
+                    }
+                } else {
+                    // Car routing (Google) - navigation steps not yet implemented
+                    val route = calculateCarRoute(orig, dest)
+                    if (route != null) {
+                        _routeState.value = RouteState.Success(route)
+                        // TODO MP-019: Create NavRoute from Google route
+                    } else {
+                        _routeState.value = RouteState.Error("Could not calculate route")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Route calculation failed", e)
+                _routeState.value = RouteState.Error("Route calculation failed")
+            }
+        }
     }
     
     /**

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,18 +18,23 @@ import com.gemnav.app.BuildConfig
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.here.HereEngineManager
 import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.data.navigation.NavStep
 import com.gemnav.data.route.LatLng
 import com.gemnav.data.route.TruckRouteData
 
 /**
  * HereMapContainer - Pro-tier only HERE SDK map composable.
  * Handles map initialization, lifecycle, route rendering, and error states.
+ * Supports navigation mode with camera follow for truck routing.
  */
 @Composable
 fun HereMapContainer(
     modifier: Modifier = Modifier,
     routeData: TruckRouteData? = null,
     centerLocation: LatLng? = null,
+    isNavigating: Boolean = false,
+    currentLocation: LatLng? = null,
+    nextStep: NavStep? = null,
     onMapReady: () -> Unit = {},
     onMapError: (String) -> Unit = {}
 ) {
@@ -96,7 +102,10 @@ fun HereMapContainer(
                 // TODO: Replace with actual HERE MapView when SDK integrated
                 HereMapViewStub(
                     routeData = routeData,
-                    centerLocation = centerLocation
+                    centerLocation = centerLocation,
+                    isNavigating = isNavigating,
+                    currentLocation = currentLocation,
+                    nextStep = nextStep
                 )
             }
             is MapState.Error -> {
@@ -171,29 +180,38 @@ private fun MapErrorDisplay(message: String) {
 @Composable
 private fun HereMapViewStub(
     routeData: TruckRouteData?,
-    centerLocation: LatLng?
+    centerLocation: LatLng?,
+    isNavigating: Boolean = false,
+    currentLocation: LatLng? = null,
+    nextStep: NavStep? = null
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF2D3748)), // Dark map-like background
+            .background(if (isNavigating) Color(0xFF1A365D) else Color(0xFF2D3748)),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = Icons.Default.Map,
+                imageVector = if (isNavigating) Icons.Default.Navigation else Icons.Default.Map,
                 contentDescription = "Map",
-                tint = Color(0xFF4A5568),
+                tint = if (isNavigating) Color(0xFF63B3ED) else Color(0xFF4A5568),
                 modifier = Modifier.size(64.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "HERE Map (Stub Mode)",
+                text = if (isNavigating) "HERE Truck Navigation (Stub)" else "HERE Map (Stub Mode)",
                 style = MaterialTheme.typography.titleSmall,
                 color = Color(0xFF718096)
             )
+            
+            // Navigation info
+            if (isNavigating) {
+                Spacer(modifier = Modifier.height(8.dp))
+                NavigationInfoStub(currentLocation, nextStep)
+            }
             
             if (routeData != null) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -206,6 +224,47 @@ private fun HereMapViewStub(
                     text = "Center: ${String.format("%.4f", it.latitude)}, ${String.format("%.4f", it.longitude)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFF718096)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Navigation info display for stub mode.
+ */
+@Composable
+private fun NavigationInfoStub(
+    currentLocation: LatLng?,
+    nextStep: NavStep?
+) {
+    Surface(
+        color = Color(0xFF2B6CB0).copy(alpha = 0.3f),
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier.padding(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "NAVIGATION ACTIVE",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFF63B3ED)
+            )
+            currentLocation?.let {
+                Text(
+                    text = "Loc: ${String.format("%.4f", it.latitude)}, ${String.format("%.4f", it.longitude)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF718096)
+                )
+            }
+            nextStep?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Next: ${it.instruction}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFA0AEC0)
                 )
             }
         }
