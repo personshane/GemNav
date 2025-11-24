@@ -245,3 +245,78 @@ Implemented complete GPS location pipeline using FusedLocationProviderClient wit
 **Last Updated**: 2025-11-24
 **Branch**: mp-018-location-provider
 **Commit**: 5df059a
+
+
+---
+
+# MP-017: TURN-BY-TURN NAVIGATION ENGINE - HANDOFF
+
+## What Was Done
+Implemented complete turn-by-turn navigation core including NavigationEngine with step tracking, off-route detection, state machine, and UI overlays.
+
+## Files Created
+1. `android/app/src/main/java/com/gemnav/data/navigation/NavigationState.kt` (126 lines)
+   - NavigationState sealed class: Idle, LoadingRoute, Navigating, OffRoute, Recalculating, Finished, Blocked
+   - NavStep data class: instruction, maneuverIcon, distanceMeters, streetName, location
+   - NavRoute data class: steps, polylineCoordinates, totalDistance, totalDuration
+   - NavManeuver enum: STRAIGHT, LEFT, RIGHT, SLIGHT_*, SHARP_*, UTURN, MERGE, EXIT, etc.
+   - NavigationEvent sealed class for one-shot events
+
+2. `android/app/src/main/java/com/gemnav/core/navigation/NavigationEngine.kt` (422 lines)
+   - startNavigation(NavRoute) / stopNavigation() / updateLocation(LatLng)
+   - Step completion radius: 30m
+   - Off-route threshold: 50m (severe: 150m)
+   - Haversine distance + bearing calculations
+   - Point-to-line-segment distance for route deviation
+   - StateFlow<NavigationState> + SharedFlow<NavigationEvent>
+
+3. `android/app/src/main/java/com/gemnav/core/navigation/NavigationTts.kt` (105 lines)
+   - Stub: speak(), speakImmediate(), queue(), mute(), unmute()
+   - Ready for Android TextToSpeech integration
+
+4. `android/app/src/main/java/com/gemnav/app/ui/route/NavigationComponents.kt` (499 lines)
+   - NavigationOverlay: ManeuverCard + progress + ETA + next step preview
+   - OffRouteOverlay: deviation display + recalculate button
+   - RecalculatingOverlay: loading indicator
+   - NavigationFinishedOverlay: arrival stats
+   - BlockedOverlay: SafeMode/Free tier messaging
+   - Helper functions: getManeuverIcon(), formatDistance(), formatDuration()
+
+## Files Modified
+- `HereShim.kt`: Added parseSteps(TruckRouteData), createNavRoute(), maneuver mapping
+- `MapsShim.kt`: Added parseSteps() stub (TODO MP-019), createNavRoute() stub
+- `RouteDetailsScreen.kt`: Navigation state handling, overlay dispatch by state type
+- `RouteDetailsViewModel.kt`: NavigationEngine instance, startNavigation/stopNavigation, onOffRoute handler
+- `GoogleMapContainer.kt`: isNavigating, currentLocation, nextStep params + camera follow
+- `HereMapContainer.kt`: Same navigation mode support + NavigationInfoStub
+
+## Navigation Flow
+```
+User taps "Navigate" on TruckRouteResultCard
+    → RouteDetailsViewModel.startNavigation()
+    → Creates NavRoute from HereShim.createNavRoute(TruckRouteData)
+    → NavigationEngine.startNavigation(navRoute)
+    → navigationState = Navigating(...)
+    
+Location updates flow:
+    LocationViewModel.currentLocation
+    → RouteDetailsScreen LaunchedEffect
+    → viewModel.updateUserLocation()
+    → NavigationEngine.updateLocation()
+    → State updates → UI overlays react
+```
+
+## What to Do Next
+**MP-019: Google Directions API Integration**
+- Implement actual Google Directions API calls for Plus tier
+- Parse steps from Google response format
+- Create NavRoute from Google route data
+- Enable Plus tier turn-by-turn navigation
+
+## Build Status
+✅ Gradle dry-run successful (5s)
+
+---
+**Last Updated**: 2025-11-24
+**Branch**: mp-017-turn-by-turn
+**Commit**: b013087

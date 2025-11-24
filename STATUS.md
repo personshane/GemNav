@@ -1222,3 +1222,51 @@ UI (HomeScreen, RouteDetailsScreen, SettingsScreen)
 ### Build: ✅ Gradle dry-run successful (3s)
 
 **Next MP**: MP-017 (Turn-by-turn Navigation Engine)
+
+
+---
+
+## MP-017: TURN-BY-TURN NAVIGATION ENGINE ✅
+**Date**: 2025-11-24
+**Branch**: mp-017-turn-by-turn
+**Commit**: b013087
+
+### Files Created
+- `data/navigation/NavigationState.kt` (126 lines) - Navigation state machine + NavStep + NavRoute models
+- `core/navigation/NavigationEngine.kt` (422 lines) - Full navigation logic with step tracking
+- `core/navigation/NavigationTts.kt` (105 lines) - TTS stub for voice guidance
+- `app/ui/route/NavigationComponents.kt` (499 lines) - UI overlays for navigation
+
+### Files Modified
+- `HereShim.kt`: +parseSteps(), +createNavRoute(), +mapHereManeuverAction()
+- `MapsShim.kt`: +parseSteps() stub, +createNavRoute() stub
+- `RouteDetailsScreen.kt`: +navigation state handling, +overlay integration
+- `RouteDetailsViewModel.kt`: +NavigationEngine integration, +startNavigation(), +stopNavigation()
+- `GoogleMapContainer.kt`: +camera follow mode for navigation
+- `HereMapContainer.kt`: +camera follow mode for navigation
+
+### Architecture
+```
+NavigationEngine
+    ↓ startNavigation(NavRoute)
+    ↓ updateLocation(LatLng)
+NavigationState Flow
+    ↓ Idle → LoadingRoute → Navigating → Finished
+    ↓ OffRoute → Recalculating → Navigating
+RouteDetailsViewModel
+    ↓ navigationState: StateFlow<NavigationState>
+NavigationComponents (UI Overlays)
+    ↓ NavigationOverlay, OffRouteOverlay, FinishedOverlay, BlockedOverlay
+```
+
+### Key Features
+- Haversine distance calculations for step advancement
+- Off-route detection (50m threshold)
+- Route progress tracking with ETA
+- Camera follow mode with bearing toward next step
+- TTS stub ready for Android TTS integration
+- Tier gating: Free blocked, Plus/Pro enabled
+
+### Build: ✅ Gradle dry-run successful (5s)
+
+**Next MP**: MP-019 (Google Directions API for Plus tier)
