@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 
 /**
  * SearchViewModel - Handles search functionality with feature gating.
+ * Updated for MP-020: AI Intent Classification Pipeline
  */
 class SearchViewModel : ViewModel() {
     
@@ -43,6 +44,13 @@ class SearchViewModel : ViewModel() {
     
     private val _aiRouteState = MutableStateFlow<AiRouteState>(AiRouteState.Idle)
     val aiRouteState: StateFlow<AiRouteState> = _aiRouteState
+    
+    // MP-020: AI Intent State
+    private val _aiIntentState = MutableStateFlow<AiIntentState>(AiIntentState.Idle)
+    val aiIntentState: StateFlow<AiIntentState> = _aiIntentState
+    
+    private val _classifiedIntent = MutableStateFlow<NavigationIntent?>(null)
+    val classifiedIntent: StateFlow<NavigationIntent?> = _classifiedIntent
     
     private var searchJob: Job? = null
     
@@ -173,12 +181,14 @@ class SearchViewModel : ViewModel() {
     
     /**
      * Request AI-generated route suggestion for query.
+     * MP-020: Now uses intent classification pipeline.
      * Gated by FeatureGate.areAIFeaturesEnabled()
      */
     fun onAiRouteRequested(query: String) {
         if (!FeatureGate.areAIFeaturesEnabled()) {
             Log.d(TAG, "AI routing blocked - feature not enabled")
             _aiRouteState.value = AiRouteState.Error("AI routing not available for your subscription tier")
+            _aiIntentState.value = AiIntentState.Error("AI features not available")
             return
         }
         
@@ -187,34 +197,91 @@ class SearchViewModel : ViewModel() {
             return
         }
         
+        // Start intent classification pipeline
+        _aiIntentState.value = AiIntentState.Classifying
         _aiRouteState.value = AiRouteState.Loading
         
         viewModelScope.launch {
             try {
-                val request = AiRouteRequest(
-                    rawQuery = query,
-                    currentLocation = null, // TODO: Hook up location provider
-                    destinationHint = query,
-                    tier = TierManager.getCurrentTier(),
-                    isTruck = TierManager.isPro(), // Pro tier defaults to truck mode option
-                    maxStops = FeatureGate.getMaxWaypoints()
-                )
+                // Step 1: Classify intent
+                val classificationResult = GeminiShim.classifyIntent(query)
                 
-                val result = GeminiShim.getRouteSuggestion(request)
-                
-                _aiRouteState.value = when (result) {
-                    is AiRouteResult.Success -> {
-                        Log.i(TAG, "AI route success: ${result.suggestion.destinationName}")
-                        AiRouteState.Success(result.suggestion)
+                when (classificationResult) {
+                    is IntentClassificationResult.Success -> {
+                        val intent = classificationResult.intent
+                        _classifiedIntent.value = intent
+                        Log.i(TAG, "Intent classified: ${intent::class.simpleName}")
+                        
+                        // Step 2: Resolve intent
+                        _aiIntentState.value = AiIntentState.Reasoning(
+                            intent = intent,
+                            statusMessage = "Understanding request..."
+                        )
+                        
+                        val resolutionResult = GeminiShim.resolveIntent(intent, null)
+                        
+                        when (resolutionResult) {
+                            is IntentResolutionResult.RouteRequest -> {
+                                // Step 3: Get route suggestion
+                                _aiIntentState.value = AiIntentState.Suggesting(
+                                    intent = intent,
+                                    statusMessage = resolutionResult.explanation ?: "Finding route..."
+                                )
+                                
+                                val routeResult = GeminiShim.getRouteSuggestion(resolutionResult.request)
+                                
+                                when (routeResult) {
+                                    is AiRouteResult.Success -> {
+                                        Log.i(TAG, "AI route success: ${routeResult.suggestion.destinationName}")
+                                        _aiRouteState.value = AiRouteState.Success(routeResult.suggestion)
+                                        _aiIntentState.value = AiIntentState.Success(
+                                            intent = intent,
+                                            suggestion = routeResult.suggestion
+                                        )
+                                    }
+                                    is AiRouteResult.Failure -> {
+                                        Log.w(TAG, "AI route failed: ${routeResult.reason}")
+                                        _aiRouteState.value = AiRouteState.Error(routeResult.reason)
+                                        _aiIntentState.value = AiIntentState.Error(
+                                            message = routeResult.reason,
+                                            intent = intent
+                                        )
+                                    }
+                                }
+                            }
+                            is IntentResolutionResult.NeedsMoreInfo -> {
+                                _aiRouteState.value = AiRouteState.Error(resolutionResult.prompt)
+                                _aiIntentState.value = AiIntentState.Error(
+                                    message = resolutionResult.prompt,
+                                    intent = intent
+                                )
+                            }
+                            is IntentResolutionResult.NotSupported -> {
+                                _aiRouteState.value = AiRouteState.Error(resolutionResult.reason)
+                                _aiIntentState.value = AiIntentState.Error(
+                                    message = resolutionResult.reason,
+                                    intent = intent
+                                )
+                            }
+                            is IntentResolutionResult.Failure -> {
+                                _aiRouteState.value = AiRouteState.Error(resolutionResult.reason)
+                                _aiIntentState.value = AiIntentState.Error(
+                                    message = resolutionResult.reason,
+                                    intent = intent
+                                )
+                            }
+                        }
                     }
-                    is AiRouteResult.Failure -> {
-                        Log.w(TAG, "AI route failed: ${result.reason}")
-                        AiRouteState.Error(result.reason)
+                    is IntentClassificationResult.Failure -> {
+                        Log.w(TAG, "Intent classification failed: ${classificationResult.reason}")
+                        _aiRouteState.value = AiRouteState.Error(classificationResult.reason)
+                        _aiIntentState.value = AiIntentState.Error(classificationResult.reason)
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "AI routing exception", e)
                 _aiRouteState.value = AiRouteState.Error("AI routing failed. Please try again.")
+                _aiIntentState.value = AiIntentState.Error("Processing failed: ${e.message}")
             }
         }
     }
@@ -224,6 +291,8 @@ class SearchViewModel : ViewModel() {
      */
     fun clearAiRouteState() {
         _aiRouteState.value = AiRouteState.Idle
+        _aiIntentState.value = AiIntentState.Idle
+        _classifiedIntent.value = null
     }
     
     /**

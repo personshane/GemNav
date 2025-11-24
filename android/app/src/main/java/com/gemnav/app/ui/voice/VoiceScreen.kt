@@ -28,7 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.data.ai.VoiceAiRouteState
+import com.gemnav.data.ai.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +43,8 @@ fun VoiceScreen(
     val needsPermission by viewModel.needsPermission.collectAsState()
     val featureSummary by viewModel.featureSummary.collectAsState()
     val voiceAiRouteState by viewModel.voiceAiRouteState.collectAsState()
+    val aiIntentState by viewModel.aiIntentState.collectAsState()
+    val classifiedIntent by viewModel.classifiedIntent.collectAsState()
     
     val isVoiceEnabled = FeatureGate.areAdvancedFeaturesEnabled()
     
@@ -312,6 +314,9 @@ fun VoiceScreen(
                         }
                     }
                 }
+                
+                // MP-020: AI Intent Status Panel
+                VoiceAiIntentStatusPanel(aiIntentState, classifiedIntent)
                 
                 // Permission prompt
                 AnimatedVisibility(visible = needsPermission) {

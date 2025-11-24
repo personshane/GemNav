@@ -9,6 +9,7 @@ import com.gemnav.core.here.TruckConfig
 import com.gemnav.core.maps.google.DirectionsApiClient
 import com.gemnav.core.maps.google.DirectionsResult
 import com.gemnav.core.navigation.NavigationEngine
+import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
 import com.gemnav.core.shim.SafeModeManager
@@ -679,6 +680,43 @@ class RouteDetailsViewModel : ViewModel() {
             is AiRouteResult.Failure -> {
                 Log.w(TAG, "Received AI route failure: ${result.reason}")
                 _aiRouteState.value = AiRouteState.Error(result.reason)
+            }
+        }
+    }
+    
+    /**
+     * MP-020: Handle resolved intent from AI intent pipeline.
+     * This is the entry point for the new multi-step reasoning system.
+     * 
+     * Pipeline:
+     * - If truck mode → HereShim
+     * - If car mode → Google Directions
+     * - Triggers map, steps, and nav state automatically
+     */
+    fun handleResolvedIntent(request: AiRouteRequest) {
+        Log.i(TAG, "Handling resolved intent: ${request.rawQuery}")
+        
+        viewModelScope.launch {
+            _aiRouteState.value = AiRouteState.Loading
+            
+            try {
+                // Get route suggestion from Gemini
+                val result = GeminiShim.getRouteSuggestion(request)
+                
+                when (result) {
+                    is AiRouteResult.Success -> {
+                        Log.i(TAG, "Resolved intent success: ${result.suggestion.destinationName}")
+                        _aiRouteState.value = AiRouteState.Success(result.suggestion)
+                        applyAiRouteSuggestion(result.suggestion)
+                    }
+                    is AiRouteResult.Failure -> {
+                        Log.w(TAG, "Resolved intent failed: ${result.reason}")
+                        _aiRouteState.value = AiRouteState.Error(result.reason)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Resolved intent exception", e)
+                _aiRouteState.value = AiRouteState.Error("Route calculation failed: ${e.message}")
             }
         }
     }

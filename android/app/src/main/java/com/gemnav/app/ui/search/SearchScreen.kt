@@ -15,7 +15,7 @@ import androidx.navigation.NavController
 import com.gemnav.app.models.Destination
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.data.ai.AiRouteState
+import com.gemnav.data.ai.*
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,6 +25,8 @@ fun SearchScreen(navController: NavController) {
     
     var query by remember { mutableStateOf("") }
     val aiRouteState by viewModel.aiRouteState.collectAsState()
+    val aiIntentState by viewModel.aiIntentState.collectAsState()
+    val classifiedIntent by viewModel.classifiedIntent.collectAsState()
     val isAiEnabled = FeatureGate.areAIFeaturesEnabled()
     
     val mockResults = remember(query) {
@@ -108,6 +110,9 @@ fun SearchScreen(navController: NavController) {
             else -> {}
         }
         
+        // MP-020: AI Intent Classification Status
+        AiIntentStatusPanel(aiIntentState, classifiedIntent)
+        
         Spacer(modifier = Modifier.height(16.dp))
         
         // AI Route Button (Plus/Pro tiers)
@@ -149,6 +154,64 @@ fun SearchResultItem(result: Destination, onClick: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(result.name, style = MaterialTheme.typography.titleMedium)
             Text(result.address, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+/**
+ * MP-020: Panel showing AI intent classification progress.
+ */
+@Composable
+fun AiIntentStatusPanel(
+    intentState: AiIntentState,
+    classifiedIntent: NavigationIntent?
+) {
+    if (intentState is AiIntentState.Idle) return
+    
+    Spacer(modifier = Modifier.height(8.dp))
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            // Status message
+            val statusText = when (intentState) {
+                is AiIntentState.Classifying -> "AI Understanding..."
+                is AiIntentState.Reasoning -> intentState.statusMessage
+                is AiIntentState.Suggesting -> intentState.statusMessage
+                is AiIntentState.Success -> "Route found!"
+                is AiIntentState.Error -> intentState.message
+                else -> ""
+            }
+            
+            if (statusText.isNotBlank()) {
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (intentState is AiIntentState.Error) 
+                        MaterialTheme.colorScheme.error 
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Show classified intent type
+            classifiedIntent?.let { intent ->
+                val intentLabel = when (intent) {
+                    is NavigationIntent.NavigateTo -> "Navigate to: ${intent.destinationText}"
+                    is NavigationIntent.FindPOI -> "Find POI: ${intent.poiType.name.lowercase().replace("_", " ")}"
+                    is NavigationIntent.AddStop -> "Add Stop: ${intent.destinationText ?: intent.poiType?.name ?: ""}"
+                    is NavigationIntent.RoutePreferences -> "Route Preferences"
+                    is NavigationIntent.Question -> "Question"
+                    is NavigationIntent.Unknown -> "Unknown"
+                }
+                Text(
+                    text = "Intent: $intentLabel",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

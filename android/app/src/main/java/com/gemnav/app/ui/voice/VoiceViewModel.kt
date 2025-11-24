@@ -32,7 +32,7 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         object Idle : VoiceState()
         object Listening : VoiceState()
         object Processing : VoiceState()
-        data class Result(val text: String, val intent: GeminiShim.NavigationIntent?) : VoiceState()
+        data class Result(val text: String, val intent: GeminiShim.LegacyNavigationIntent?) : VoiceState()
         data class Error(val message: String) : VoiceState()
     }
     
@@ -59,6 +59,13 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
     
     private val _voiceAiRouteState = MutableStateFlow<VoiceAiRouteState>(VoiceAiRouteState.Idle)
     val voiceAiRouteState: StateFlow<VoiceAiRouteState> = _voiceAiRouteState
+    
+    // MP-020: AI Intent State
+    private val _aiIntentState = MutableStateFlow<AiIntentState>(AiIntentState.Idle)
+    val aiIntentState: StateFlow<AiIntentState> = _aiIntentState
+    
+    private val _classifiedIntent = MutableStateFlow<NavigationIntent?>(null)
+    val classifiedIntent: StateFlow<NavigationIntent?> = _classifiedIntent
     
     private val speechRecognizerManager: SpeechRecognizerManager by lazy {
         SpeechRecognizerManager(getApplication<Application>().applicationContext).apply {
@@ -223,58 +230,145 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         
         Log.d(TAG, "Processing with AI: $text")
         
-        // Check if this is a navigation query
+        // Check if this is a navigation query - use full intent pipeline
         if (GeminiShim.isNavigationQuery(text)) {
             processNavigationWithAI(text)
         } else {
-            // Non-navigation query - use basic intent parsing
-            val intent = GeminiShim.parseNavigationIntent(text)
-            if (intent != null) {
-                Log.d(TAG, "AI parsed intent: ${intent.destination}")
-                _voiceState.value = VoiceState.Result(text, intent)
-            } else {
-                Log.d(TAG, "AI could not parse intent")
-                _voiceState.value = VoiceState.Result(text, null)
+            // Non-navigation query - still try intent classification
+            val result = GeminiShim.classifyIntent(text)
+            when (result) {
+                is IntentClassificationResult.Success -> {
+                    _classifiedIntent.value = result.intent
+                    val legacyIntent = convertToLegacyIntent(result.intent)
+                    Log.d(TAG, "AI parsed intent: ${result.intent::class.simpleName}")
+                    _voiceState.value = VoiceState.Result(text, legacyIntent)
+                }
+                is IntentClassificationResult.Failure -> {
+                    Log.d(TAG, "AI could not parse intent")
+                    _voiceState.value = VoiceState.Result(text, null)
+                }
             }
         }
     }
     
     /**
-     * Process navigation request with AI routing (MP-016).
+     * Process navigation request with AI routing (MP-020).
+     * Now uses full intent classification pipeline.
      */
     private suspend fun processNavigationWithAI(text: String) {
         _voiceAiRouteState.value = VoiceAiRouteState.AiRouting
+        _aiIntentState.value = AiIntentState.Classifying
         
         try {
-            val request = AiRouteRequest(
-                rawQuery = text,
-                currentLocation = null, // TODO: Hook up location provider
-                destinationHint = text,
-                tier = TierManager.getCurrentTier(),
-                isTruck = TierManager.isPro(),
-                maxStops = FeatureGate.getMaxWaypoints()
-            )
+            // Step 1: Classify intent
+            val classificationResult = GeminiShim.classifyIntent(text)
             
-            val result = GeminiShim.getRouteSuggestion(request)
-            
-            when (result) {
-                is AiRouteResult.Success -> {
-                    Log.i(TAG, "Voice AI route success: ${result.suggestion.destinationName}")
-                    _voiceAiRouteState.value = VoiceAiRouteState.Success(result.suggestion)
-                    _voiceState.value = VoiceState.Result(text, GeminiShim.NavigationIntent(
-                        destination = result.suggestion.destinationName
-                    ))
+            when (classificationResult) {
+                is IntentClassificationResult.Success -> {
+                    val intent = classificationResult.intent
+                    _classifiedIntent.value = intent
+                    Log.i(TAG, "Voice intent classified: ${intent::class.simpleName}")
+                    
+                    // Update voice state with intent info
+                    _voiceState.value = VoiceState.Result(
+                        text = text,
+                        intent = convertToLegacyIntent(intent)
+                    )
+                    
+                    // Step 2: Resolve intent
+                    _aiIntentState.value = AiIntentState.Reasoning(
+                        intent = intent,
+                        statusMessage = "Understanding request..."
+                    )
+                    
+                    val resolutionResult = GeminiShim.resolveIntent(intent, null)
+                    
+                    when (resolutionResult) {
+                        is IntentResolutionResult.RouteRequest -> {
+                            // Step 3: Get route suggestion
+                            _aiIntentState.value = AiIntentState.Suggesting(
+                                intent = intent,
+                                statusMessage = resolutionResult.explanation ?: "Finding route..."
+                            )
+                            
+                            val routeResult = GeminiShim.getRouteSuggestion(resolutionResult.request)
+                            
+                            when (routeResult) {
+                                is AiRouteResult.Success -> {
+                                    Log.i(TAG, "Voice AI route success: ${routeResult.suggestion.destinationName}")
+                                    _voiceAiRouteState.value = VoiceAiRouteState.Success(routeResult.suggestion)
+                                    _aiIntentState.value = AiIntentState.Success(
+                                        intent = intent,
+                                        suggestion = routeResult.suggestion
+                                    )
+                                }
+                                is AiRouteResult.Failure -> {
+                                    Log.w(TAG, "Voice AI route failed: ${routeResult.reason}")
+                                    _voiceAiRouteState.value = VoiceAiRouteState.Error(routeResult.reason)
+                                    _aiIntentState.value = AiIntentState.Error(
+                                        message = routeResult.reason,
+                                        intent = intent
+                                    )
+                                    _voiceState.value = VoiceState.Error(routeResult.reason)
+                                }
+                            }
+                        }
+                        is IntentResolutionResult.NeedsMoreInfo -> {
+                            _voiceAiRouteState.value = VoiceAiRouteState.Error(resolutionResult.prompt)
+                            _aiIntentState.value = AiIntentState.Error(
+                                message = resolutionResult.prompt,
+                                intent = intent
+                            )
+                            _voiceState.value = VoiceState.Error(resolutionResult.prompt)
+                        }
+                        is IntentResolutionResult.NotSupported -> {
+                            _voiceAiRouteState.value = VoiceAiRouteState.Error(resolutionResult.reason)
+                            _aiIntentState.value = AiIntentState.Error(
+                                message = resolutionResult.reason,
+                                intent = intent
+                            )
+                            _voiceState.value = VoiceState.Error(resolutionResult.reason)
+                        }
+                        is IntentResolutionResult.Failure -> {
+                            _voiceAiRouteState.value = VoiceAiRouteState.Error(resolutionResult.reason)
+                            _aiIntentState.value = AiIntentState.Error(
+                                message = resolutionResult.reason,
+                                intent = intent
+                            )
+                            _voiceState.value = VoiceState.Error(resolutionResult.reason)
+                        }
+                    }
                 }
-                is AiRouteResult.Failure -> {
-                    Log.w(TAG, "Voice AI route failed: ${result.reason}")
-                    _voiceAiRouteState.value = VoiceAiRouteState.Error(result.reason)
-                    _voiceState.value = VoiceState.Error(result.reason)
+                is IntentClassificationResult.Failure -> {
+                    Log.w(TAG, "Voice intent classification failed: ${classificationResult.reason}")
+                    _voiceAiRouteState.value = VoiceAiRouteState.Error(classificationResult.reason)
+                    _aiIntentState.value = AiIntentState.Error(classificationResult.reason)
+                    _voiceState.value = VoiceState.Error("I didn't understand that")
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Voice AI routing exception", e)
             _voiceAiRouteState.value = VoiceAiRouteState.Error("AI routing failed")
+            _aiIntentState.value = AiIntentState.Error("Processing failed: ${e.message}")
             _voiceState.value = VoiceState.Error("Voice command processing failed")
+        }
+    }
+    
+    /**
+     * Convert new NavigationIntent to legacy format for backward compatibility.
+     */
+    private fun convertToLegacyIntent(intent: NavigationIntent): GeminiShim.LegacyNavigationIntent? {
+        return when (intent) {
+            is NavigationIntent.NavigateTo -> GeminiShim.LegacyNavigationIntent(
+                destination = intent.destinationText
+            )
+            is NavigationIntent.FindPOI -> GeminiShim.LegacyNavigationIntent(
+                destination = intent.poiType.name.lowercase().replace("_", " ")
+            )
+            is NavigationIntent.AddStop -> GeminiShim.LegacyNavigationIntent(
+                destination = intent.destinationText ?: intent.poiType?.name?.lowercase()?.replace("_", " ") ?: ""
+            )
+            else -> null
         }
     }
     
@@ -287,17 +381,17 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         val lowerText = text.lowercase()
         val basicIntent = when {
             lowerText.contains("home") -> {
-                GeminiShim.NavigationIntent(destination = "home")
+                GeminiShim.LegacyNavigationIntent(destination = "home")
             }
             lowerText.contains("work") -> {
-                GeminiShim.NavigationIntent(destination = "work")
+                GeminiShim.LegacyNavigationIntent(destination = "work")
             }
             lowerText.startsWith("navigate to") || lowerText.startsWith("go to") -> {
                 val destination = lowerText
                     .removePrefix("navigate to")
                     .removePrefix("go to")
                     .trim()
-                GeminiShim.NavigationIntent(destination = destination)
+                GeminiShim.LegacyNavigationIntent(destination = destination)
             }
             else -> null
         }
@@ -313,6 +407,8 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         _isListening.value = false
         _voiceState.value = VoiceState.Idle
         _voiceAiRouteState.value = VoiceAiRouteState.Idle
+        _aiIntentState.value = AiIntentState.Idle
+        _classifiedIntent.value = null
         _transcribedText.value = ""
     }
     
@@ -321,6 +417,8 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun clearAiRouteState() {
         _voiceAiRouteState.value = VoiceAiRouteState.Idle
+        _aiIntentState.value = AiIntentState.Idle
+        _classifiedIntent.value = null
     }
     
     /**

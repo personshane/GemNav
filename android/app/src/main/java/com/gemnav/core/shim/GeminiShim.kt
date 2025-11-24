@@ -3,11 +3,14 @@ package com.gemnav.core.shim
 import android.util.Log
 import com.gemnav.app.BuildConfig
 import com.gemnav.core.feature.FeatureGate
+import com.gemnav.core.subscription.TierManager
 import com.gemnav.data.ai.*
 import com.gemnav.data.route.LatLng
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
+import org.json.JSONObject
+import org.json.JSONException
 
 /**
  * GeminiShim - Safe wrapper for all Gemini AI interactions.
@@ -128,7 +131,7 @@ object GeminiShim {
      * @param input User's natural language input
      * @return Parsed navigation intent or null
      */
-    suspend fun parseNavigationIntent(input: String): NavigationIntent? {
+    suspend fun parseNavigationIntent(input: String): LegacyNavigationIntent? {
         return try {
             if (input.isBlank()) return null
             
@@ -141,6 +144,459 @@ object GeminiShim {
             SafeModeManager.reportFailure("GeminiShim.parseNavigationIntent", e)
             null
         }
+    }
+    
+    // ==================== INTENT CLASSIFICATION (MP-020) ====================
+    
+    /**
+     * Classify user input into a structured NavigationIntent.
+     * This is the entry point for the AI intent system.
+     * 
+     * @param rawInput User's natural language query
+     * @return IntentClassificationResult with parsed intent or failure
+     */
+    suspend fun classifyIntent(rawInput: String): IntentClassificationResult {
+        val startTime = System.currentTimeMillis()
+        
+        // SafeMode check - return Unknown intent
+        if (SafeModeManager.isSafeModeEnabled()) {
+            logWarning("Intent classification blocked - SafeMode active")
+            return IntentClassificationResult.Failure(
+                reason = "Safe mode active - AI features disabled",
+                rawText = rawInput
+            )
+        }
+        
+        // Feature gate check - Free tier blocked
+        if (!FeatureGate.areAIFeaturesEnabled()) {
+            logWarning("Intent classification blocked - AI not enabled for tier")
+            return IntentClassificationResult.Failure(
+                reason = "AI features not available for your subscription tier",
+                rawText = rawInput
+            )
+        }
+        
+        if (rawInput.isBlank()) {
+            return IntentClassificationResult.Failure(
+                reason = "Empty input",
+                rawText = rawInput
+            )
+        }
+        
+        logInfo("Classifying intent: ${rawInput.take(50)}...")
+        
+        return try {
+            // TODO: Replace with actual Gemini API call
+            // Build classification prompt
+            val classificationPrompt = buildClassificationPrompt(rawInput)
+            
+            // TODO: Send to Gemini API
+            // val response = geminiApiClient.generate(classificationPrompt)
+            
+            // Stub: Use heuristic classification until API is connected
+            val intent = classifyIntentHeuristic(rawInput)
+            val processingTime = System.currentTimeMillis() - startTime
+            
+            logInfo("Intent classified in ${processingTime}ms: ${intent::class.simpleName}")
+            IntentClassificationResult.Success(intent, processingTime)
+            
+        } catch (e: Exception) {
+            logError("Intent classification failed", e)
+            SafeModeManager.reportFailure("GeminiShim.classifyIntent", e)
+            IntentClassificationResult.Failure(
+                reason = e.message ?: "Classification failed",
+                rawText = rawInput
+            )
+        }
+    }
+    
+    /**
+     * Resolve a classified intent into an actionable AiRouteRequest.
+     * 
+     * @param intent The classified NavigationIntent
+     * @param currentLocation User's current location (if available)
+     * @return IntentResolutionResult with route request or status
+     */
+    suspend fun resolveIntent(
+        intent: NavigationIntent,
+        currentLocation: LatLng? = null
+    ): IntentResolutionResult {
+        // SafeMode check
+        if (SafeModeManager.isSafeModeEnabled()) {
+            logWarning("Intent resolution blocked - SafeMode active")
+            return IntentResolutionResult.Failure("Safe mode active - AI features disabled")
+        }
+        
+        // Feature gate check
+        if (!FeatureGate.areAIFeaturesEnabled()) {
+            logWarning("Intent resolution blocked - AI not enabled for tier")
+            return IntentResolutionResult.Failure("AI features not available for your subscription tier")
+        }
+        
+        logInfo("Resolving intent: ${intent::class.simpleName}")
+        
+        return when (intent) {
+            is NavigationIntent.NavigateTo -> resolveNavigateTo(intent, currentLocation)
+            is NavigationIntent.FindPOI -> resolveFindPOI(intent, currentLocation)
+            is NavigationIntent.AddStop -> resolveAddStop(intent, currentLocation)
+            is NavigationIntent.RoutePreferences -> resolveRoutePreferences(intent, currentLocation)
+            is NavigationIntent.Question -> IntentResolutionResult.NotSupported(
+                "Questions are not yet supported. Try a navigation command instead."
+            )
+            is NavigationIntent.Unknown -> IntentResolutionResult.Failure(
+                intent.reason
+            )
+        }
+    }
+    
+    /**
+     * Build the classification prompt for Gemini.
+     */
+    private fun buildClassificationPrompt(userInput: String): String {
+        return """
+            |You are a navigation intent classifier. Analyze the user's query and output ONLY a JSON object.
+            |
+            |User query: "$userInput"
+            |
+            |Classify into one of these types:
+            |1. "navigate_to" - Direct navigation (e.g., "Take me to Phoenix")
+            |2. "find_poi" - Find POI (e.g., "Find truck stop with showers")
+            |3. "add_stop" - Add waypoint (e.g., "Add Walmart on the way")
+            |4. "route_preferences" - Change settings (e.g., "Avoid tolls")
+            |5. "question" - Information query (e.g., "How far to Denver?")
+            |6. "unknown" - Cannot classify
+            |
+            |POI types: truck_stop, gas_station, diesel, rest_area, hotel, motel, 
+            |restaurant, fast_food, parking, truck_parking, walmart, grocery, 
+            |weigh_station, repair_shop, hospital, pharmacy, atm, other
+            |
+            |Output JSON format:
+            |{
+            |  "type": "navigate_to|find_poi|add_stop|route_preferences|question|unknown",
+            |  "destination": "string or null",
+            |  "poi_type": "string or null",
+            |  "filters": { "has_showers": bool, "has_truck_parking": bool, etc },
+            |  "settings": { "avoid_tolls": bool, "avoid_highways": bool, etc },
+            |  "near_location": "string or null",
+            |  "confidence": 0.0-1.0
+            |}
+            |
+            |Output ONLY valid JSON, no explanation.
+        """.trimMargin()
+    }
+    
+    /**
+     * Heuristic intent classification (stub until Gemini API connected).
+     * TODO: Replace with parsed Gemini response
+     */
+    private fun classifyIntentHeuristic(input: String): NavigationIntent {
+        val lowerInput = input.lowercase().trim()
+        
+        // Check for POI search patterns
+        val poiResult = checkForPOIIntent(lowerInput)
+        if (poiResult != null) return poiResult
+        
+        // Check for route preferences
+        val prefsResult = checkForPreferencesIntent(lowerInput)
+        if (prefsResult != null) return prefsResult
+        
+        // Check for add stop
+        val stopResult = checkForAddStopIntent(lowerInput)
+        if (stopResult != null) return stopResult
+        
+        // Check for questions
+        val questionResult = checkForQuestionIntent(lowerInput)
+        if (questionResult != null) return questionResult
+        
+        // Check for direct navigation
+        val navResult = checkForNavigateIntent(lowerInput)
+        if (navResult != null) return navResult
+        
+        // Default: try to extract as navigation
+        return NavigationIntent.NavigateTo(
+            destinationText = input.trim(),
+            confidence = 0.3f
+        )
+    }
+    
+    private fun checkForPOIIntent(input: String): NavigationIntent.FindPOI? {
+        val poiKeywords = mapOf(
+            POIType.TRUCK_STOP to listOf("truck stop", "truckstop", "flying j", "pilot", "loves"),
+            POIType.DIESEL to listOf("diesel", "fuel"),
+            POIType.GAS_STATION to listOf("gas station", "gas", "fill up"),
+            POIType.REST_AREA to listOf("rest area", "rest stop"),
+            POIType.HOTEL to listOf("hotel", "inn", "suites"),
+            POIType.MOTEL to listOf("motel"),
+            POIType.RESTAURANT to listOf("restaurant", "food", "eat"),
+            POIType.FAST_FOOD to listOf("fast food", "drive thru", "drive through"),
+            POIType.PARKING to listOf("parking"),
+            POIType.TRUCK_PARKING to listOf("truck parking", "overnight parking"),
+            POIType.WALMART to listOf("walmart", "wal-mart"),
+            POIType.GROCERY to listOf("grocery", "supermarket"),
+            POIType.REPAIR_SHOP to listOf("mechanic", "repair", "tire shop"),
+            POIType.HOSPITAL to listOf("hospital", "emergency room", "er"),
+            POIType.PHARMACY to listOf("pharmacy", "drugstore")
+        )
+        
+        // Check for "find" or "nearest" patterns
+        val findPatterns = listOf("find", "nearest", "closest", "where is", "looking for")
+        val hasFindPattern = findPatterns.any { input.contains(it) }
+        
+        for ((poiType, keywords) in poiKeywords) {
+            if (keywords.any { input.contains(it) }) {
+                val filters = extractPOIFilters(input)
+                val nearLocation = extractNearLocation(input)
+                
+                return NavigationIntent.FindPOI(
+                    poiType = poiType,
+                    filters = filters,
+                    nearLocation = nearLocation,
+                    confidence = if (hasFindPattern) 0.85f else 0.6f
+                )
+            }
+        }
+        
+        return null
+    }
+    
+    private fun extractPOIFilters(input: String): POIFilters {
+        return POIFilters(
+            hasShowers = input.contains("shower"),
+            hasOvernightParking = input.contains("overnight") || input.contains("sleep"),
+            hasTruckParking = input.contains("truck parking"),
+            hasDiesel = input.contains("diesel"),
+            isOpen24Hours = input.contains("24 hour") || input.contains("open now")
+        )
+    }
+    
+    private fun extractNearLocation(input: String): String? {
+        val nearPatterns = listOf("near ", "around ", "by ", "close to ", "in ")
+        for (pattern in nearPatterns) {
+            val idx = input.indexOf(pattern)
+            if (idx >= 0) {
+                val afterPattern = input.substring(idx + pattern.length)
+                // Extract until end or next keyword
+                val endIdx = afterPattern.indexOfAny(charArrayOf(',', '.', '?', '!'))
+                return if (endIdx > 0) afterPattern.substring(0, endIdx).trim()
+                       else afterPattern.trim()
+            }
+        }
+        return null
+    }
+    
+    private fun checkForPreferencesIntent(input: String): NavigationIntent.RoutePreferences? {
+        val settings = RouteSettings(
+            avoidTolls = input.contains("avoid toll") || input.contains("no toll"),
+            avoidHighways = input.contains("avoid highway") || input.contains("no highway"),
+            avoidMountains = input.contains("avoid mountain") || input.contains("no mountain"),
+            avoidSnow = input.contains("avoid snow") || input.contains("no snow"),
+            preferFastest = input.contains("fastest"),
+            preferShortest = input.contains("shortest"),
+            preferScenic = input.contains("scenic")
+        )
+        
+        // Check if any preference was set
+        val hasPreference = listOf(
+            settings.avoidTolls, settings.avoidHighways, settings.avoidMountains,
+            settings.avoidSnow, settings.preferFastest, settings.preferShortest,
+            settings.preferScenic
+        ).any { it == true }
+        
+        return if (hasPreference) {
+            NavigationIntent.RoutePreferences(settings = settings, confidence = 0.8f)
+        } else null
+    }
+    
+    private fun checkForAddStopIntent(input: String): NavigationIntent.AddStop? {
+        val addPatterns = listOf("add a stop", "add stop", "stop at", "add ", "on the way")
+        
+        for (pattern in addPatterns) {
+            if (input.contains(pattern)) {
+                val afterPattern = input.substringAfter(pattern).trim()
+                
+                // Check if it's a POI type
+                val poiType = detectPOIType(afterPattern)
+                
+                return NavigationIntent.AddStop(
+                    stopType = if (poiType != null) StopType.POI_TYPE else StopType.SPECIFIC_DESTINATION,
+                    destinationText = if (poiType == null) afterPattern else null,
+                    poiType = poiType,
+                    confidence = 0.75f
+                )
+            }
+        }
+        
+        return null
+    }
+    
+    private fun detectPOIType(input: String): POIType? {
+        val lower = input.lowercase()
+        return when {
+            lower.contains("truck stop") -> POIType.TRUCK_STOP
+            lower.contains("gas") || lower.contains("fuel") -> POIType.GAS_STATION
+            lower.contains("walmart") -> POIType.WALMART
+            lower.contains("rest area") -> POIType.REST_AREA
+            lower.contains("food") || lower.contains("restaurant") -> POIType.RESTAURANT
+            else -> null
+        }
+    }
+    
+    private fun checkForQuestionIntent(input: String): NavigationIntent.Question? {
+        val questionPatterns = listOf("how far", "how long", "what time", "when will", "what's traffic", "is there")
+        
+        for (pattern in questionPatterns) {
+            if (input.contains(pattern)) {
+                return NavigationIntent.Question(query = input, confidence = 0.7f)
+            }
+        }
+        
+        return null
+    }
+    
+    private fun checkForNavigateIntent(input: String): NavigationIntent.NavigateTo? {
+        val navPrefixes = listOf(
+            "navigate to", "take me to", "go to", "route to",
+            "directions to", "drive to", "head to"
+        )
+        
+        for (prefix in navPrefixes) {
+            if (input.contains(prefix)) {
+                val destination = input.substringAfter(prefix).trim()
+                    .replaceFirstChar { it.uppercase() }
+                return NavigationIntent.NavigateTo(
+                    destinationText = destination,
+                    confidence = 0.85f
+                )
+            }
+        }
+        
+        return null
+    }
+    
+    // ==================== INTENT RESOLUTION ====================
+    
+    private suspend fun resolveNavigateTo(
+        intent: NavigationIntent.NavigateTo,
+        currentLocation: LatLng?
+    ): IntentResolutionResult {
+        val origin = currentLocation ?: LatLng(33.4484, -112.0740) // Phoenix default
+        
+        // TODO: Geocode destination to coordinates
+        // For now, generate stub coordinates
+        val destCoords = intent.destinationCoords ?: LatLng(
+            origin.latitude + 0.05,
+            origin.longitude + 0.05
+        )
+        
+        val isTruck = TierManager.isPro() // Pro tier can use truck mode
+        
+        val request = AiRouteRequest(
+            rawQuery = "Navigate to ${intent.destinationText}",
+            currentLocation = origin,
+            destinationHint = intent.destinationText,
+            tier = TierManager.getCurrentTier(),
+            isTruck = isTruck,
+            maxStops = FeatureGate.getMaxWaypoints()
+        )
+        
+        return IntentResolutionResult.RouteRequest(
+            request = request,
+            explanation = "Routing to ${intent.destinationText}"
+        )
+    }
+    
+    private suspend fun resolveFindPOI(
+        intent: NavigationIntent.FindPOI,
+        currentLocation: LatLng?
+    ): IntentResolutionResult {
+        val origin = currentLocation ?: LatLng(33.4484, -112.0740)
+        
+        // TODO: MP-021 - Use Places API to search for POI
+        // For now, simulate POI search with stub coordinates
+        val poiName = intent.poiType.name.lowercase().replace("_", " ")
+        val stubDestination = LatLng(
+            origin.latitude + 0.02 + (Math.random() * 0.03),
+            origin.longitude + 0.02 + (Math.random() * 0.03)
+        )
+        
+        logInfo("TODO: Simulate POI search for ${intent.poiType} with filters: ${intent.filters}")
+        
+        val isTruck = TierManager.isPro()
+        
+        val request = AiRouteRequest(
+            rawQuery = "Find ${poiName}${intent.nearLocation?.let { " near $it" } ?: ""}",
+            currentLocation = origin,
+            destinationHint = poiName,
+            tier = TierManager.getCurrentTier(),
+            isTruck = isTruck,
+            maxStops = FeatureGate.getMaxWaypoints()
+        )
+        
+        // Attach simulated destination for now
+        return IntentResolutionResult.RouteRequest(
+            request = request.copy(destinationHint = "${poiName} (simulated)"),
+            explanation = "Finding nearest ${poiName}..."
+        )
+    }
+    
+    private suspend fun resolveAddStop(
+        intent: NavigationIntent.AddStop,
+        currentLocation: LatLng?
+    ): IntentResolutionResult {
+        val origin = currentLocation ?: LatLng(33.4484, -112.0740)
+        
+        // TODO: Get existing route and merge new waypoint
+        val stopDescription = intent.destinationText 
+            ?: intent.poiType?.name?.lowercase()?.replace("_", " ")
+            ?: "stop"
+        
+        logInfo("TODO: Merge stop into existing route: $stopDescription")
+        
+        val request = AiRouteRequest(
+            rawQuery = "Add stop at $stopDescription",
+            currentLocation = origin,
+            destinationHint = stopDescription,
+            tier = TierManager.getCurrentTier(),
+            isTruck = TierManager.isPro(),
+            maxStops = FeatureGate.getMaxWaypoints()
+        )
+        
+        return IntentResolutionResult.RouteRequest(
+            request = request,
+            explanation = "Adding $stopDescription to route"
+        )
+    }
+    
+    private suspend fun resolveRoutePreferences(
+        intent: NavigationIntent.RoutePreferences,
+        currentLocation: LatLng?
+    ): IntentResolutionResult {
+        val origin = currentLocation ?: LatLng(33.4484, -112.0740)
+        
+        // TODO: Apply preferences to current route and recalculate
+        val settings = intent.settings
+        val prefsDescription = buildList {
+            if (settings.avoidTolls == true) add("avoid tolls")
+            if (settings.avoidHighways == true) add("avoid highways")
+            if (settings.avoidMountains == true) add("avoid mountains")
+            if (settings.preferFastest == true) add("fastest route")
+        }.joinToString(", ")
+        
+        logInfo("TODO: Apply route preferences: $prefsDescription")
+        
+        val request = AiRouteRequest(
+            rawQuery = "Update route: $prefsDescription",
+            currentLocation = origin,
+            destinationHint = null,
+            tier = TierManager.getCurrentTier(),
+            isTruck = settings.truckMode ?: TierManager.isPro(),
+            maxStops = FeatureGate.getMaxWaypoints()
+        )
+        
+        return IntentResolutionResult.RouteRequest(
+            request = request,
+            explanation = "Applying preferences: $prefsDescription"
+        )
     }
     
     /**
@@ -185,10 +641,11 @@ object GeminiShim {
     }
     
     /**
-     * Parsed navigation intent from natural language.
-     * TODO: Expand with full intent structure
+     * Legacy navigation intent (for backward compatibility).
+     * @deprecated Use NavigationIntent sealed class from IntentModel.kt
      */
-    data class NavigationIntent(
+    @Deprecated("Use NavigationIntent sealed class from IntentModel.kt")
+    data class LegacyNavigationIntent(
         val destination: String = "",
         val origin: String? = null,
         val waypoints: List<String> = emptyList(),
