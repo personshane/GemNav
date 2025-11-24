@@ -834,3 +834,42 @@ onDestinationClick = { destination ->
 **Status**: MP-009 COMPLETE
 **Overall Project**: ~25,500 lines across 103 files
 **Next Priority**: MP-010 (UI Safe Mode indicators) or merge branches
+
+
+---
+
+## MP-010: Safe Mode + Feature Gates UI (COMPLETE)
+
+**Date**: 2025-11-23  
+**Branch**: `mp-010-safe-mode-ui`  
+**Commit**: `b07419c`
+
+### Files Created
+- `android/app/src/main/java/com/gemnav/app/ui/common/SafeModeBanner.kt` (107 lines) - NEW
+
+### Files Modified
+- `HomeScreen.kt` (140 lines) - Added SafeModeBanner, feature state, AI hint
+- `SearchScreen.kt` (153 lines) - Added ViewModel, feature gating, loading states
+- `VoiceScreen.kt` (185 lines) - Added ViewModel, disabled states, tier hints
+- `VoiceButton.kt` (111 lines) - Added Disabled state with MicOff icon
+- `RouteDetailsScreen.kt` (258 lines) - Added truck mode toggle, route info cards
+- `SettingsScreen.kt` (272 lines) - Added tier info, Safe Mode controls, feature toggles
+
+### Key UI Features
+- SafeModeBanner auto-shows/hides based on SafeModeManager state
+- Buttons disabled when features unavailable (opacity change)
+- Upgrade hints for tier-locked features
+- Settings shows current tier and Safe Mode status
+- Route screen has truck/car toggle (Pro only)
+
+### Build Status
+✅ BUILD SUCCESSFUL (compileDebugKotlin)
+
+**MP-010 Total**: 906 lines added/modified (7 files)
+
+---
+
+**Last Updated**: 2025-11-23
+**Status**: MP-010 COMPLETE
+**Overall Project**: ~26,400 lines across 104 files
+**Next Priority**: MP-011 (Speech recognition) or MP-012 (Billing)
