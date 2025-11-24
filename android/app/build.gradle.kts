@@ -35,11 +35,13 @@ android {
         val hereApiKey = localProperties.getProperty("here_api_key") ?: ""
         val hereMapKey = localProperties.getProperty("here_map_key") ?: ""
         val googleMapsApiKey = localProperties.getProperty("google_maps_api_key") ?: ""
+        val googlePlacesApiKey = localProperties.getProperty("google_places_api_key") ?: ""
         val geminiApiKey = localProperties.getProperty("gemini_api_key") ?: ""
         
         buildConfigField("String", "HERE_API_KEY", "\"${hereApiKey}\"")
         buildConfigField("String", "HERE_MAP_KEY", "\"${hereMapKey}\"")
         buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${googleMapsApiKey}\"")
+        buildConfigField("String", "GOOGLE_PLACES_API_KEY", "\"${googlePlacesApiKey}\"")
         buildConfigField("String", "GEMINI_API_KEY", "\"${geminiApiKey}\"")
     }
 

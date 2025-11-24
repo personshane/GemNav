@@ -7,9 +7,13 @@
 here_api_key=YOUR_HERE_API_KEY_HERE
 here_map_key=YOUR_HERE_MAP_KEY_HERE
 
-# Google Maps SDK (Plus/Pro tier)
+# Google Maps SDK (Plus tier in-app maps)
 # Get keys from: https://console.cloud.google.com/google/maps-apis
 google_maps_api_key=YOUR_GOOGLE_MAPS_KEY_HERE
+
+# Google Places API (Plus tier POI search)
+# Get keys from: https://console.cloud.google.com/google/maps-apis
+google_places_api_key=YOUR_GOOGLE_PLACES_KEY_HERE
 
 # Gemini API (Plus/Pro tier)
 # Get keys from: https://aistudio.google.com/apikey

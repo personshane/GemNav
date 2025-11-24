@@ -6,6 +6,9 @@ import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.subscription.TierManager
 import com.gemnav.data.ai.*
 import com.gemnav.data.route.LatLng
+import com.gemnav.core.places.PlacesApiClient
+import com.gemnav.core.places.PlacesResult
+import com.gemnav.core.places.PoiTypeMapper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
@@ -509,34 +512,71 @@ object GeminiShim {
         intent: NavigationIntent.FindPOI,
         currentLocation: LatLng?
     ): IntentResolutionResult {
-        val origin = currentLocation ?: LatLng(33.4484, -112.0740)
+        val origin = currentLocation ?: LatLng(33.4484, -112.0740) // Phoenix default
         
-        // TODO: MP-021 - Use Places API to search for POI
-        // For now, simulate POI search with stub coordinates
-        val poiName = intent.poiType.name.lowercase().replace("_", " ")
-        val stubDestination = LatLng(
-            origin.latitude + 0.02 + (Math.random() * 0.03),
-            origin.longitude + 0.02 + (Math.random() * 0.03)
+        // MP-021: Proper tier enforcement for Places API
+        // FREE: Uses AI but cannot use Places API
+        if (TierManager.isFree()) {
+            logWarning("FindPOI blocked - Free tier cannot use Places API")
+            return IntentResolutionResult.Failure(
+                "POI search requires Plus subscription. Upgrade to search for places like truck stops, restaurants, and more."
+            )
+        }
+        
+        // PRO: Uses HERE SDK, not Google Places
+        if (TierManager.isPro()) {
+            logWarning("FindPOI blocked - Pro tier uses HERE (Google Places forbidden)")
+            return IntentResolutionResult.Failure(
+                "Truck-specific POI search coming soon. Pro tier uses HERE SDK for truck-legal routing."
+            )
+        }
+        
+        // PLUS: Use Google Places REST API
+        val poiDescription = PoiTypeMapper.getPoiDescription(intent.poiType)
+        val isNearMe = intent.nearLocation?.lowercase()?.contains("near me") == true ||
+                       intent.nearLocation?.lowercase()?.contains("nearby") == true
+        val searchRadius = PlacesApiClient.getSearchRadius(isNearMe)
+        
+        logInfo("Plus tier FindPOI: ${intent.poiType} radius=${searchRadius}m filters=${intent.filters}")
+        
+        val placesResult = PlacesApiClient.searchNearby(
+            location = origin,
+            radiusMeters = searchRadius,
+            poiType = intent.poiType,
+            filters = intent.filters
         )
         
-        logInfo("TODO: Simulate POI search for ${intent.poiType} with filters: ${intent.filters}")
-        
-        val isTruck = TierManager.isPro()
-        
-        val request = AiRouteRequest(
-            rawQuery = "Find ${poiName}${intent.nearLocation?.let { " near $it" } ?: ""}",
-            currentLocation = origin,
-            destinationHint = poiName,
-            tier = TierManager.getCurrentTier(),
-            isTruck = isTruck,
-            maxStops = FeatureGate.getMaxWaypoints()
-        )
-        
-        // Attach simulated destination for now
-        return IntentResolutionResult.RouteRequest(
-            request = request.copy(destinationHint = "${poiName} (simulated)"),
-            explanation = "Finding nearest ${poiName}..."
-        )
+        return when (placesResult) {
+            is PlacesResult.Success -> {
+                if (placesResult.places.isEmpty()) {
+                    IntentResolutionResult.Failure(
+                        "No $poiDescription found nearby. Try a different location or remove filters."
+                    )
+                } else {
+                    // Pick best match (first result after filtering)
+                    val bestMatch = placesResult.places.first()
+                    logInfo("Found POI: ${bestMatch.name} at ${bestMatch.lat},${bestMatch.lng}")
+                    
+                    val request = AiRouteRequest(
+                        rawQuery = "Navigate to ${bestMatch.name}",
+                        currentLocation = origin,
+                        destinationHint = bestMatch.name,
+                        tier = TierManager.getCurrentTier(),
+                        isTruck = false, // Plus tier = car only
+                        maxStops = FeatureGate.getMaxWaypoints()
+                    )
+                    
+                    IntentResolutionResult.RouteRequest(
+                        request = request,
+                        explanation = "Found ${bestMatch.name}${bestMatch.address?.let { " at $it" } ?: ""}"
+                    )
+                }
+            }
+            is PlacesResult.Failure -> {
+                logWarning("Places search failed: ${placesResult.reason}")
+                IntentResolutionResult.Failure(placesResult.reason)
+            }
+        }
     }
     
     private suspend fun resolveAddStop(
