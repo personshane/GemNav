@@ -3,6 +3,7 @@ package com.gemnav.app.ui.route
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +16,7 @@ import androidx.navigation.NavController
 import com.gemnav.app.models.Destination
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.app.ui.map.HereMapContainer
+import com.gemnav.app.ui.map.GoogleMapContainer
 import com.gemnav.data.route.LatLng
 import com.gemnav.data.route.TruckRouteData
 import com.gemnav.data.route.TruckRouteState
@@ -39,6 +41,7 @@ fun RouteDetailsScreen(
     var isFavorite by remember { mutableStateOf(false) }
     val truckRouteState by viewModel.truckRouteState.collectAsState()
     val isProTier = viewModel.isProTier()
+    val isPlusTier = viewModel.isPlusTier()
 
     Column(
         modifier = Modifier
@@ -96,6 +99,17 @@ fun RouteDetailsScreen(
             },
             onClearRoute = { viewModel.clearTruckRoute() }
         )
+        
+        // ==================== Plus Tier Map Section ====================
+        
+        if (isPlusTier && !isProTier) {
+            Spacer(modifier = Modifier.height(16.dp))
+            PlusTierMapSection(
+                destination = destination,
+                onMapReady = { viewModel.onGoogleMapReady() },
+                onMapError = { viewModel.onGoogleMapError(it) }
+            )
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -344,6 +358,79 @@ private fun TruckRouteResultCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Start Navigation")
+            }
+        }
+    }
+}
+
+/**
+ * Plus tier map section with Google Maps.
+ */
+@Composable
+private fun PlusTierMapSection(
+    destination: Destination,
+    onMapReady: () -> Unit,
+    onMapError: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Map,
+                    contentDescription = "Map",
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = "Route Preview",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "PLUS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            GoogleMapContainer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                destinationLocation = LatLng(destination.latitude, destination.longitude),
+                centerLocation = LatLng(destination.latitude, destination.longitude),
+                onMapReady = onMapReady,
+                onMapError = onMapError
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { /* TODO: Open in Google Maps app */ },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Open in Maps")
+                }
+                Button(
+                    onClick = { /* TODO: Start turn-by-turn */ },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Navigate")
+                }
             }
         }
     }

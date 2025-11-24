@@ -34,9 +34,11 @@ android {
         
         val hereApiKey = localProperties.getProperty("here_api_key") ?: ""
         val hereMapKey = localProperties.getProperty("here_map_key") ?: ""
+        val googleMapsApiKey = localProperties.getProperty("google_maps_api_key") ?: ""
         
         buildConfigField("String", "HERE_API_KEY", "\"${hereApiKey}\"")
         buildConfigField("String", "HERE_MAP_KEY", "\"${hereMapKey}\"")
+        buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${googleMapsApiKey}\"")
     }
 
     buildTypes {
@@ -97,8 +99,11 @@ dependencies {
     kapt("com.google.dagger:hilt-compiler:2.48.1")
     
     // Google Play Services
-    implementation("com.google.android.gms:play-services-maps:18.1.0")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    
+    // Google Maps Compose
+    implementation("com.google.maps.android:maps-compose:2.11.4")
     
     // Google Play Billing
     implementation("com.android.billingclient:billing-ktx:6.1.0")

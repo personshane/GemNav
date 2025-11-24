@@ -310,6 +310,29 @@ class RouteDetailsViewModel : ViewModel() {
     fun isProTier(): Boolean = FeatureGate.areCommercialRoutingFeaturesEnabled()
     
     /**
+     * Check if Plus tier features (in-app maps) are available.
+     */
+    fun isPlusTier(): Boolean = FeatureGate.areInAppMapsEnabled()
+    
+    /**
+     * Callback when Google Maps surface is ready.
+     * Used for Plus tier map initialization.
+     */
+    fun onGoogleMapReady() {
+        Log.i(TAG, "Google Maps surface ready")
+        // TODO: Trigger camera move to destination
+        // TODO: Request route polyline from Gemini
+    }
+    
+    /**
+     * Callback when Google Maps fails to initialize.
+     */
+    fun onGoogleMapError(error: String) {
+        Log.w(TAG, "Google Maps error: $error")
+        // Silently handled - UI shows error state
+    }
+    
+    /**
      * Clear truck route state.
      */
     fun clearTruckRoute() {
