@@ -631,3 +631,71 @@ data class DetourInfo(
 - RouteDetailsViewModelProvider uses service locator pattern for layer separation
 - calculateRouteWithWaypoints() supports multiple waypoints for future expansion
 - SafeMode checks at entry points (onPoiSelected, calculateDetourInfoForPoi, onAddStopConfirmed)
+
+
+---
+
+## MP-024: Voice Feedback for POI & Detours
+**Completed**: Session continues
+**Commit**: 78246b5
+**Branch**: mp-024-voice-poi-feedback
+
+### Summary
+Added spoken voice feedback for along-route POIs, detour calculations, upgrade blocks, and stop confirmations using Android TextToSpeech. No external APIs required.
+
+### Files Created
+| File | Purpose |
+|------|---------|
+| `core/navigation/AiVoiceEvent.kt` | Sealed class with 6 event types for spoken feedback |
+| `app/voice/VoiceFeedbackManager.kt` | Android TTS wrapper with event-to-speech formatting |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `core/shim/RouteDetailsViewModelProvider.kt` | +voiceEventHandler property, +emitVoiceEvent() function |
+| `app/ui/route/RouteDetailsViewModel.kt` | Emits AiVoiceEvent at key points (detour ready, stop added, tier blocks, errors) |
+| `app/ui/route/RouteDetailsScreen.kt` | +VoiceFeedbackManager lifecycle, +voiceEventHandler wiring |
+
+### Voice Event Types
+```kotlin
+sealed class AiVoiceEvent {
+    data class DetourSummary(poiName, addedMinutes, addedMiles, distanceOffRouteMiles)
+    data class UpgradeRequired(requiredTierName, featureName)
+    data class StopAdded(poiName)
+    data class PoiFound(poiName, poiType, distanceAheadMiles, totalResults)
+    data class NoPoisFound(poiType)
+    object GenericError
+}
+```
+
+### Voice Output Examples
+- "Detour found to Pilot Travel Center. About 5 minutes extra and 2.3 miles added to your trip."
+- "This feature requires a Plus subscription to use detour calculation."
+- "Added Pilot Travel Center as a stop on your route."
+- "Found 3 gas stations along your route. The closest is Shell, 2 miles ahead."
+- "Sorry, I couldn't calculate a detour right now."
+
+### Architecture
+```
+RouteDetailsViewModel
+    ↓ emits AiVoiceEvent
+RouteDetailsViewModelProvider.emitVoiceEvent()
+    ↓ invokes handler
+RouteDetailsScreen.voiceEventHandler
+    ↓ delegates to
+VoiceFeedbackManager.handleEvent()
+    ↓ speaks via
+Android TextToSpeech
+```
+
+### What To Do Next
+**MP-025 Options:**
+1. HERE truck POI for Pro tier - Complete truck-legal POI search
+2. Multiple POI results display - Show top 3 POIs along route with swipe selection
+3. Voice command integration - Use VoiceFeedbackManager from VoiceViewModel
+
+### Testing Notes
+- VoiceFeedbackManager auto-initializes TTS on construction
+- `enabled` property allows toggle without destroying TTS
+- Graceful degradation if TTS unavailable (logs warning, no crash)
+- QUEUE_FLUSH means new speech interrupts old speech

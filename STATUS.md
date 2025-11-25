@@ -1541,6 +1541,6 @@ Idle → onPoiSelected() → Calculating → calculateDetourInfoForPoi()
 
 ### Build: ✅ Gradle dry-run successful (2s)
 ### Branch: mp-024-voice-poi-feedback
-### Commit: [pending]
+### Commit: 78246b5
 
 **Next MP**: MP-025 (HERE truck POI for Pro tier) or Multiple POI results display
