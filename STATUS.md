@@ -1426,3 +1426,43 @@ PRO:   POI search → "Truck POI coming soon (HERE-based)"
 ### Commit: 2cedfbb
 
 **Next MP**: MP-022 (Along-route POI filtering + HERE truck POI for Pro)
+
+
+---
+
+## MP-022: Along-Route POI Search (PLUS ONLY)
+**Date**: Session continues
+**Status**: ✅ COMPLETE
+
+### Files Created
+- `core/navigation/RouteCorridor.kt` (190 lines) - Corridor filtering logic with Haversine distance
+- `core/shim/RouteDetailsViewModelProvider.kt` (55 lines) - Service locator for polyline access
+
+### Files Modified
+- `core/shim/GeminiShim.kt` - Added RouteCorridor import, enhanced resolveFindPOI() with along-route detection
+- `app/ui/route/RouteDetailsViewModel.kt` - Added getActiveRoutePolyline(), init/onCleared for provider registration
+
+### Tier Enforcement
+- **FREE**: ❌ Blocked at resolveFindPOI() - "POI search requires Plus subscription"
+- **PLUS**: ✅ Full functionality - along-route keyword detection, corridor filtering, 50km radius
+- **PRO**: ❌ Blocked - "Truck-specific POI search coming soon"
+
+### Along-Route Detection Keywords
+- "along my route", "along the route"
+- "on my way", "on the way"
+- "next [poi]", "upcoming", "ahead"
+- "coming up", "before i arrive"
+
+### Flow: Voice "Find gas station along my route"
+1. classifyIntent() → FindPOI(GAS_STATION, nearLocation="along my route")
+2. resolveFindPOI() → detects along-route keywords
+3. PlacesApiClient.searchNearby(radius=50km)
+4. RouteCorridor.filterPlacesAlongRoute(polyline, tolerance=2km)
+5. Return best POI sorted by route progress
+6. AiRouteRequest → Google Directions → Navigation
+
+### Build: ✅ Gradle dry-run successful (4s)
+### Branch: mp-022-along-route-poi
+### Commit: [pending]
+
+**Next MP**: MP-023 (Detour time estimation) or HERE truck POI for Pro

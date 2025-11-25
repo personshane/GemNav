@@ -9,6 +9,7 @@ import com.gemnav.data.route.LatLng
 import com.gemnav.core.places.PlacesApiClient
 import com.gemnav.core.places.PlacesResult
 import com.gemnav.core.places.PoiTypeMapper
+import com.gemnav.core.navigation.RouteCorridor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
@@ -532,12 +533,22 @@ object GeminiShim {
         }
         
         // PLUS: Use Google Places REST API
+        // MP-022: Along-route POI search support
         val poiDescription = PoiTypeMapper.getPoiDescription(intent.poiType)
-        val isNearMe = intent.nearLocation?.lowercase()?.contains("near me") == true ||
-                       intent.nearLocation?.lowercase()?.contains("nearby") == true
-        val searchRadius = PlacesApiClient.getSearchRadius(isNearMe)
+        val rawQuery = intent.nearLocation ?: ""
+        val isAlongRoute = RouteCorridor.containsAlongRouteKeywords(rawQuery)
+        val isNearMe = rawQuery.lowercase().let { 
+            it.contains("near me") || it.contains("nearby") 
+        }
         
-        logInfo("Plus tier FindPOI: ${intent.poiType} radius=${searchRadius}m filters=${intent.filters}")
+        // Along-route search uses wider radius (50km) to find POIs ahead
+        val searchRadius = if (isAlongRoute) {
+            50_000 // 50km for along-route
+        } else {
+            PlacesApiClient.getSearchRadius(isNearMe)
+        }
+        
+        logInfo("Plus tier FindPOI: ${intent.poiType} radius=${searchRadius}m filters=${intent.filters} alongRoute=$isAlongRoute")
         
         val placesResult = PlacesApiClient.searchNearby(
             location = origin,
@@ -553,8 +564,32 @@ object GeminiShim {
                         "No $poiDescription found nearby. Try a different location or remove filters."
                     )
                 } else {
+                    // MP-022: Apply along-route filtering if requested
+                    val filteredPlaces = if (isAlongRoute) {
+                        val routePolyline = RouteDetailsViewModelProvider.getActiveRoutePolyline()
+                        if (routePolyline.size >= 2) {
+                            val alongRoutePlaces = RouteCorridor.filterPlacesAlongRoute(
+                                places = placesResult.places,
+                                routePolyline = routePolyline,
+                                toleranceMeters = RouteCorridor.DEFAULT_CORRIDOR_METERS
+                            )
+                            if (alongRoutePlaces.isEmpty()) {
+                                logWarning("No POIs found along route, falling back to all results")
+                                placesResult.places
+                            } else {
+                                logInfo("Found ${alongRoutePlaces.size} POIs along route")
+                                alongRoutePlaces
+                            }
+                        } else {
+                            logWarning("No active route for along-route search, using all results")
+                            placesResult.places
+                        }
+                    } else {
+                        placesResult.places
+                    }
+                    
                     // Pick best match (first result after filtering)
-                    val bestMatch = placesResult.places.first()
+                    val bestMatch = filteredPlaces.first()
                     logInfo("Found POI: ${bestMatch.name} at ${bestMatch.lat},${bestMatch.lng}")
                     
                     val request = AiRouteRequest(
@@ -566,9 +601,15 @@ object GeminiShim {
                         maxStops = FeatureGate.getMaxWaypoints()
                     )
                     
+                    val explanation = if (isAlongRoute && filteredPlaces.size < placesResult.places.size) {
+                        "Found ${bestMatch.name} along your route${bestMatch.address?.let { " at $it" } ?: ""}"
+                    } else {
+                        "Found ${bestMatch.name}${bestMatch.address?.let { " at $it" } ?: ""}"
+                    }
+                    
                     IntentResolutionResult.RouteRequest(
                         request = request,
-                        explanation = "Found ${bestMatch.name}${bestMatch.address?.let { " at $it" } ?: ""}"
+                        explanation = explanation
                     )
                 }
             }

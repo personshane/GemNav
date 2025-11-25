@@ -12,7 +12,9 @@ import com.gemnav.core.navigation.NavigationEngine
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
+import com.gemnav.core.shim.RouteDetailsViewModelProvider
 import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.subscription.TierManager
 import com.gemnav.data.ai.*
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.*
@@ -102,6 +104,37 @@ class RouteDetailsViewModel : ViewModel() {
     private val _currentGooglePolyline = MutableStateFlow<List<LatLng>>(emptyList())
     val currentGooglePolyline: StateFlow<List<LatLng>> = _currentGooglePolyline
     
+    /**
+     * MP-022: Get active route polyline for along-route POI filtering.
+     * 
+     * PLUS TIER ONLY - Returns empty list for Free/Pro tiers.
+     * - Free: Cannot use in-app maps or polylines
+     * - Pro: Uses HERE SDK (Google data forbidden)
+     */
+    fun getActiveRoutePolyline(): List<LatLng> {
+        // PLUS ONLY - Pro must not access Google polyline data
+        if (!FeatureGate.areInAppMapsEnabled() || TierManager.isPro()) {
+            return emptyList()
+        }
+        return _currentGooglePolyline.value
+    }
+    
+    // ==================== PROVIDER REGISTRATION (MP-022) ====================
+    
+    init {
+        // Register polyline provider for along-route POI filtering
+        RouteDetailsViewModelProvider.registerPolylineProvider { getActiveRoutePolyline() }
+        RouteDetailsViewModelProvider.registerNavigationStateProvider { _isNavigating.value }
+        Log.d(TAG, "Registered with RouteDetailsViewModelProvider")
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        RouteDetailsViewModelProvider.unregister()
+        navigationEngine.stopNavigation()
+        Log.d(TAG, "Unregistered from RouteDetailsViewModelProvider")
+    }
+
     /**
      * Update current user location from LocationViewModel.
      * Called by UI when location changes.
