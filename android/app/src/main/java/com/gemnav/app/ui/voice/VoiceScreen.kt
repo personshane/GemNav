@@ -316,7 +316,8 @@ fun VoiceScreen(
                 }
                 
                 // MP-020: AI Intent Status Panel
-                VoiceAiIntentStatusPanel(aiIntentState, classifiedIntent)
+                // TODO: Implement VoiceAiIntentStatusPanel component
+                // VoiceAiIntentStatusPanel(aiIntentState, classifiedIntent)
                 
                 // Permission prompt
                 AnimatedVisibility(visible = needsPermission) {

@@ -193,7 +193,7 @@ object HereEngineManager {
             // sdkEngine?.dispose()
             // sdkEngine = null
             // isInitialized = false
-            lastError = null
+            // initializationError = null
         } catch (e: Exception) {
             Log.e(TAG, "Error during HERE SDK cleanup", e)
         }

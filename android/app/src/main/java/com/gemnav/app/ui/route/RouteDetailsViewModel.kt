@@ -345,7 +345,7 @@ class RouteDetailsViewModel : ViewModel() {
      * Calculate truck route using HERE SDK.
      * Gated by FeatureGate.areCommercialRoutingFeaturesEnabled()
      */
-    private fun calculateTruckRoute(origin: Destination, dest: Destination): RouteInfo? {
+    private suspend fun calculateTruckRoute(origin: Destination, dest: Destination): RouteInfo? {
         if (!FeatureGate.areCommercialRoutingFeaturesEnabled()) {
             Log.d(TAG, "Truck routing blocked - falling back to car route")
             // TODO: Notify user about fallback

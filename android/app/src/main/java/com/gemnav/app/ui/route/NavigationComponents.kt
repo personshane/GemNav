@@ -94,7 +94,7 @@ fun NavigationOverlay(
             // Progress bar
             Spacer(modifier = Modifier.height(8.dp))
             LinearProgressIndicator(
-                progress = { state.progressPct },
+                progress = state.progressPct,
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
