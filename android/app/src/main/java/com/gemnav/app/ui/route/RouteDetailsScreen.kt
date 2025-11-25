@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -17,6 +18,8 @@ import com.gemnav.app.ui.map.HereMapContainer
 import com.gemnav.app.ui.map.GoogleMapContainer
 import com.gemnav.core.location.LocationViewModel
 import com.gemnav.core.navigation.DetourState
+import com.gemnav.core.shim.RouteDetailsViewModelProvider
+import com.gemnav.app.voice.VoiceFeedbackManager
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.LatLng
 import com.gemnav.data.route.TruckRouteData
@@ -60,6 +63,10 @@ fun RouteDetailsScreen(
     // Detour state (MP-023)
     val detourState by viewModel.detourState.collectAsState()
     
+    // MP-024: Voice feedback manager
+    val context = LocalContext.current
+    val voiceManager = remember { VoiceFeedbackManager(context) }
+    
     // Feed location updates to navigation engine
     LaunchedEffect(currentLocation) {
         currentLocation?.let { loc ->
@@ -76,8 +83,14 @@ fun RouteDetailsScreen(
     
     // Cleanup on dispose
     DisposableEffect(Unit) {
+        // MP-024: Register voice event handler
+        RouteDetailsViewModelProvider.voiceEventHandler = { voiceManager.handleEvent(it) }
+        
         onDispose {
             locationViewModel.stopTracking()
+            // MP-024: Cleanup voice manager
+            RouteDetailsViewModelProvider.voiceEventHandler = null
+            voiceManager.shutdown()
         }
     }
 

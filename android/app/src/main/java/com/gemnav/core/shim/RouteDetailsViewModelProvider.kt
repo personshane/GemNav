@@ -1,10 +1,11 @@
 package com.gemnav.core.shim
 
+import com.gemnav.core.navigation.AiVoiceEvent
 import com.gemnav.core.navigation.SelectedPoi
 import com.gemnav.data.route.LatLng
 
 /**
- * MP-022/MP-023: Service locator for RouteDetailsViewModel access from shim layer.
+ * MP-022/MP-023/MP-024: Service locator for RouteDetailsViewModel access from shim layer.
  * 
  * This allows GeminiShim to access the active route polyline without
  * direct dependency on the ViewModel (which lives in the UI layer).
@@ -16,6 +17,10 @@ object RouteDetailsViewModelProvider {
     private var polylineProvider: (() -> List<LatLng>)? = null
     private var isNavigatingProvider: (() -> Boolean)? = null
     private var poiSelectionHandler: ((SelectedPoi) -> Unit)? = null
+    
+    /** MP-024: Voice event handler for spoken feedback */
+    @Volatile
+    var voiceEventHandler: ((AiVoiceEvent) -> Unit)? = null
     
     /**
      * Register the polyline provider (called from UI layer initialization).
@@ -45,6 +50,14 @@ object RouteDetailsViewModelProvider {
         polylineProvider = null
         isNavigatingProvider = null
         poiSelectionHandler = null
+        // Note: voiceEventHandler is managed by RouteDetailsScreen lifecycle
+    }
+    
+    /**
+     * MP-024: Emit a voice event for spoken feedback.
+     */
+    fun emitVoiceEvent(event: AiVoiceEvent) {
+        voiceEventHandler?.invoke(event)
     }
     
     /**

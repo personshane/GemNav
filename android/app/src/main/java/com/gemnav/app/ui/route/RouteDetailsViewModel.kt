@@ -9,6 +9,7 @@ import com.gemnav.core.here.TruckConfig
 import com.gemnav.core.maps.google.DirectionsApiClient
 import com.gemnav.core.maps.google.DirectionsResult
 import com.gemnav.core.navigation.NavigationEngine
+import com.gemnav.core.navigation.AiVoiceEvent
 import com.gemnav.core.navigation.DetourInfo
 import com.gemnav.core.navigation.DetourState
 import com.gemnav.core.navigation.SelectedPoi
@@ -164,12 +165,20 @@ class RouteDetailsViewModel : ViewModel() {
         if (!FeatureGate.areInAppMapsEnabled()) {
             Log.w(TAG, "POI selection blocked - Free tier")
             _detourState.value = DetourState.Blocked("Detour calculation requires Plus subscription")
+            // MP-024: Voice feedback for upgrade required
+            RouteDetailsViewModelProvider.emitVoiceEvent(
+                AiVoiceEvent.UpgradeRequired("Plus", "detour calculation")
+            )
             return
         }
         
         if (TierManager.isPro()) {
             Log.w(TAG, "POI selection blocked - Pro tier uses HERE")
             _detourState.value = DetourState.Blocked("Truck-specific POI coming soon")
+            // MP-024: Voice feedback for Pro tier
+            RouteDetailsViewModelProvider.emitVoiceEvent(
+                AiVoiceEvent.UpgradeRequired("Pro with HERE SDK", "truck-specific POI search")
+            )
             return
         }
         
@@ -181,8 +190,18 @@ class RouteDetailsViewModel : ViewModel() {
             if (detourInfo != null) {
                 _detourState.value = DetourState.Ready(poi, detourInfo)
                 Log.i(TAG, "Detour calculated: ${detourInfo.formatDetour()}")
+                // MP-024: Voice feedback for detour summary
+                RouteDetailsViewModelProvider.emitVoiceEvent(
+                    AiVoiceEvent.DetourSummary(
+                        poiName = poi.name,
+                        addedMinutes = detourInfo.extraDurationMinutes,
+                        addedMiles = detourInfo.extraDistanceMiles
+                    )
+                )
             } else {
                 _detourState.value = DetourState.Error("Could not calculate detour")
+                // MP-024: Voice feedback for error
+                RouteDetailsViewModelProvider.emitVoiceEvent(AiVoiceEvent.GenericError)
             }
         }
     }
@@ -271,6 +290,11 @@ class RouteDetailsViewModel : ViewModel() {
         
         val poi = currentState.poi
         Log.i(TAG, "Adding stop: ${poi.name} at ${poi.latLng}")
+        
+        // MP-024: Voice feedback for stop added
+        RouteDetailsViewModelProvider.emitVoiceEvent(
+            AiVoiceEvent.StopAdded(poi.name)
+        )
         
         // Add POI to waypoints
         val currentWaypoints = _waypoints.value.toMutableList()

@@ -1508,3 +1508,39 @@ Idle → onPoiSelected() → Calculating → calculateDetourInfoForPoi()
 ### Commit: 8b1b66a
 
 **Next MP**: MP-024 (Voice TTS feedback for POI results) or HERE truck POI for Pro
+
+
+---
+
+## MP-024: Voice Feedback for POI & Detours (PLUS ONLY)
+**Date**: Session continues
+**Status**: ✅ COMPLETE
+
+### Files Created
+- `core/navigation/AiVoiceEvent.kt` (64 lines) - Sealed class for voice event types
+- `app/voice/VoiceFeedbackManager.kt` (136 lines) - Android TTS wrapper for spoken feedback
+
+### Files Modified
+- `core/shim/RouteDetailsViewModelProvider.kt` - +voiceEventHandler, +emitVoiceEvent()
+- `app/ui/route/RouteDetailsViewModel.kt` - Emits voice events for detours, stops, tier blocks, errors
+- `app/ui/route/RouteDetailsScreen.kt` - Wires voice manager to event handler
+
+### Voice Events
+- **DetourSummary**: "Detour found to Pilot Travel Center. About 5 minutes extra and 2.3 miles added to your trip."
+- **UpgradeRequired**: "This feature requires a Plus subscription to use detour calculation."
+- **StopAdded**: "Added Pilot Travel Center as a stop on your route."
+- **PoiFound**: "Found 3 gas stations along your route. The closest is Shell, 2 miles ahead."
+- **NoPoisFound**: "No truck stops found along your route."
+- **GenericError**: "Sorry, I couldn't calculate a detour right now."
+
+### Tier Enforcement
+- Voice feedback emitted for all tiers (feedback tells user about upgrade requirements)
+- FREE: Hears "requires Plus subscription"
+- PLUS: Full spoken feedback for detours and stops
+- PRO: Hears "truck-specific POI coming soon"
+
+### Build: ✅ Gradle dry-run successful (2s)
+### Branch: mp-024-voice-poi-feedback
+### Commit: [pending]
+
+**Next MP**: MP-025 (HERE truck POI for Pro tier) or Multiple POI results display
