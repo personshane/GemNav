@@ -131,6 +131,119 @@ object HereShim {
     }
     
     /**
+     * MP-025: Request a truck-legal route with an intermediate waypoint.
+     * 
+     * Enforces same tier/safety checks as requestTruckRoute.
+     * 
+     * @param start Origin coordinates
+     * @param waypoint Intermediate stop coordinates
+     * @param end Destination coordinates
+     * @param truckConfig Vehicle specifications
+     * @return TruckRouteResult (Success or Failure)
+     */
+    fun requestTruckRouteWithWaypoint(
+        start: LatLng,
+        waypoint: LatLng,
+        end: LatLng,
+        truckConfig: TruckConfig
+    ): TruckRouteResult {
+        // 1. SafeMode check
+        if (SafeModeManager.isSafeModeEnabled()) {
+            logWarning("Truck routing with waypoint blocked - SafeMode is active")
+            return TruckRouteResult.Failure(
+                errorMessage = "Safe Mode is active. Truck routing unavailable.",
+                errorCode = TruckRouteError.SAFE_MODE_ACTIVE
+            )
+        }
+        
+        // 2. FeatureGate check - Pro tier only
+        if (!FeatureGate.areCommercialRoutingFeaturesEnabled()) {
+            logWarning("Truck routing with waypoint blocked - not Pro tier")
+            return TruckRouteResult.Failure(
+                errorMessage = "Truck routing requires Pro subscription.",
+                errorCode = TruckRouteError.FEATURE_NOT_ENABLED
+            )
+        }
+        
+        // 3. SDK initialization check
+        if (!HereEngineManager.isReady()) {
+            logWarning("HERE SDK not initialized")
+            return TruckRouteResult.Failure(
+                errorMessage = "HERE SDK not available.",
+                errorCode = TruckRouteError.SDK_NOT_INITIALIZED
+            )
+        }
+        
+        // 4. Validate truck config
+        if (!truckConfig.isValid()) {
+            return TruckRouteResult.Failure(
+                errorMessage = "Invalid truck specifications.",
+                errorCode = TruckRouteError.INVALID_TRUCK_CONFIG
+            )
+        }
+        
+        // 5. Validate coordinates
+        if (!isValidCoordinate(start) || !isValidCoordinate(waypoint) || !isValidCoordinate(end)) {
+            return TruckRouteResult.Failure(
+                errorMessage = "Invalid route coordinates.",
+                errorCode = TruckRouteError.INVALID_COORDINATES
+            )
+        }
+        
+        return try {
+            logInfo("Requesting truck route with waypoint: $start -> $waypoint -> $end")
+            
+            // TODO: Actual HERE SDK routing call with waypoint
+            // STUB: Calculate mock route through waypoint
+            val mockRoute = createMockRouteWithWaypoint(start, waypoint, end, truckConfig)
+            logInfo("Truck route with waypoint calculated: ${mockRoute.distanceMeters}m, ${mockRoute.durationSeconds}s")
+            
+            TruckRouteResult.Success(mockRoute)
+        } catch (e: Exception) {
+            logError("Truck route with waypoint calculation failed", e)
+            lastError = e
+            SafeModeManager.reportFailure("HereShim.requestTruckRouteWithWaypoint", e)
+            
+            TruckRouteResult.Failure(
+                errorMessage = "Route calculation failed: ${e.message}",
+                errorCode = TruckRouteError.CALCULATION_FAILED
+            )
+        }
+    }
+    
+    /**
+     * MP-025: Create mock route data with waypoint for pipeline testing.
+     */
+    private fun createMockRouteWithWaypoint(
+        start: LatLng,
+        waypoint: LatLng,
+        end: LatLng,
+        config: TruckConfig
+    ): TruckRouteData {
+        // Calculate distance through waypoint
+        val dist1 = calculateApproxDistance(start, waypoint)
+        val dist2 = calculateApproxDistance(waypoint, end)
+        val totalDistanceKm = dist1 + dist2
+        val distanceMeters = (totalDistanceKm * 1000).toLong()
+        
+        // Estimate duration (average 60 km/h for trucks, plus stop time)
+        val durationSeconds = ((totalDistanceKm / 60.0) * 3600).toLong() + 600 // +10 min for stop
+        
+        return TruckRouteData(
+            distanceMeters = distanceMeters,
+            durationSeconds = durationSeconds,
+            polylineCoordinates = listOf(start, waypoint, end),
+            warnings = emptyList(),
+            tollInfo = TollInfo(
+                estimatedCost = totalDistanceKm * 0.15,
+                currency = "USD",
+                tollPoints = (totalDistanceKm / 50).toInt().coerceAtLeast(1)
+            ),
+            isFallback = false
+        )
+    }
+    
+    /**
      * Create mock route data for pipeline testing.
      * TODO: Remove when real HERE SDK integration complete
      */

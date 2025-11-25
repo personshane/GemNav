@@ -18,6 +18,8 @@ import com.gemnav.app.ui.map.HereMapContainer
 import com.gemnav.app.ui.map.GoogleMapContainer
 import com.gemnav.core.location.LocationViewModel
 import com.gemnav.core.navigation.DetourState
+import com.gemnav.core.navigation.TruckPoiState
+import com.gemnav.core.navigation.TruckPoiType
 import com.gemnav.core.shim.RouteDetailsViewModelProvider
 import com.gemnav.app.voice.VoiceFeedbackManager
 import com.gemnav.data.navigation.*
@@ -63,6 +65,9 @@ fun RouteDetailsScreen(
     // Detour state (MP-023)
     val detourState by viewModel.detourState.collectAsState()
     
+    // MP-025: Truck POI state (PRO tier only)
+    val truckPoiState by viewModel.truckPoiState.collectAsState()
+
     // MP-024: Voice feedback manager
     val context = LocalContext.current
     val voiceManager = remember { VoiceFeedbackManager(context) }
@@ -107,6 +112,23 @@ fun RouteDetailsScreen(
                 detourState = detourState,
                 onAddStop = { viewModel.onAddStopConfirmed() },
                 onDismiss = { viewModel.onDetourDismissed() }
+            )
+        }
+        
+        // MP-025: Truck POI bar (PRO tier only)
+        if (isProTier) {
+            TruckPoiBar(
+                truckPoiState = truckPoiState,
+                detourState = detourState,
+                onTruckStops = { viewModel.findTruckPois(TruckPoiType.TRUCK_STOP) },
+                onWeighStations = { viewModel.findTruckPois(TruckPoiType.WEIGH_STATION) },
+                onRestAreas = { viewModel.findTruckPois(TruckPoiType.REST_AREA) },
+                onParking = { viewModel.findTruckPois(TruckPoiType.PARKING) },
+                onAddStop = { viewModel.onTruckStopConfirmed() },
+                onDismiss = { 
+                    viewModel.onTruckPoiDismissed()
+                    viewModel.onDetourDismissed()
+                }
             )
         }
         
@@ -928,6 +950,358 @@ private fun DetourPanel(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+
+// ==================== TRUCK POI BAR (MP-025) ====================
+
+/**
+ * MP-025: Truck POI search bar - PRO tier only.
+ * 
+ * Shows quick-access buttons for truck-specific POI types
+ * and displays search results with detour cost.
+ */
+@Composable
+fun TruckPoiBar(
+    truckPoiState: TruckPoiState,
+    detourState: DetourState,
+    onTruckStops: () -> Unit,
+    onWeighStations: () -> Unit,
+    onRestAreas: () -> Unit,
+    onParking: () -> Unit,
+    onAddStop: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+    ) {
+        // Quick access buttons row
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = "Find Truck Services",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    TruckPoiButton(
+                        icon = Icons.Default.LocalGasStation,
+                        label = "Truck Stops",
+                        onClick = onTruckStops,
+                        enabled = truckPoiState !is TruckPoiState.Searching
+                    )
+                    TruckPoiButton(
+                        icon = Icons.Default.Scale,
+                        label = "Weigh",
+                        onClick = onWeighStations,
+                        enabled = truckPoiState !is TruckPoiState.Searching
+                    )
+                    TruckPoiButton(
+                        icon = Icons.Default.LocalCafe,
+                        label = "Rest",
+                        onClick = onRestAreas,
+                        enabled = truckPoiState !is TruckPoiState.Searching
+                    )
+                    TruckPoiButton(
+                        icon = Icons.Default.LocalParking,
+                        label = "Parking",
+                        onClick = onParking,
+                        enabled = truckPoiState !is TruckPoiState.Searching
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // State-based content
+        when (truckPoiState) {
+            is TruckPoiState.Searching -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Searching for ${truckPoiState.type.displayName}...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+            
+            is TruckPoiState.NotFound -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "No ${truckPoiState.type.displayName} found along route",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss"
+                            )
+                        }
+                    }
+                }
+            }
+            
+            is TruckPoiState.Error -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = truckPoiState.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+            }
+            
+            is TruckPoiState.Blocked -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = truckPoiState.reason,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss"
+                            )
+                        }
+                    }
+                }
+            }
+            
+            is TruckPoiState.Found -> {
+                TruckPoiResultCard(
+                    result = truckPoiState.result,
+                    detourState = detourState,
+                    onAddStop = onAddStop,
+                    onDismiss = onDismiss
+                )
+            }
+            
+            else -> { /* Idle - no content */ }
+        }
+    }
+}
+
+/**
+ * MP-025: Single truck POI quick-access button.
+ */
+@Composable
+private fun TruckPoiButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (enabled) 
+                    MaterialTheme.colorScheme.onPrimaryContainer 
+                else 
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    }
+}
+
+/**
+ * MP-025: Card showing truck POI result with detour cost.
+ */
+@Composable
+private fun TruckPoiResultCard(
+    result: com.gemnav.core.navigation.TruckPoiResult,
+    detourState: DetourState,
+    onAddStop: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val poi = result.pois.firstOrNull() ?: return
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = poi.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    poi.address?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                    Text(
+                        text = result.type.displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            when (detourState) {
+                is DetourState.Calculating -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Calculating detour...",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                
+                is DetourState.Ready -> {
+                    Text(
+                        text = "Detour: ${detourState.detourInfo.formatDetour()}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = onAddStop,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddLocation,
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Add Stop & Navigate")
+                    }
+                }
+                
+                is DetourState.Error -> {
+                    Text(
+                        text = "Could not calculate detour: ${detourState.message}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                
+                else -> { /* Idle, Blocked - handled elsewhere */ }
+            }
+            
+            if (result.pois.size > 1) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${result.pois.size} ${result.type.displayName} locations found",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                )
             }
         }
     }

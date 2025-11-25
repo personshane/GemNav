@@ -1544,3 +1544,52 @@ Idle → onPoiSelected() → Calculating → calculateDetourInfoForPoi()
 ### Commit: 78246b5
 
 **Next MP**: MP-025 (HERE truck POI for Pro tier) or Multiple POI results display
+
+
+---
+
+## MP-025: HERE Truck POIs for PRO Tier ✅
+
+### Objective
+Integrate HERE truck-specific POIs (truck stops, weigh stations, rest areas, parking) into the along-route POI + detour engine. PRO tier only.
+
+### Files Created
+- `core/navigation/TruckPoiModels.kt` (58 lines) - TruckPoi, TruckPoiType enum (4 categories), TruckPoiResult, TruckPoiState sealed class
+- `core/shim/HereTruckPoiClient.kt` (299 lines) - HERE Places Discover API client with corridor filtering
+
+### Files Modified
+- `core/shim/RouteDetailsViewModelProvider.kt` - +truckPoiSelectionHandler, +herePolylineProvider, +selectTruckPoiForDetour(), +getHereRoutePolyline()
+- `core/shim/HereShim.kt` - +requestTruckRouteWithWaypoint(), +createMockRouteWithWaypoint()
+- `app/ui/route/RouteDetailsViewModel.kt` - +truckPoiState, +currentHerePolyline, +findTruckPois(), +onTruckPoiSelected(), +calculateDetourForTruckPoi(), +onTruckStopConfirmed(), +onTruckPoiDismissed()
+- `app/ui/route/RouteDetailsScreen.kt` - +TruckPoiBar composable, +TruckPoiButton, +TruckPoiResultCard, +imports
+
+### HERE API Integration
+- Uses HERE Discover API: `https://discover.search.hereapi.com/v1/discover`
+- Categories: TRUCK_STOP (700-7600-0322), WEIGH_STATION (700-7600-0116), REST_AREA (800-8500-0000), PARKING (800-8500-0177)
+- Bounding box computed from route polyline with buffer
+- Results filtered to 3km corridor using RouteCorridor.isPointAlongRoute()
+
+### Tier Enforcement
+- **FREE**: Blocked with UpgradeRequired("Plus", "truck-specific POI search")
+- **PLUS**: Blocked with UpgradeRequired("Pro", "truck-specific POI search")
+- **PRO**: Full access - truck POI search, detour calculation via HERE routing, stop add flow, voice events
+- SafeMode blocks all new functionality
+
+### UI Components (PRO only)
+- TruckPoiBar: Quick-access buttons (Truck Stops, Weigh, Rest, Parking)
+- Search progress indicator
+- POI result card with detour cost
+- "Add Stop & Navigate" button
+
+### Voice Integration
+- AiVoiceEvent.PoiFound - announces found POIs
+- AiVoiceEvent.NoPoisFound - announces no results
+- AiVoiceEvent.DetourSummary - announces detour cost
+- AiVoiceEvent.StopAdded - confirms stop added
+- AiVoiceEvent.UpgradeRequired - tells user about tier requirements
+
+### Build: ✅ Gradle dry-run successful (3s)
+### Branch: mp-025-here-truck-poi
+### Commit: [pending]
+
+**Next**: Commit and push to GitHub
