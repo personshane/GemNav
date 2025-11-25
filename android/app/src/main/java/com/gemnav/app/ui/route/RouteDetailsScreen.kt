@@ -21,7 +21,7 @@ import com.gemnav.core.navigation.DetourState
 import com.gemnav.core.navigation.TruckPoiState
 import com.gemnav.core.navigation.TruckPoiType
 import com.gemnav.core.shim.RouteDetailsViewModelProvider
-import com.gemnav.app.voice.VoiceFeedbackManager
+import com.gemnav.core.voice.VoiceFeedbackManager
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.LatLng
 import com.gemnav.data.route.TruckRouteData

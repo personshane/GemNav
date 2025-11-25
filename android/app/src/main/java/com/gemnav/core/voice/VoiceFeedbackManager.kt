@@ -1,4 +1,4 @@
-package com.gemnav.app.voice
+package com.gemnav.core.voice
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
