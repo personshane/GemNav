@@ -137,6 +137,301 @@ class RouteDetailsViewModel : ViewModel() {
     private var pendingTruckPoi: TruckPoi? = null
     
     /**
+     * MP-025: Search for truck POIs along the current HERE route.
+     * 
+     * PRO TIER ONLY - Blocked for Free/Plus tiers.
+     */
+    fun findTruckPois(type: TruckPoiType) {
+        // Tier check
+        if (TierManager.isFree()) {
+            _truckPoiState.value = TruckPoiState.Blocked("Truck POI search requires Plus subscription")
+            RouteDetailsViewModelProvider.emitVoiceEvent(
+                AiVoiceEvent.UpgradeRequired("Plus", "truck POI search")
+            )
+            return
+        }
+        
+        if (!TierManager.isPro()) {
+            _truckPoiState.value = TruckPoiState.Blocked("Truck POI search requires Pro subscription")
+            RouteDetailsViewModelProvider.emitVoiceEvent(
+                AiVoiceEvent.UpgradeRequired("Pro", "truck-specific POI search")
+            )
+            return
+        }
+        
+        // SafeMode check
+        if (SafeModeManager.isSafeModeEnabled()) {
+            _truckPoiState.value = TruckPoiState.Blocked("Safe Mode is active")
+            return
+        }
+        
+        // Get HERE route polyline
+        val polyline = getActiveHereRoutePolyline()
+        if (polyline.size < 2) {
+            _truckPoiState.value = TruckPoiState.Error("No active truck route")
+            RouteDetailsViewModelProvider.emitVoiceEvent(
+                AiVoiceEvent.NoPoisFound(type.displayName)
+            )
+            return
+        }
+        
+        _truckPoiState.value = TruckPoiState.Searching(type)
+        
+        viewModelScope.launch {
+            try {
+                val results = HereTruckPoiClient.fetchTruckPoisAlongRoute(
+                    routePolyline = polyline,
+                    types = listOf(type),
+                    corridorMeters = 3000.0
+                )
+                
+                val result = results.firstOrNull()
+                if (result != null && result.pois.isNotEmpty()) {
+                    _truckPoiState.value = TruckPoiState.Found(result)
+                    
+                    // Voice feedback
+                    val closest = result.pois.first()
+                    val distanceMiles = (closest.distanceMeters ?: 0) / 1609.34
+                    RouteDetailsViewModelProvider.emitVoiceEvent(
+                        AiVoiceEvent.PoiFound(
+                            poiName = closest.name,
+                            poiType = type.displayName,
+                            distanceAheadMiles = distanceMiles,
+                            totalResults = result.pois.size
+                        )
+                    )
+                    
+                    // Auto-select first result for detour calculation
+                    onTruckPoiSelected(closest)
+                } else {
+                    _truckPoiState.value = TruckPoiState.NotFound(type)
+                    RouteDetailsViewModelProvider.emitVoiceEvent(
+                        AiVoiceEvent.NoPoisFound(type.displayName)
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching truck POIs", e)
+                _truckPoiState.value = TruckPoiState.Error("Search failed: ${e.message}")
+                RouteDetailsViewModelProvider.emitVoiceEvent(AiVoiceEvent.GenericError)
+            }
+        }
+    }
+    
+    /**
+     * MP-025: Handle truck POI selection for detour calculation.
+     * 
+     * PRO TIER ONLY - Converts TruckPoi to SelectedPoi and calculates detour.
+     */
+    fun onTruckPoiSelected(poi: TruckPoi) {
+        // Tier check
+        if (!TierManager.isPro()) {
+            _detourState.value = DetourState.Blocked("Truck POI detour requires Pro subscription")
+            return
+        }
+        
+        // SafeMode check
+        if (SafeModeManager.isSafeModeEnabled()) {
+            _detourState.value = DetourState.Blocked("Safe Mode is active")
+            return
+        }
+        
+        pendingTruckPoi = poi
+        
+        // Convert to SelectedPoi for detour calculation
+        val selectedPoi = SelectedPoi(
+            placeId = poi.id,
+            name = poi.name,
+            address = poi.address ?: "",
+            lat = poi.lat,
+            lng = poi.lng,
+            source = "here_truck"
+        )
+        
+        // Calculate detour using HERE routing
+        _detourState.value = DetourState.Calculating
+        
+        viewModelScope.launch {
+            val detourInfo = calculateHereDetourInfoForPoi(poi.latLng)
+            if (detourInfo != null) {
+                _detourState.value = DetourState.Ready(selectedPoi, detourInfo)
+                Log.i(TAG, "HERE detour calculated: ${detourInfo.formatDetour()}")
+                
+                // Voice feedback for detour summary
+                RouteDetailsViewModelProvider.emitVoiceEvent(
+                    AiVoiceEvent.DetourSummary(
+                        poiName = poi.name,
+                        addedMinutes = detourInfo.extraDurationMinutes,
+                        addedMiles = detourInfo.extraDistanceMiles
+                    )
+                )
+            } else {
+                _detourState.value = DetourState.Error("Could not calculate truck detour")
+                RouteDetailsViewModelProvider.emitVoiceEvent(AiVoiceEvent.GenericError)
+            }
+        }
+    }
+    
+    /**
+     * MP-025: Calculate HERE-based detour cost for truck POI.
+     * 
+     * PRO TIER ONLY - Uses HERE routing with truck restrictions.
+     */
+    private suspend fun calculateHereDetourInfoForPoi(poiLatLng: LatLng): DetourInfo? {
+        // Get current route info
+        val currentOrigin = _origin.value ?: return null
+        val currentDestination = _destination.value ?: return null
+        val truckConfig = _currentTruckConfig.value ?: return null
+        
+        // Convert Destination to LatLng
+        val originLatLng = LatLng(currentOrigin.latitude, currentOrigin.longitude)
+        val destLatLng = LatLng(currentDestination.latitude, currentDestination.longitude)
+        
+        return withContext(Dispatchers.IO) {
+            try {
+                // Get base route distance/duration
+                val baseRoute = HereShim.requestTruckRoute(
+                    start = originLatLng,
+                    end = destLatLng,
+                    truckConfig = truckConfig
+                )
+                
+                val baseDistance = when (baseRoute) {
+                    is TruckRouteResult.Success -> baseRoute.route.distanceMeters
+                    else -> return@withContext null
+                }
+                val baseDuration = when (baseRoute) {
+                    is TruckRouteResult.Success -> baseRoute.route.durationSeconds
+                    else -> return@withContext null
+                }
+                
+                // Get route via waypoint
+                val detourRoute = HereShim.requestTruckRouteWithWaypoint(
+                    start = originLatLng,
+                    waypoint = poiLatLng,
+                    end = destLatLng,
+                    truckConfig = truckConfig
+                )
+                
+                val detourDistance = when (detourRoute) {
+                    is TruckRouteResult.Success -> detourRoute.route.distanceMeters
+                    else -> return@withContext null
+                }
+                val detourDuration = when (detourRoute) {
+                    is TruckRouteResult.Success -> detourRoute.route.durationSeconds
+                    else -> return@withContext null
+                }
+                
+                DetourInfo(
+                    extraDistanceMeters = (detourDistance - baseDistance).coerceAtLeast(0),
+                    extraDurationSeconds = (detourDuration - baseDuration).coerceAtLeast(0),
+                    baseDistanceMeters = baseDistance,
+                    baseDurationSeconds = baseDuration
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error calculating HERE detour", e)
+                null
+            }
+        }
+    }
+    
+    /**
+     * MP-025: Dismiss truck POI search state.
+     */
+    fun onTruckPoiDismissed() {
+        _truckPoiState.value = TruckPoiState.Idle
+        pendingTruckPoi = null
+    }
+    
+    /**
+     * MP-025: Confirm adding truck POI as a stop and recalculate route.
+     * 
+     * PRO TIER ONLY - Uses HERE routing for truck-legal routes.
+     */
+    fun onTruckStopConfirmed() {
+        val poi = pendingTruckPoi ?: return
+        val currentDestination = _destination.value ?: return
+        val truckConfig = _currentTruckConfig.value ?: return
+        
+        // Add POI as waypoint
+        val waypoint = Destination(
+            id = poi.id,
+            name = poi.name,
+            address = poi.address ?: "",
+            latitude = poi.lat,
+            longitude = poi.lng
+        )
+        _waypoints.value = _waypoints.value + waypoint
+        
+        // Voice feedback
+        RouteDetailsViewModelProvider.emitVoiceEvent(
+            AiVoiceEvent.StopAdded(poi.name)
+        )
+        
+        // Clear POI state
+        _truckPoiState.value = TruckPoiState.Idle
+        _detourState.value = DetourState.Idle
+        pendingTruckPoi = null
+        
+        // Recalculate truck route with new waypoint
+        viewModelScope.launch {
+            recalculateTruckRouteWithWaypoints()
+        }
+        
+        Log.i(TAG, "Added truck stop: ${poi.name}")
+    }
+    
+    /**
+     * MP-025: Recalculate truck route with all waypoints.
+     */
+    private suspend fun recalculateTruckRouteWithWaypoints() {
+        val origin = _origin.value ?: return
+        val destination = _destination.value ?: return
+        val waypoints = _waypoints.value
+        val truckConfig = _currentTruckConfig.value ?: return
+        
+        _routeState.value = RouteState.Loading
+        
+        withContext(Dispatchers.IO) {
+            try {
+                val originLatLng = LatLng(origin.latitude, origin.longitude)
+                val destLatLng = LatLng(destination.latitude, destination.longitude)
+                
+                val result = if (waypoints.isEmpty()) {
+                    HereShim.requestTruckRoute(originLatLng, destLatLng, truckConfig)
+                } else {
+                    // For single waypoint
+                    val waypointLatLng = LatLng(waypoints.first().latitude, waypoints.first().longitude)
+                    HereShim.requestTruckRouteWithWaypoint(originLatLng, waypointLatLng, destLatLng, truckConfig)
+                }
+                
+                when (result) {
+                    is TruckRouteResult.Success -> {
+                        // Update HERE polyline for future POI searches
+                        _currentHerePolyline.value = result.route.polyline
+                        
+                        _routeState.value = RouteState.Success(RouteInfo(
+                            distanceMeters = result.route.distanceMeters,
+                            durationSeconds = result.route.durationSeconds,
+                            isTruckRoute = true,
+                            isFallback = result.route.isFallback,
+                            warnings = result.route.warnings.map { it.description },
+                            steps = emptyList()
+                        ))
+                        Log.i(TAG, "Truck route recalculated with ${waypoints.size} waypoints")
+                    }
+                    is TruckRouteResult.Failure -> {
+                        _routeState.value = RouteState.Error(result.errorMessage)
+                        Log.e(TAG, "Truck route recalculation failed: ${result.errorMessage}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error recalculating truck route", e)
+                _routeState.value = RouteState.Error("Route calculation failed")
+            }
+        }
+    }
+
+    /**
      * MP-022: Get active route polyline for along-route POI filtering.
      * 
      * PLUS TIER ONLY - Returns empty list for Free/Pro tiers.

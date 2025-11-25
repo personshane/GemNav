@@ -11,6 +11,9 @@ import com.gemnav.core.places.PlacesResult
 import com.gemnav.core.places.PoiTypeMapper
 import com.gemnav.core.navigation.RouteCorridor
 import com.gemnav.core.navigation.SelectedPoi
+import com.gemnav.core.navigation.AiVoiceEvent
+import com.gemnav.core.navigation.TruckPoi
+import com.gemnav.core.navigation.TruckPoiType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
@@ -525,12 +528,10 @@ object GeminiShim {
             )
         }
         
-        // PRO: Uses HERE SDK, not Google Places
+        // PRO: Uses HERE SDK for truck POIs - MP-025
         if (TierManager.isPro()) {
-            logWarning("FindPOI blocked - Pro tier uses HERE (Google Places forbidden)")
-            return IntentResolutionResult.Failure(
-                "Truck-specific POI search coming soon. Pro tier uses HERE SDK for truck-legal routing."
-            )
+            logInfo("FindPOI redirecting to truck POI search for Pro tier")
+            return resolveFindTruckPOI(intent, currentLocation)
         }
         
         // PLUS: Use Google Places REST API

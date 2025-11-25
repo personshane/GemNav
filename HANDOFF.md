@@ -699,3 +699,113 @@ Android TextToSpeech
 - `enabled` property allows toggle without destroying TTS
 - Graceful degradation if TTS unavailable (logs warning, no crash)
 - QUEUE_FLUSH means new speech interrupts old speech
+
+
+---
+
+## MP-025: HERE Truck POIs for PRO Tier ✅ COMPLETE
+
+### Date: 2025-11-24
+### Branch: mp-025-here-truck-poi
+### Commit: ceb085c
+
+### Summary
+Integrated HERE truck-specific POIs (truck stops, weigh stations, rest areas, parking) into the along-route POI + detour engine. PRO tier only. Uses HERE Places Discover API with route corridor filtering.
+
+### Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `core/navigation/TruckPoiModels.kt` | 58 | TruckPoi data class, TruckPoiType enum (4 categories), TruckPoiResult, TruckPoiState sealed class |
+| `core/shim/HereTruckPoiClient.kt` | 299 | HERE Places Discover API client with bbox/corridor filtering |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `core/shim/RouteDetailsViewModelProvider.kt` | +truckPoiSelectionHandler, +herePolylineProvider, +selectTruckPoiForDetour(), +getHereRoutePolyline() |
+| `core/shim/HereShim.kt` | +requestTruckRouteWithWaypoint() (116 lines), +createMockRouteWithWaypoint() |
+| `app/ui/route/RouteDetailsViewModel.kt` | +truckPoiState StateFlow, +currentHerePolyline, +findTruckPois(), +onTruckPoiSelected(), +calculateDetourForTruckPoi(), +onTruckStopConfirmed(), +onTruckPoiDismissed() (~280 lines) |
+| `app/ui/route/RouteDetailsScreen.kt` | +TruckPoiBar composable, +TruckPoiButton, +TruckPoiResultCard (+353 lines) |
+
+### HERE API Integration
+```kotlin
+// Discover endpoint
+https://discover.search.hereapi.com/v1/discover?in=bbox:<west>,<south>,<east>,<north>&categories=<id>&limit=20&apiKey=<key>
+
+// Category IDs
+TruckPoiType.TRUCK_STOP     -> "700-7600-0322"
+TruckPoiType.WEIGH_STATION  -> "700-7600-0116"
+TruckPoiType.REST_AREA      -> "800-8500-0000"
+TruckPoiType.PARKING        -> "800-8500-0177"
+```
+
+### Data Flow
+```
+User taps "Find Truck Stops" (PRO tier only)
+    ↓
+RouteDetailsViewModel.findTruckPois(TruckPoiType.TRUCK_STOP)
+    ↓ tier/safety checks
+HereTruckPoiClient.fetchTruckPoisAlongRoute(herePolyline, [type])
+    ↓ bbox from polyline
+HERE Discover API call
+    ↓ parse response
+RouteCorridor.isPointAlongRoute() filtering (3km corridor)
+    ↓
+TruckPoiState.Found(result)
+    ↓ auto-select first POI
+onTruckPoiSelected(poi)
+    ↓ convert to SelectedPoi
+calculateDetourForTruckPoi(poi)
+    ↓ HERE truck routing
+HereShim.requestTruckRouteWithWaypoint()
+    ↓
+DetourState.Ready(poi, detourInfo)
+    ↓ voice feedback
+AiVoiceEvent.DetourSummary
+```
+
+### Tier Enforcement
+| Tier | Behavior |
+|------|----------|
+| FREE | TruckPoiState.Blocked + AiVoiceEvent.UpgradeRequired("Plus") |
+| PLUS | TruckPoiState.Blocked + AiVoiceEvent.UpgradeRequired("Pro") |
+| PRO | Full truck POI search, detour calculation, stop addition |
+| SafeMode | All blocked immediately |
+
+### UI Components (PRO only)
+```
+TruckPoiBar
+├── Quick buttons: Truck Stops | Weigh | Rest | Parking
+├── TruckPoiState.Searching → Progress indicator
+├── TruckPoiState.Found → TruckPoiResultCard
+│   ├── POI name, address, category
+│   ├── DetourState.Calculating → spinner
+│   ├── DetourState.Ready → detour cost + "Add Stop & Navigate" button
+│   └── DetourState.Error → error message
+├── TruckPoiState.NotFound → "No X found along route"
+├── TruckPoiState.Error → error message
+└── TruckPoiState.Blocked → tier upgrade message
+```
+
+### Voice Integration
+- PoiFound: "Found 3 truck stops along your route. The closest is Pilot Travel Center, 5 miles ahead."
+- NoPoisFound: "No truck parking found along your route."
+- DetourSummary: "Detour found to Love's Travel Stop. About 8 minutes extra and 3.5 miles added to your trip."
+- StopAdded: "Added Love's Travel Stop as a stop on your route."
+- UpgradeRequired: "This feature requires a Pro subscription to use truck-specific POI search."
+
+### What To Do Next
+**MP-026 Options:**
+1. Multiple truck POI results display - Show top 3 POIs with swipe/list selection
+2. Real HERE SDK integration - Replace mock routing with actual HERE SDK calls
+3. Truck profile settings UI - Let user configure height/weight/hazmat for TruckConfig
+4. iOS truck POI implementation - Port HERE truck POI functionality to iOS
+
+### Testing Notes
+- HereTruckPoiClient uses mock HTTP client (HttpURLConnection) - replace with OkHttp/Ktor in production
+- HereShim.requestTruckRouteWithWaypoint() returns mock data - implement real HERE SDK routing
+- TruckPoiBar only visible when isProTier is true
+- Corridor filtering uses same RouteCorridor as Google POI filtering (3km tolerance)
+
+### Build Status
+✅ Gradle dry-run successful (3s)
+✅ Pushed to origin/main
