@@ -1590,6 +1590,6 @@ Integrate HERE truck-specific POIs (truck stops, weigh stations, rest areas, par
 
 ### Build: ✅ Gradle dry-run successful (3s)
 ### Branch: mp-025-here-truck-poi
-### Commit: [pending]
+### Commit: ceb085c, 43080f0
 
-**Next**: Commit and push to GitHub
+---
