@@ -1,92 +1,87 @@
-# GemNav Project Status
+## PROJECT STATUS — GEMNAV
 
-## Current State: MP-A02-1B COMPLETE — ANDROID-ONLY MODE (FINAL)
-
-### Last Update: 2025-11-25 (MP-A02-1B Phase 2: iOS Documentation Cleanup)
-
-## Active Micro-Project
-**MP-A02-1B**: iOS File Removal — ✅ COMPLETE (FINAL)
-- Phase 1: Deleted ios/ directory (29+ files)
-- Phase 2: Deleted remaining iOS docs + backups (10 files)
-- Total removed: 39+ iOS-related files
-- Android build verified working (2.1s)
-- Project now 100% Android-only (zero iOS artifacts)
-- Report: MP-A02-1B-iOS-Removal-REPORT.md
-
-## MP-A01 Audit Findings
-### ❌ AUDIT FAILED (MP-A01)
-1. **54+ source files** outside `src/main/java/` (not compiled)
-2. **7+ duplicate files** — Resolved (MP-A02-1)
-3. **Package mismatches** (com.gemnav.android.* vs com.gemnav.app.*)
-4. **65+ orphaned files** (not in build path)
-5. **Build ignores** android/app/{api,di,main_flow,navigation,search,voice}
-
-### Impact Analysis
-- Only 46% of code in correct location
-- 38% of code in wrong location (ignored by build)
-- 16% duplicates/orphans
-- ~12,000 total lines, ~4,500 not compiled
-
-## Next Steps: MP-A02-2
-**File Relocation - Move Orphans to src/main/java**
-Priority actions:
-1. Move android/app/api/* to src/main/java/com/gemnav/app/api/
-2. Move android/app/di/* to src/main/java/com/gemnav/app/di/
-3. Move android/app/voice/* to src/main/java/com/gemnav/app/voice/
-4. Handle main_flow consolidation (requires merging Destination.kt)
-
-## Recent Completions
-
-### MP-A02-1B (iOS Removal) — ✅ COMPLETE (FINAL)
-Phase 1 - Deleted ios/ directory:
-- 17 Swift source files
-- 12 iOS documentation files
-- 3 Xcode project directories
-- Build verified working after VoiceButton.kt restoration
-
-Phase 2 - Final cleanup:
-- 4 iOS architecture docs (architecture/ios_*.md)
-- 5 iOS backup files (DELETED_ios_*.swift)
-- 1 iOS build config (build/ios_build_config.md, already gone)
-
-Git commits:
-- cd30baf: ios/ deletion (52 files changed)
-- bcb98c3: VoiceButton.kt restored (build fix)
-- Pending: Phase 2 cleanup commit
-
-### MP-A02-1 (Duplicate Cleanup) — ✅ COMPLETE
-All duplicates verified from disk:
-- VoiceButton.kt: Only 1 exists ✓
-- TierManager.kt: Only 1 exists ✓
-- HomeViewModel.kt: Only 1 exists ✓
-- SearchViewModel.kt: Only 1 exists ✓
-- NavigationViewModel.kt: No duplicate (orphan in main_flow)
-- iOS files: Removed (MP-A02-1B)
-
-Files deleted: NONE (duplicates already removed)
-
-### MP-025 (HERE SDK Integration) — ✅ COMPLETE
-All compilation errors fixed, build successful.
-
-### Issues Fixed (MP-025)
-1. **PlaceResult import** - Changed `PlacesApiClient.PlaceResult` → `PlaceResult`
-2. **SelectedPoi constructor** - Changed `lat/lng` params to `latLng: LatLng` 
-3. **Long→Int conversion** - Added `.toInt()` for DetourInfo fields
-4. **TruckRouteData fields** - Fixed `polyline` → `polylineCoordinates`
-5. **DirectionsResult.Success** - Fixed field names
-6. **DirectionsResult.Failure** - Fixed `reason` → `errorMessage`
-7. **GeminiShim.kt** - Fixed string interpolation
-
-### Files Modified (MP-025)
-- core/navigation/AiDetourModels.kt
-- core/navigation/RouteCorridor.kt
-- core/shim/GeminiShim.kt
-- app/ui/route/RouteDetailsViewModel.kt
-
-### Build: ✅ SUCCESSFUL (3.0s, quick verification)
+Last Updated: 2025-11-25
 
 ---
-### Build: ✅ SUCCESSFUL (3.0s, quick verification)
+
+## CURRENT STATE
+
+**Active Development**: Android-only codebase  
+**Build Status**: ✅ assembleDebug passing (1-2s)  
+**Lines of Code**: ~32,000+ (Kotlin + docs)  
+**Architecture**: Clean Architecture + MVVM + Hilt DI
+
+---
+
+## COMPLETED MICRO-PROJECTS
+
+### MP-001 through MP-025 ✅
+Core infrastructure, UI components, voice commands, navigation engines, tier systems, HERE SDK integration, compilation fixes.
+
+### MP-A02-1A: ANDROID FILE RELOCATION ✅ (2025-11-25)
+Moved all Kotlin files to src/main/java hierarchy. 4,400+ lines relocated. Build verified.
+
+### MP-A02-1B: iOS FILE REMOVAL ✅ (2025-11-25)
+Deleted entire ios/ directory (39+ files). Project now 100% Android-only.
+
+### R19: LEGACY DIRECTORY CLEANUP ✅ (2025-11-25)
+Verified 7 legacy directories (api, core, di, main_flow, navigation, search, voice) already removed. Build passing.
+
+---
+
+## NEXT TASKS
+
+**MP-A02-2**: File relocation completion verification  
+**MP-026**: Multiple truck POI results display  
+**MP-027**: Real HERE SDK integration (replace mocks)  
+**MP-028**: Truck profile settings UI  
+**MP-029**: iOS truck POI implementation
+
+---
+
+## ARCHITECTURE
+
+**Tier Structure**:
+- Free: Gemini Nano + Google Maps intents
+- Plus: Gemini Cloud + Google Maps SDK
+- Pro: HERE SDK (truck routing) + Google fallback (car mode)
+
+**Key Systems**:
+- FeatureGate enforcement
+- SafeMode SDK failure handling
+- Complete HERE/Google data separation
+- Voice command processing (tier-aware)
+- Permission management (location, voice, billing)
+
+---
+
+## BUILD CONFIGURATION
+
+**Android**:
+- Gradle 8.7
+- Kotlin 2.0.21
+- Compose BOM 2024.10.01
+- Hilt 2.51.1
+- Google Maps SDK
+- HERE SDK 4.20.2.0
+
+**Development Environment**:
+- Windows + PowerShell
+- Android Studio
+- GitHub: personshane/GemNav
+- Local: C:\Users\perso\GemNav
+
+---
+
+## GIT PROTOCOL
+
+**CRITICAL**: Always execute before commits:
+1. `git fetch origin main`
+2. `git pull origin main`
+3. Verify no conflicts
+4. Then commit + push
+
+See RECOVERY_PROTOCOL.md for conflict resolution.
 
 ---
 
@@ -106,5 +101,18 @@ All compilation errors fixed, build successful.
 - Report: MP-A02-1B-iOS-Removal-REPORT.md
 
 **Next**: MP-A02-2 (File Relocation)
+
+---
+
+## R19: LEGACY DIRECTORY CLEANUP ✅ COMPLETE (2025-11-25)
+
+**Objective**: Delete empty legacy directories outside src/main/java
+
+**Verification**:
+- Checked 7 directories: api, core, di, main_flow, navigation, search, voice
+- Result: All already non-existent (previously cleaned)
+- Build status: ✅ assembleDebug passing (1s)
+
+**No changes required**: Working tree clean
 
 ---
