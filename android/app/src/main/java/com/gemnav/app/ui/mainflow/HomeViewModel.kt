@@ -3,7 +3,7 @@ package com.gemnav.app.ui.mainflow
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gemnav.app.models.Destination
+import com.gemnav.data.models.Destination
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.MapsShim

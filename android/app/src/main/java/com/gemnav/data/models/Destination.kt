@@ -1,4 +1,4 @@
-package com.gemnav.app.models
+package com.gemnav.data.models
 
 data class Destination(
     val id: String,
