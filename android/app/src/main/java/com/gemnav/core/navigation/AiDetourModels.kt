@@ -1,6 +1,6 @@
 package com.gemnav.core.navigation
 
-import com.gemnav.core.places.PlacesApiClient.PlaceResult
+import com.gemnav.core.places.PlaceResult
 import com.gemnav.data.route.LatLng
 
 /**
@@ -59,7 +59,9 @@ data class SelectedPoi(
     val name: String,
     val address: String?,
     val latLng: LatLng,
-    val rating: Float? = null
+    val rating: Float? = null,
+    val placeId: String? = null,
+    val source: String = "google_places"
 ) {
     companion object {
         fun fromPlaceResult(place: PlaceResult): SelectedPoi {
@@ -67,7 +69,9 @@ data class SelectedPoi(
                 name = place.name,
                 address = place.address,
                 latLng = LatLng(place.lat, place.lng),
-                rating = place.rating
+                rating = place.rating?.toFloat(),
+                placeId = place.placeId,
+                source = "google_places"
             )
         }
     }

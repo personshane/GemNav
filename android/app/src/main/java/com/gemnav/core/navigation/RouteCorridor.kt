@@ -1,7 +1,7 @@
 package com.gemnav.core.navigation
 
-import com.google.android.gms.maps.model.LatLng
-import com.gemnav.core.api.PlacesApiClient.PlaceResult
+import com.gemnav.data.route.LatLng
+import com.gemnav.core.places.PlaceResult
 import kotlin.math.*
 
 /**

@@ -611,9 +611,9 @@ object GeminiShim {
                     )
                     
                     val explanation = if (isAlongRoute && filteredPlaces.size < placesResult.places.size) {
-                        "Found ${bestMatch.name} along your route${bestMatch.address?.let { " at $it" } ?: ""}"
+                        "Found ${bestMatch.name} along your route${bestMatch.address?.let { addr -> " at $addr" } ?: ""}"
                     } else {
-                        "Found ${bestMatch.name}${bestMatch.address?.let { " at $it" } ?: ""}"
+                        "Found ${bestMatch.name}${bestMatch.address?.let { addr -> " at $addr" } ?: ""}"
                     }
                     
                     IntentResolutionResult.RouteRequest(
@@ -654,6 +654,130 @@ object GeminiShim {
         return IntentResolutionResult.RouteRequest(
             request = request,
             explanation = "Adding $stopDescription to route"
+        )
+    }
+    
+    /**
+     * MP-025: Resolve FindPOI intent for Pro tier truck POIs using HERE SDK.
+     * 
+     * PRO TIER ONLY - Uses HERE Places API for truck-specific POIs.
+     * Returns upgrade required for Free/Plus tiers.
+     */
+    private suspend fun resolveFindTruckPOI(
+        intent: NavigationIntent.FindPOI,
+        currentLocation: LatLng?
+    ): IntentResolutionResult {
+        val origin = currentLocation ?: LatLng(33.4484, -112.0740) // Phoenix default
+        
+        // Determine truck POI type from general POI type
+        val truckPoiType = when (intent.poiType) {
+            POIType.TRUCK_STOP -> TruckPoiType.TRUCK_STOP
+            POIType.REST_AREA -> TruckPoiType.REST_AREA
+            POIType.PARKING, POIType.TRUCK_PARKING -> TruckPoiType.PARKING
+            else -> TruckPoiType.TRUCK_STOP // Default to truck stop
+        }
+        
+        logInfo("Pro tier FindPOI: mapping ${intent.poiType} to truck type $truckPoiType")
+        
+        // Get active HERE route polyline
+        val routePolyline = RouteDetailsViewModelProvider.getHereRoutePolyline()
+        
+        if (routePolyline.size < 2) {
+            // No active route - search nearby instead
+            logInfo("No active truck route, searching nearby")
+            val result = HereTruckPoiClient.searchNearby(
+                location = origin,
+                type = truckPoiType,
+                radiusMeters = 30000
+            )
+            
+            if (result.pois.isEmpty()) {
+                // Voice feedback
+                RouteDetailsViewModelProvider.emitVoiceEvent(
+                    AiVoiceEvent.NoPoisFound(truckPoiType.displayName)
+                )
+                return IntentResolutionResult.Failure(
+                    "No ${truckPoiType.displayName} found nearby."
+                )
+            }
+            
+            val bestMatch = result.pois.first()
+            logInfo("Found nearby truck POI: ${bestMatch.name}")
+            
+            // Voice feedback
+            RouteDetailsViewModelProvider.emitVoiceEvent(
+                AiVoiceEvent.PoiFound(
+                    poiName = bestMatch.name,
+                    poiType = truckPoiType.displayName,
+                    distanceAheadMiles = (bestMatch.distanceMeters ?: 0) / 1609.34,
+                    totalResults = result.pois.size
+                )
+            )
+            
+            // Trigger truck POI selection for detour calculation
+            RouteDetailsViewModelProvider.selectTruckPoiForDetour(bestMatch)
+            
+            val request = AiRouteRequest(
+                rawQuery = "Navigate to ${bestMatch.name}",
+                currentLocation = origin,
+                destinationHint = bestMatch.name,
+                tier = TierManager.getCurrentTier(),
+                isTruck = true,
+                maxStops = FeatureGate.getMaxWaypoints()
+            )
+            
+            return IntentResolutionResult.RouteRequest(
+                request = request,
+                explanation = "Found ${bestMatch.name}${bestMatch.address?.let { " at $it" } ?: ""}"
+            )
+        }
+        
+        // Search along active truck route
+        logInfo("Searching ${truckPoiType.displayName} along truck route")
+        val results = HereTruckPoiClient.fetchTruckPoisAlongRoute(
+            routePolyline = routePolyline,
+            types = listOf(truckPoiType),
+            corridorMeters = 3000.0
+        )
+        
+        val result = results.firstOrNull()
+        if (result == null || result.pois.isEmpty()) {
+            RouteDetailsViewModelProvider.emitVoiceEvent(
+                AiVoiceEvent.NoPoisFound(truckPoiType.displayName)
+            )
+            return IntentResolutionResult.Failure(
+                "No ${truckPoiType.displayName} found along your route."
+            )
+        }
+        
+        val bestMatch = result.pois.first()
+        logInfo("Found truck POI along route: ${bestMatch.name}")
+        
+        // Voice feedback
+        RouteDetailsViewModelProvider.emitVoiceEvent(
+            AiVoiceEvent.PoiFound(
+                poiName = bestMatch.name,
+                poiType = truckPoiType.displayName,
+                distanceAheadMiles = (bestMatch.distanceMeters ?: 0) / 1609.34,
+                totalResults = result.pois.size
+            )
+        )
+        
+        // Trigger truck POI selection for detour calculation
+        RouteDetailsViewModelProvider.selectTruckPoiForDetour(bestMatch)
+        
+        val request = AiRouteRequest(
+            rawQuery = "Navigate to ${bestMatch.name}",
+            currentLocation = origin,
+            destinationHint = bestMatch.name,
+            tier = TierManager.getCurrentTier(),
+            isTruck = true,
+            maxStops = FeatureGate.getMaxWaypoints()
+        )
+        
+        return IntentResolutionResult.RouteRequest(
+            request = request,
+            explanation = "Found ${bestMatch.name} along your truck route${bestMatch.address?.let { " at $it" } ?: ""}"
         )
     }
     

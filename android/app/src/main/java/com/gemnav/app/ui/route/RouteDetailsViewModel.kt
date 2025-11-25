@@ -242,8 +242,7 @@ class RouteDetailsViewModel : ViewModel() {
             placeId = poi.id,
             name = poi.name,
             address = poi.address ?: "",
-            lat = poi.lat,
-            lng = poi.lng,
+            latLng = poi.latLng,
             source = "here_truck"
         )
         
@@ -322,10 +321,10 @@ class RouteDetailsViewModel : ViewModel() {
                 }
                 
                 DetourInfo(
-                    extraDistanceMeters = (detourDistance - baseDistance).coerceAtLeast(0),
-                    extraDurationSeconds = (detourDuration - baseDuration).coerceAtLeast(0),
-                    baseDistanceMeters = baseDistance,
-                    baseDurationSeconds = baseDuration
+                    extraDistanceMeters = (detourDistance - baseDistance).coerceAtLeast(0).toInt(),
+                    extraDurationSeconds = (detourDuration - baseDuration).coerceAtLeast(0).toInt(),
+                    baseDistanceMeters = baseDistance.toInt(),
+                    baseDurationSeconds = baseDuration.toInt()
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error calculating HERE detour", e)
@@ -407,7 +406,7 @@ class RouteDetailsViewModel : ViewModel() {
                 when (result) {
                     is TruckRouteResult.Success -> {
                         // Update HERE polyline for future POI searches
-                        _currentHerePolyline.value = result.route.polyline
+                        _currentHerePolyline.value = result.route.polylineCoordinates
                         
                         _routeState.value = RouteState.Success(RouteInfo(
                             distanceMeters = result.route.distanceMeters,
@@ -574,8 +573,8 @@ class RouteDetailsViewModel : ViewModel() {
                 
                 when (detourResult) {
                     is DirectionsResult.Success -> {
-                        val detourDistanceMeters = detourResult.distanceMeters
-                        val detourDurationSeconds = detourResult.durationSeconds
+                        val detourDistanceMeters = detourResult.totalDistanceMeters
+                        val detourDurationSeconds = detourResult.totalDurationSeconds
                         
                         DetourInfo(
                             extraDistanceMeters = detourDistanceMeters - baseDistanceMeters,
@@ -585,7 +584,7 @@ class RouteDetailsViewModel : ViewModel() {
                         )
                     }
                     is DirectionsResult.Failure -> {
-                        Log.w(TAG, "Detour route request failed: ${detourResult.reason}")
+                        Log.w(TAG, "Detour route request failed: ${detourResult.errorMessage}")
                         null
                     }
                 }
@@ -653,278 +652,6 @@ class RouteDetailsViewModel : ViewModel() {
         Log.d(TAG, "Detour suggestion dismissed")
     }
     
-    // ==================== TRUCK POI SEARCH (MP-025) ====================
-    
-    /**
-     * MP-025: Search for truck POIs along the current HERE route.
-     * 
-     * PRO TIER ONLY - Searches using HERE Places API.
-     */
-    fun findTruckPois(type: TruckPoiType) {
-        // SafeMode check
-        if (SafeModeManager.isSafeModeEnabled()) {
-            _truckPoiState.value = TruckPoiState.Blocked("Safe Mode is active")
-            RouteDetailsViewModelProvider.emitVoiceEvent(
-                AiVoiceEvent.GenericError
-            )
-            return
-        }
-        
-        // Tier check - PRO only
-        if (!TierManager.isPro()) {
-            val requiredTier = if (TierManager.isPlus()) "Pro" else "Plus"
-            _truckPoiState.value = TruckPoiState.Blocked("Truck POIs require Pro subscription")
-            RouteDetailsViewModelProvider.emitVoiceEvent(
-                AiVoiceEvent.UpgradeRequired(requiredTier, "truck-specific POI search")
-            )
-            return
-        }
-        
-        // Check for active HERE route
-        val routePolyline = getActiveHereRoutePolyline()
-        if (routePolyline.size < 2) {
-            _truckPoiState.value = TruckPoiState.Error("No active truck route")
-            RouteDetailsViewModelProvider.emitVoiceEvent(AiVoiceEvent.GenericError)
-            return
-        }
-        
-        _truckPoiState.value = TruckPoiState.Searching(type)
-        Log.d(TAG, "Searching for ${type.displayName} along route")
-        
-        viewModelScope.launch {
-            try {
-                val results = HereTruckPoiClient.fetchTruckPoisAlongRoute(
-                    routePolyline = routePolyline,
-                    types = listOf(type),
-                    corridorMeters = 3000.0
-                )
-                
-                val result = results.firstOrNull()
-                if (result != null && result.pois.isNotEmpty()) {
-                    _truckPoiState.value = TruckPoiState.Found(result)
-                    Log.i(TAG, "Found ${result.pois.size} ${type.displayName} locations")
-                    
-                    // Voice feedback
-                    RouteDetailsViewModelProvider.emitVoiceEvent(
-                        AiVoiceEvent.PoiFound(
-                            poiName = result.pois.first().name,
-                            poiType = type.displayName,
-                            distanceAheadMiles = (result.pois.first().distanceMeters ?: 0) / 1609.34,
-                            totalResults = result.pois.size
-                        )
-                    )
-                    
-                    // Auto-select first POI for detour calculation
-                    val firstPoi = result.pois.first()
-                    onTruckPoiSelected(firstPoi)
-                } else {
-                    _truckPoiState.value = TruckPoiState.NotFound(type)
-                    Log.i(TAG, "No ${type.displayName} found along route")
-                    RouteDetailsViewModelProvider.emitVoiceEvent(
-                        AiVoiceEvent.NoPoisFound(type.displayName)
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Truck POI search error", e)
-                _truckPoiState.value = TruckPoiState.Error(e.message ?: "Search failed")
-                RouteDetailsViewModelProvider.emitVoiceEvent(AiVoiceEvent.GenericError)
-            }
-        }
-    }
-    
-    /**
-     * MP-025: Handle truck POI selection for detour calculation.
-     * 
-     * PRO TIER ONLY - Converts TruckPoi to SelectedPoi and uses shared detour flow.
-     */
-    fun onTruckPoiSelected(poi: TruckPoi) {
-        // Safety/tier checks
-        if (SafeModeManager.isSafeModeEnabled() || !TierManager.isPro()) {
-            Log.w(TAG, "Truck POI selection blocked")
-            return
-        }
-        
-        Log.d(TAG, "Truck POI selected: ${poi.name}")
-        pendingTruckPoi = poi
-        
-        // Convert to SelectedPoi and use shared detour calculation
-        val selectedPoi = SelectedPoi(
-            name = poi.name,
-            latLng = poi.latLng,
-            address = poi.address,
-            placeId = poi.id,
-            source = "here_truck"
-        )
-        
-        // Trigger detour calculation
-        calculateDetourForTruckPoi(selectedPoi)
-    }
-    
-    /**
-     * MP-025: Calculate detour cost for truck POI using HERE routing.
-     * 
-     * Uses HERE SDK for truck-legal route calculation.
-     */
-    private fun calculateDetourForTruckPoi(poi: SelectedPoi) {
-        _detourState.value = DetourState.Calculating
-        
-        viewModelScope.launch {
-            try {
-                val origin = _currentUserLocation.value
-                val dest = _destination.value
-                
-                if (origin == null || dest == null) {
-                    _detourState.value = DetourState.Error("Missing origin or destination")
-                    return@launch
-                }
-                
-                val destLatLng = LatLng(dest.latitude, dest.longitude)
-                val truckConfig = getCurrentTruckConfig()
-                
-                // Get base route (current route without detour)
-                val baseResult = HereShim.requestTruckRoute(origin, destLatLng, truckConfig)
-                
-                // Get detour route (via POI)
-                val detourResult = HereShim.requestTruckRouteWithWaypoint(
-                    start = origin,
-                    waypoint = poi.latLng,
-                    end = destLatLng,
-                    truckConfig = truckConfig
-                )
-                
-                // Calculate detour cost
-                if (baseResult is TruckRouteResult.Success && detourResult is TruckRouteResult.Success) {
-                    val detourInfo = DetourInfo(
-                        extraDistanceMeters = (detourResult.distanceMeters - baseResult.distanceMeters).toInt(),
-                        extraDurationSeconds = (detourResult.durationSeconds - baseResult.durationSeconds).toInt(),
-                        baseDistanceMeters = baseResult.distanceMeters.toInt(),
-                        baseDurationSeconds = baseResult.durationSeconds.toInt()
-                    )
-                    
-                    _detourState.value = DetourState.Ready(poi, detourInfo)
-                    Log.i(TAG, "Truck detour calculated: ${detourInfo.formatDetour()}")
-                    
-                    // Voice feedback
-                    RouteDetailsViewModelProvider.emitVoiceEvent(
-                        AiVoiceEvent.DetourSummary(
-                            poiName = poi.name,
-                            addedMinutes = detourInfo.extraDurationSeconds / 60,
-                            addedMiles = detourInfo.extraDistanceMeters / 1609.34,
-                            distanceOffRouteMiles = 0.0 // Not calculated for truck routes
-                        )
-                    )
-                } else {
-                    val errorMsg = when {
-                        baseResult is TruckRouteResult.Failure -> baseResult.errorMessage
-                        detourResult is TruckRouteResult.Failure -> detourResult.errorMessage
-                        else -> "Route calculation failed"
-                    }
-                    _detourState.value = DetourState.Error(errorMsg)
-                    RouteDetailsViewModelProvider.emitVoiceEvent(AiVoiceEvent.GenericError)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Truck detour calculation error", e)
-                _detourState.value = DetourState.Error(e.message ?: "Detour calculation failed")
-                RouteDetailsViewModelProvider.emitVoiceEvent(AiVoiceEvent.GenericError)
-            }
-        }
-    }
-    
-    /**
-     * MP-025: Confirm adding truck POI as stop on HERE route.
-     */
-    fun onTruckStopConfirmed() {
-        val currentState = _detourState.value
-        if (currentState !is DetourState.Ready) {
-            Log.w(TAG, "Cannot add truck stop - no detour ready")
-            return
-        }
-        
-        if (!TierManager.isPro()) {
-            Log.w(TAG, "Truck stop blocked - not Pro tier")
-            return
-        }
-        
-        val poi = currentState.poi
-        Log.i(TAG, "Adding truck stop: ${poi.name}")
-        
-        // Voice feedback
-        RouteDetailsViewModelProvider.emitVoiceEvent(
-            AiVoiceEvent.StopAdded(poi.name)
-        )
-        
-        // Add to truck waypoints and recalculate HERE route
-        viewModelScope.launch {
-            recalculateTruckRouteWithStop(poi.latLng)
-        }
-        
-        // Clear states
-        _detourState.value = DetourState.Idle
-        _truckPoiState.value = TruckPoiState.Idle
-        pendingTruckPoi = null
-    }
-    
-    /**
-     * MP-025: Dismiss truck POI state.
-     */
-    fun onTruckPoiDismissed() {
-        _truckPoiState.value = TruckPoiState.Idle
-        pendingTruckPoi = null
-        Log.d(TAG, "Truck POI dismissed")
-    }
-    
-    /**
-     * MP-025: Recalculate truck route including the new stop.
-     */
-    private suspend fun recalculateTruckRouteWithStop(stopLatLng: LatLng) {
-        val origin = _currentUserLocation.value ?: return
-        val dest = _destination.value ?: return
-        val truckConfig = getCurrentTruckConfig()
-        
-        withContext(Dispatchers.IO) {
-            val result = HereShim.requestTruckRouteWithWaypoint(
-                start = origin,
-                waypoint = stopLatLng,
-                end = LatLng(dest.latitude, dest.longitude),
-                truckConfig = truckConfig
-            )
-            
-            when (result) {
-                is TruckRouteResult.Success -> {
-                    _currentHerePolyline.value = result.polyline
-                    _routeState.value = RouteState.Success(
-                        RouteInfo(
-                            distanceMeters = result.distanceMeters,
-                            durationSeconds = result.durationSeconds,
-                            polyline = result.polyline,
-                            restrictions = result.restrictions
-                        )
-                    )
-                    Log.i(TAG, "Truck route with stop calculated")
-                }
-                is TruckRouteResult.Failure -> {
-                    Log.e(TAG, "Truck route recalculation failed: ${result.errorMessage}")
-                }
-            }
-        }
-    }
-    
-    /**
-     * MP-025: Get current truck configuration.
-     */
-    private fun getCurrentTruckConfig(): TruckConfig {
-        // TODO: Get from user settings or vehicle profile
-        return TruckConfig(
-            heightMeters = 4.0,
-            widthMeters = 2.5,
-            lengthMeters = 16.0,
-            weightKg = 36000,
-            axleCount = 5,
-            trailerCount = 1,
-            hazmatType = null
-        )
-    }
-    
     /**
      * MP-023: Recalculate route including current waypoints.
      */
@@ -953,15 +680,15 @@ class RouteDetailsViewModel : ViewModel() {
                 when (result) {
                     is DirectionsResult.Success -> {
                         _googleRouteState.value = GoogleRouteState.Success(
-                            polyline = result.polyline,
-                            distanceMeters = result.distanceMeters,
-                            durationSeconds = result.durationSeconds
+                            polyline = result.polylineCoordinates,
+                            distanceMeters = result.totalDistanceMeters,
+                            durationSeconds = result.totalDurationSeconds
                         )
-                        _currentGooglePolyline.value = result.polyline
+                        _currentGooglePolyline.value = result.polylineCoordinates
                         Log.i(TAG, "Route with ${waypoints.size} waypoints calculated")
                     }
                     is DirectionsResult.Failure -> {
-                        _googleRouteState.value = GoogleRouteState.Error(result.reason)
+                        _googleRouteState.value = GoogleRouteState.Error(result.errorMessage)
                     }
                 }
             } catch (e: Exception) {
@@ -1294,6 +1021,38 @@ class RouteDetailsViewModel : ViewModel() {
                 Log.w(TAG, "Google route failed: ${result.errorMessage}")
                 _googleRouteState.value = GoogleRouteState.Error(result.errorMessage)
                 null
+            }
+        }
+    }
+    
+    /**
+     * Calculate Google route for given coordinates.
+     * Internal helper used by calculateRouteWithWaypoints.
+     */
+    private suspend fun calculateGoogleRoute(origin: LatLng, destination: LatLng) {
+        _googleRouteState.value = GoogleRouteState.Loading
+        
+        withContext(Dispatchers.IO) {
+            val result = DirectionsApiClient.getRoute(
+                origin = origin,
+                destination = destination,
+                waypoints = emptyList()
+            )
+            
+            when (result) {
+                is DirectionsResult.Success -> {
+                    _currentGooglePolyline.value = result.polylineCoordinates
+                    _googleRouteState.value = GoogleRouteState.Success(
+                        polyline = result.polylineCoordinates,
+                        distanceMeters = result.totalDistanceMeters,
+                        durationSeconds = result.totalDurationSeconds
+                    )
+                    Log.i(TAG, "Google route calculated: ${result.totalDistanceMeters}m")
+                }
+                is DirectionsResult.Failure -> {
+                    _googleRouteState.value = GoogleRouteState.Error(result.errorMessage)
+                    Log.w(TAG, "Google route failed: ${result.errorMessage}")
+                }
             }
         }
     }

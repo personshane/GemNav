@@ -96,7 +96,8 @@ enum class TruckRouteError {
     NO_ROUTE_FOUND,
     NETWORK_ERROR,
     SERVER_ERROR,
-    RATE_LIMITED
+    RATE_LIMITED,
+    CALCULATION_FAILED
 }
 
 /**

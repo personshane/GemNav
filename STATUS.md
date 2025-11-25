@@ -1593,3 +1593,24 @@ Integrate HERE truck-specific POIs (truck stops, weigh stations, rest areas, par
 ### Commit: ceb085c, 43080f0
 
 ---
+
+## MP-025 REPAIR SESSION (Nov 24, 2025)
+
+### Issues Fixed
+1. **PlaceResult import** - Changed `PlacesApiClient.PlaceResult` → `PlaceResult` in AiDetourModels.kt, RouteCorridor.kt
+2. **SelectedPoi constructor** - Changed `lat/lng` params to `latLng: LatLng` 
+3. **Long→Int conversion** - Added `.toInt()` for DetourInfo fields from TruckRouteData
+4. **TruckRouteData fields** - Fixed `polyline` → `polylineCoordinates`
+5. **DirectionsResult.Success** - Fixed `distanceMeters/durationSeconds` → `totalDistanceMeters/totalDurationSeconds`
+6. **DirectionsResult.Failure** - Fixed `reason` → `errorMessage`
+7. **GeminiShim.kt** - Fixed string interpolation: `{ " at $it" }` → `{ addr -> " at $addr" }`
+
+### Files Modified
+- core/navigation/AiDetourModels.kt
+- core/navigation/RouteCorridor.kt
+- core/shim/GeminiShim.kt
+- app/ui/route/RouteDetailsViewModel.kt
+
+### Build: ✅ SUCCESSFUL (25s, 40 tasks)
+
+---
