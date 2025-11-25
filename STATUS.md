@@ -1463,6 +1463,6 @@ PRO:   POI search → "Truck POI coming soon (HERE-based)"
 
 ### Build: ✅ Gradle dry-run successful (4s)
 ### Branch: mp-022-along-route-poi
-### Commit: [pending]
+### Commit: 40cadd8
 
 **Next MP**: MP-023 (Detour time estimation) or HERE truck POI for Pro

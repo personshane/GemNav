@@ -507,3 +507,61 @@ PlacesApiClient infers truck-friendly attributes from place names:
 - PlacesApiClient requires GOOGLE_PLACES_API_KEY BuildConfig field
 - GeminiShim.resolveFindPOI() calls PlacesApiClient for Plus tier only
 - PoiTypeMapper provides type/keyword mapping for all 18 POI types
+
+
+---
+
+## MP-022: Along-Route POI Search (PLUS TIER ONLY)
+**Completed**: Session continues
+**Commit**: 40cadd8
+**Branch**: mp-022-along-route-poi
+
+### Summary
+Implemented along-route POI search that filters Places API results to only show POIs within 2km of the active route polyline. PLUS tier only - FREE and PRO correctly blocked.
+
+### Files Created
+| File | Purpose |
+|------|---------|
+| `core/navigation/RouteCorridor.kt` | Corridor filtering with Haversine distance calculations |
+| `core/shim/RouteDetailsViewModelProvider.kt` | Service locator for polyline access from shim layer |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `core/shim/GeminiShim.kt` | +RouteCorridor import, enhanced resolveFindPOI() with along-route detection |
+| `app/ui/route/RouteDetailsViewModel.kt` | +getActiveRoutePolyline(), +init/onCleared for provider registration, +TierManager import |
+| `STATUS.md` | +MP-022 completion status |
+
+### Tier Enforcement
+```kotlin
+FREE → "POI search requires Plus subscription" // No Places, no polylines
+PLUS → Full along-route POI search enabled    // This MP
+PRO  → "Truck-specific POI coming soon"       // No Google Places allowed
+```
+
+### Along-Route Flow (PLUS)
+1. User: "Find gas station along my route"
+2. classifyIntent() → FindPOI with nearLocation containing keyword
+3. RouteCorridor.containsAlongRouteKeywords() → true
+4. PlacesApiClient.searchNearby(radius=50km) → wider search
+5. RouteDetailsViewModelProvider.getActiveRoutePolyline() → decoded Google polyline
+6. RouteCorridor.filterPlacesAlongRoute(places, polyline, tolerance=2km)
+7. Return POIs sorted by route progress (segment index)
+
+### Detection Keywords
+```kotlin
+"along my route", "along the route", "on my way", "on the way",
+"next ", "upcoming", "ahead", "coming up", "before i arrive"
+```
+
+### What To Do Next
+**MP-023 Options:**
+1. Detour time estimation - Calculate time added by POI stops
+2. HERE truck POI for Pro tier - Implement truck-legal POI search
+3. Voice feedback - Add TTS for POI search results
+
+### Architecture Notes
+- RouteDetailsViewModelProvider uses service locator pattern to avoid tight coupling
+- Polyline only accessible for PLUS tier (Pro returns emptyList())
+- Haversine-based point-to-segment distance for accuracy
+- Fallback to all results if no active route or no POIs in corridor
