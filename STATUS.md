@@ -1505,6 +1505,6 @@ Idle → onPoiSelected() → Calculating → calculateDetourInfoForPoi()
 
 ### Build: ✅ Gradle dry-run successful (2s)
 ### Branch: mp-023-detour-and-stop-flow
-### Commit: [pending]
+### Commit: 8b1b66a
 
 **Next MP**: MP-024 (Voice TTS feedback for POI results) or HERE truck POI for Pro

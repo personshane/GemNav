@@ -565,3 +565,69 @@ PRO  → "Truck-specific POI coming soon"       // No Google Places allowed
 - Polyline only accessible for PLUS tier (Pro returns emptyList())
 - Haversine-based point-to-segment distance for accuracy
 - Fallback to all results if no active route or no POIs in corridor
+
+
+---
+
+## MP-023: Detour Cost + Add-Stop Flow (PLUS TIER ONLY)
+**Completed**: Session continues
+**Commit**: 8b1b66a
+**Branch**: mp-023-detour-and-stop-flow
+
+### Summary
+Implemented detour cost calculation and add-stop flow for along-route POIs. When Plus tier user finds a POI along their route, the system calculates the extra time/distance and presents a UI panel to add the POI as a stop.
+
+### Files Created
+| File | Purpose |
+|------|---------|
+| `core/navigation/AiDetourModels.kt` | DetourInfo, DetourState sealed class, SelectedPoi data models |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `core/maps/google/DirectionsApiClient.kt` | +getRouteWithWaypoint(), +getRouteWithMultipleWaypoints() |
+| `core/shim/RouteDetailsViewModelProvider.kt` | +registerPoiSelectionHandler(), +selectPoiForDetour() |
+| `core/shim/GeminiShim.kt` | Triggers detour calculation when along-route POI found |
+| `app/ui/route/RouteDetailsViewModel.kt` | +detourState, +onPoiSelected(), +calculateDetourInfoForPoi(), +onAddStopConfirmed(), +onDetourDismissed(), +calculateRouteWithWaypoints() |
+| `app/ui/route/RouteDetailsScreen.kt` | +DetourPanel composable with Calculating/Ready/Error/Blocked states |
+
+### Tier Enforcement
+```kotlin
+FREE → DetourState.Blocked("Detour calculation requires Plus subscription")
+PLUS → Full detour calculation + add-stop flow
+PRO  → DetourState.Blocked("Truck-specific POI coming soon")
+```
+
+### Flow (PLUS Tier)
+1. User: "Find gas station along my route"
+2. GeminiShim.resolveFindPOI() → filters POIs to route corridor
+3. RouteDetailsViewModelProvider.selectPoiForDetour(poi)
+4. RouteDetailsViewModel.onPoiSelected(poi) → _detourState = Calculating
+5. calculateDetourInfoForPoi() → DirectionsApiClient.getRouteWithWaypoint()
+6. _detourState = Ready(poi, DetourInfo(+X min, +Y mi))
+7. UI shows DetourPanel with POI info + "Add Stop & Navigate" button
+8. User taps button → onAddStopConfirmed() → adds waypoint, recalculates route
+
+### DetourInfo Model
+```kotlin
+data class DetourInfo(
+    val extraDistanceMeters: Int,
+    val extraDurationSeconds: Int,
+    val baseDistanceMeters: Int,
+    val baseDurationSeconds: Int
+) {
+    fun formatDetour(): String  // "+5 min, +2.3 mi"
+}
+```
+
+### What To Do Next
+**MP-024 Options:**
+1. Voice TTS feedback for POI results ("Found Pilot Travel Center, 5 minutes ahead")
+2. HERE truck POI for Pro tier
+3. Multiple POI results display (show top 3 along route)
+
+### Architecture Notes
+- SelectedPoi.fromPlaceResult() converts PlacesApiClient results to SelectedPoi
+- RouteDetailsViewModelProvider uses service locator pattern for layer separation
+- calculateRouteWithWaypoints() supports multiple waypoints for future expansion
+- SafeMode checks at entry points (onPoiSelected, calculateDetourInfoForPoi, onAddStopConfirmed)
