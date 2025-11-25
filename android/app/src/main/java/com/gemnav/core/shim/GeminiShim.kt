@@ -10,6 +10,7 @@ import com.gemnav.core.places.PlacesApiClient
 import com.gemnav.core.places.PlacesResult
 import com.gemnav.core.places.PoiTypeMapper
 import com.gemnav.core.navigation.RouteCorridor
+import com.gemnav.core.navigation.SelectedPoi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
@@ -591,6 +592,13 @@ object GeminiShim {
                     // Pick best match (first result after filtering)
                     val bestMatch = filteredPlaces.first()
                     logInfo("Found POI: ${bestMatch.name} at ${bestMatch.lat},${bestMatch.lng}")
+                    
+                    // MP-023: Trigger detour calculation for along-route POIs
+                    if (isAlongRoute) {
+                        val selectedPoi = SelectedPoi.fromPlaceResult(bestMatch)
+                        RouteDetailsViewModelProvider.selectPoiForDetour(selectedPoi)
+                        logInfo("Triggered detour calculation for ${bestMatch.name}")
+                    }
                     
                     val request = AiRouteRequest(
                         rawQuery = "Navigate to ${bestMatch.name}",

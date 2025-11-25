@@ -1466,3 +1466,45 @@ PRO:   POI search → "Truck POI coming soon (HERE-based)"
 ### Commit: 40cadd8
 
 **Next MP**: MP-023 (Detour time estimation) or HERE truck POI for Pro
+
+
+---
+
+## MP-023: Detour Cost + Add-Stop Flow (PLUS ONLY)
+**Date**: Session continues
+**Status**: ✅ COMPLETE
+
+### Files Created
+- `core/navigation/AiDetourModels.kt` (75 lines) - DetourInfo, DetourState, SelectedPoi data models
+
+### Files Modified
+- `core/maps/google/DirectionsApiClient.kt` - +getRouteWithWaypoint(), +getRouteWithMultipleWaypoints()
+- `core/shim/RouteDetailsViewModelProvider.kt` - +registerPoiSelectionHandler(), +selectPoiForDetour()
+- `core/shim/GeminiShim.kt` - Triggers detour calculation for along-route POIs
+- `app/ui/route/RouteDetailsViewModel.kt` - +DetourState flow, +onPoiSelected(), +calculateDetourInfoForPoi(), +onAddStopConfirmed(), +onDetourDismissed()
+- `app/ui/route/RouteDetailsScreen.kt` - +DetourPanel composable with all states
+
+### Tier Enforcement
+- **FREE**: ❌ Blocked - "Detour calculation requires Plus subscription"
+- **PLUS**: ✅ Full functionality - detour cost + add-stop flow
+- **PRO**: ❌ Blocked - "Truck-specific POI coming soon"
+
+### DetourState Flow
+```
+Idle → onPoiSelected() → Calculating → calculateDetourInfoForPoi()
+                                        ↓
+                         Success → Ready(poi, detourInfo) → onAddStopConfirmed() → route recalculated
+                         Failure → Error(message)
+```
+
+### Detour UI States
+- **Calculating**: Progress spinner + "Calculating detour..."
+- **Ready**: POI name, address, detour cost (+X min, +Y mi), "Add Stop & Navigate" button
+- **Error**: Error message + dismiss button
+- **Blocked**: Tier/SafeMode message + dismiss button
+
+### Build: ✅ Gradle dry-run successful (2s)
+### Branch: mp-023-detour-and-stop-flow
+### Commit: [pending]
+
+**Next MP**: MP-024 (Voice TTS feedback for POI results) or HERE truck POI for Pro

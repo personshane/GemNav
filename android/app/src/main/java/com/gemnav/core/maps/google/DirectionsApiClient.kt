@@ -341,4 +341,38 @@ object DirectionsApiClient {
             .replace("&gt;", ">")
             .trim()
     }
+    
+    // ==================== MP-023: WAYPOINT HELPERS ====================
+    
+    /**
+     * Get route with a single waypoint (for detour calculation).
+     * 
+     * @param origin Starting point
+     * @param destination Final destination
+     * @param waypoint Intermediate stop (POI)
+     * @return DirectionsResult (Success or Failure)
+     */
+    suspend fun getRouteWithWaypoint(
+        origin: LatLng,
+        destination: LatLng,
+        waypoint: LatLng
+    ): DirectionsResult {
+        return getRoute(origin, destination, listOf(waypoint))
+    }
+    
+    /**
+     * Get route with multiple waypoints.
+     * 
+     * @param origin Starting point
+     * @param destination Final destination
+     * @param waypoints Intermediate stops in order
+     * @return DirectionsResult (Success or Failure)
+     */
+    suspend fun getRouteWithMultipleWaypoints(
+        origin: LatLng,
+        destination: LatLng,
+        waypoints: List<LatLng>
+    ): DirectionsResult {
+        return getRoute(origin, destination, waypoints)
+    }
 }

@@ -1,9 +1,10 @@
 package com.gemnav.core.shim
 
+import com.gemnav.core.navigation.SelectedPoi
 import com.gemnav.data.route.LatLng
 
 /**
- * MP-022: Service locator for RouteDetailsViewModel access from shim layer.
+ * MP-022/MP-023: Service locator for RouteDetailsViewModel access from shim layer.
  * 
  * This allows GeminiShim to access the active route polyline without
  * direct dependency on the ViewModel (which lives in the UI layer).
@@ -14,6 +15,7 @@ object RouteDetailsViewModelProvider {
     
     private var polylineProvider: (() -> List<LatLng>)? = null
     private var isNavigatingProvider: (() -> Boolean)? = null
+    private var poiSelectionHandler: ((SelectedPoi) -> Unit)? = null
     
     /**
      * Register the polyline provider (called from UI layer initialization).
@@ -30,11 +32,19 @@ object RouteDetailsViewModelProvider {
     }
     
     /**
+     * MP-023: Register the POI selection handler for detour calculation.
+     */
+    fun registerPoiSelectionHandler(handler: (SelectedPoi) -> Unit) {
+        poiSelectionHandler = handler
+    }
+    
+    /**
      * Unregister providers (called on cleanup).
      */
     fun unregister() {
         polylineProvider = null
         isNavigatingProvider = null
+        poiSelectionHandler = null
     }
     
     /**
@@ -50,5 +60,14 @@ object RouteDetailsViewModelProvider {
      */
     fun isNavigating(): Boolean {
         return isNavigatingProvider?.invoke() ?: false
+    }
+    
+    /**
+     * MP-023: Trigger POI selection for detour calculation.
+     * Returns true if handler was called, false if no handler registered.
+     */
+    fun selectPoiForDetour(poi: SelectedPoi): Boolean {
+        poiSelectionHandler?.invoke(poi) ?: return false
+        return true
     }
 }

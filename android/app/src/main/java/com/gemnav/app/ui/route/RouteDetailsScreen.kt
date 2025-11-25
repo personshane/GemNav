@@ -16,6 +16,7 @@ import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.app.ui.map.HereMapContainer
 import com.gemnav.app.ui.map.GoogleMapContainer
 import com.gemnav.core.location.LocationViewModel
+import com.gemnav.core.navigation.DetourState
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.LatLng
 import com.gemnav.data.route.TruckRouteData
@@ -56,6 +57,9 @@ fun RouteDetailsScreen(
     val googleRouteState by viewModel.googleRouteState.collectAsState()
     val googlePolyline by viewModel.currentGooglePolyline.collectAsState()
     
+    // Detour state (MP-023)
+    val detourState by viewModel.detourState.collectAsState()
+    
     // Feed location updates to navigation engine
     LaunchedEffect(currentLocation) {
         currentLocation?.let { loc ->
@@ -83,6 +87,15 @@ fun RouteDetailsScreen(
             .padding(16.dp)
     ) {
         SafeModeBanner()
+        
+        // MP-023: Detour panel for along-route POI (PLUS only)
+        if (isPlusTier) {
+            DetourPanel(
+                detourState = detourState,
+                onAddStop = { viewModel.onAddStopConfirmed() },
+                onDismiss = { viewModel.onDetourDismissed() }
+            )
+        }
         
         // Navigation Mode UI (MP-017)
         when (val navState = navigationState) {
@@ -720,6 +733,187 @@ private fun CurrentLocationIndicator(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+        }
+    }
+}
+
+
+// ==================== MP-023: DETOUR PANEL ====================
+
+/**
+ * Detour panel showing POI suggestion with detour cost.
+ * PLUS TIER ONLY.
+ */
+@Composable
+private fun DetourPanel(
+    detourState: DetourState,
+    onAddStop: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    when (detourState) {
+        is DetourState.Idle -> { /* Nothing to show */ }
+        
+        is DetourState.Calculating -> {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Text(
+                        text = "Calculating detour...",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+        
+        is DetourState.Ready -> {
+            val poi = detourState.poi
+            val info = detourState.detourInfo
+            
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = poi.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            poi.address?.let { address ->
+                                Text(
+                                    text = address,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "Detour: ${info.formatDetour()}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Button(
+                        onClick = onAddStop,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Add Stop & Navigate")
+                    }
+                }
+            }
+        }
+        
+        is DetourState.Error -> {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = detourState.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Dismiss",
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+        }
+        
+        is DetourState.Blocked -> {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = detourState.reason,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Dismiss",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

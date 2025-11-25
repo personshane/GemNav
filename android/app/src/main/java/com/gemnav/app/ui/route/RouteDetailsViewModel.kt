@@ -9,6 +9,9 @@ import com.gemnav.core.here.TruckConfig
 import com.gemnav.core.maps.google.DirectionsApiClient
 import com.gemnav.core.maps.google.DirectionsResult
 import com.gemnav.core.navigation.NavigationEngine
+import com.gemnav.core.navigation.DetourInfo
+import com.gemnav.core.navigation.DetourState
+import com.gemnav.core.navigation.SelectedPoi
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
@@ -125,6 +128,8 @@ class RouteDetailsViewModel : ViewModel() {
         // Register polyline provider for along-route POI filtering
         RouteDetailsViewModelProvider.registerPolylineProvider { getActiveRoutePolyline() }
         RouteDetailsViewModelProvider.registerNavigationStateProvider { _isNavigating.value }
+        // MP-023: Register POI selection handler for detour calculation
+        RouteDetailsViewModelProvider.registerPoiSelectionHandler { poi -> onPoiSelected(poi) }
         Log.d(TAG, "Registered with RouteDetailsViewModelProvider")
     }
     
@@ -133,6 +138,215 @@ class RouteDetailsViewModel : ViewModel() {
         RouteDetailsViewModelProvider.unregister()
         navigationEngine.stopNavigation()
         Log.d(TAG, "Unregistered from RouteDetailsViewModelProvider")
+    }
+    
+    // ==================== DETOUR CALCULATION (MP-023) ====================
+    
+    private val _detourState = MutableStateFlow<DetourState>(DetourState.Idle)
+    val detourState: StateFlow<DetourState> = _detourState
+    
+    private var pendingPoiForDetour: SelectedPoi? = null
+    
+    /**
+     * MP-023: Handle POI selection for detour calculation.
+     * 
+     * PLUS TIER ONLY - Triggers detour cost calculation for the selected POI.
+     */
+    fun onPoiSelected(poi: SelectedPoi) {
+        // SafeMode check
+        if (SafeModeManager.isSafeModeEnabled()) {
+            Log.w(TAG, "POI selection blocked - SafeMode active")
+            _detourState.value = DetourState.Blocked("Safe mode active - AI features disabled")
+            return
+        }
+        
+        // Tier check - PLUS only
+        if (!FeatureGate.areInAppMapsEnabled()) {
+            Log.w(TAG, "POI selection blocked - Free tier")
+            _detourState.value = DetourState.Blocked("Detour calculation requires Plus subscription")
+            return
+        }
+        
+        if (TierManager.isPro()) {
+            Log.w(TAG, "POI selection blocked - Pro tier uses HERE")
+            _detourState.value = DetourState.Blocked("Truck-specific POI coming soon")
+            return
+        }
+        
+        pendingPoiForDetour = poi
+        _detourState.value = DetourState.Calculating
+        
+        viewModelScope.launch {
+            val detourInfo = calculateDetourInfoForPoi(poi.latLng)
+            if (detourInfo != null) {
+                _detourState.value = DetourState.Ready(poi, detourInfo)
+                Log.i(TAG, "Detour calculated: ${detourInfo.formatDetour()}")
+            } else {
+                _detourState.value = DetourState.Error("Could not calculate detour")
+            }
+        }
+    }
+    
+    /**
+     * MP-023: Calculate detour cost for adding a POI as intermediate stop.
+     * 
+     * PLUS TIER ONLY - Returns null for Free/Pro tiers or if no active route.
+     */
+    private suspend fun calculateDetourInfoForPoi(poiLatLng: LatLng): DetourInfo? {
+        // Safety checks
+        if (SafeModeManager.isSafeModeEnabled()) {
+            Log.w(TAG, "Detour calculation blocked - SafeMode active")
+            return null
+        }
+        
+        if (!FeatureGate.areInAppMapsEnabled() || TierManager.isPro()) {
+            Log.w(TAG, "Detour calculation blocked - tier not PLUS")
+            return null
+        }
+        
+        // Get base route info
+        val baseRouteState = _googleRouteState.value
+        if (baseRouteState !is GoogleRouteState.Success) {
+            Log.w(TAG, "No active route for detour calculation")
+            return null
+        }
+        
+        val baseDistanceMeters = baseRouteState.distanceMeters
+        val baseDurationSeconds = baseRouteState.durationSeconds
+        
+        // Get current location and destination
+        val origin = _currentUserLocation.value ?: return null
+        val dest = _destination.value ?: return null
+        
+        return withContext(Dispatchers.IO) {
+            try {
+                // Request route with POI as waypoint
+                val detourResult = DirectionsApiClient.getRouteWithWaypoint(
+                    origin = origin,
+                    destination = LatLng(dest.latitude, dest.longitude),
+                    waypoint = poiLatLng
+                )
+                
+                when (detourResult) {
+                    is DirectionsResult.Success -> {
+                        val detourDistanceMeters = detourResult.distanceMeters
+                        val detourDurationSeconds = detourResult.durationSeconds
+                        
+                        DetourInfo(
+                            extraDistanceMeters = detourDistanceMeters - baseDistanceMeters,
+                            extraDurationSeconds = detourDurationSeconds - baseDurationSeconds,
+                            baseDistanceMeters = baseDistanceMeters,
+                            baseDurationSeconds = baseDurationSeconds
+                        )
+                    }
+                    is DirectionsResult.Failure -> {
+                        Log.w(TAG, "Detour route request failed: ${detourResult.reason}")
+                        null
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Detour calculation error", e)
+                null
+            }
+        }
+    }
+    
+    /**
+     * MP-023: Confirm adding POI as stop and start navigation.
+     * 
+     * PLUS TIER ONLY - Replaces current route with detour route.
+     */
+    fun onAddStopConfirmed() {
+        val currentState = _detourState.value
+        if (currentState !is DetourState.Ready) {
+            Log.w(TAG, "Cannot add stop - no detour ready")
+            return
+        }
+        
+        // Safety checks
+        if (SafeModeManager.isSafeModeEnabled() || !FeatureGate.areInAppMapsEnabled() || TierManager.isPro()) {
+            Log.w(TAG, "Add stop blocked - tier/safety check failed")
+            return
+        }
+        
+        val poi = currentState.poi
+        Log.i(TAG, "Adding stop: ${poi.name} at ${poi.latLng}")
+        
+        // Add POI to waypoints
+        val currentWaypoints = _waypoints.value.toMutableList()
+        val poiDestination = Destination(
+            id = System.currentTimeMillis().toString(),
+            name = poi.name,
+            address = poi.address ?: "",
+            latitude = poi.latLng.latitude,
+            longitude = poi.latLng.longitude
+        )
+        currentWaypoints.add(poiDestination)
+        _waypoints.value = currentWaypoints
+        
+        // Recalculate route with new waypoint
+        viewModelScope.launch {
+            calculateRouteWithWaypoints()
+        }
+        
+        // Clear detour state
+        _detourState.value = DetourState.Idle
+        pendingPoiForDetour = null
+    }
+    
+    /**
+     * MP-023: Dismiss the current detour suggestion.
+     */
+    fun onDetourDismissed() {
+        _detourState.value = DetourState.Idle
+        pendingPoiForDetour = null
+        Log.d(TAG, "Detour suggestion dismissed")
+    }
+    
+    /**
+     * MP-023: Recalculate route including current waypoints.
+     */
+    private suspend fun calculateRouteWithWaypoints() {
+        val origin = _currentUserLocation.value ?: return
+        val dest = _destination.value ?: return
+        val waypoints = _waypoints.value
+        
+        if (waypoints.isEmpty()) {
+            // No waypoints, use standard route calculation
+            calculateGoogleRoute(origin, LatLng(dest.latitude, dest.longitude))
+            return
+        }
+        
+        _googleRouteState.value = GoogleRouteState.Loading
+        
+        withContext(Dispatchers.IO) {
+            try {
+                val waypointLatLngs = waypoints.map { LatLng(it.latitude, it.longitude) }
+                val result = DirectionsApiClient.getRouteWithMultipleWaypoints(
+                    origin = origin,
+                    destination = LatLng(dest.latitude, dest.longitude),
+                    waypoints = waypointLatLngs
+                )
+                
+                when (result) {
+                    is DirectionsResult.Success -> {
+                        _googleRouteState.value = GoogleRouteState.Success(
+                            polyline = result.polyline,
+                            distanceMeters = result.distanceMeters,
+                            durationSeconds = result.durationSeconds
+                        )
+                        _currentGooglePolyline.value = result.polyline
+                        Log.i(TAG, "Route with ${waypoints.size} waypoints calculated")
+                    }
+                    is DirectionsResult.Failure -> {
+                        _googleRouteState.value = GoogleRouteState.Error(result.reason)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Route calculation error", e)
+                _googleRouteState.value = GoogleRouteState.Error(e.message ?: "Route calculation failed")
+            }
+        }
     }
 
     /**
