@@ -16,7 +16,7 @@ Free tier operates entirely through:
 ### Capabilities:
 - Gemini answers navigation questions
 - Gemini launches Google Maps deep-links
-- Gemini promotes GemNav Basic and Pro upgrades
+- Gemini promotes GemNav Pro trial
 
 ### Technical:
 - Zero API keys required
@@ -49,10 +49,9 @@ GemNav Basic exclusively uses the Google stack.
 - GOOGLE_PLACES_API_KEY
 - GEMINI_API_KEY
 
-### Purpose:
-- Entry-level navigation
-- General drivers and light trucks
-- Upsell path into GemNav Pro
+### Access Rule:
+**Basic tier is NOT available as standalone subscription.**
+Basic features are ONLY accessible as part of a paid Pro subscription.
 
 ---
 
@@ -88,36 +87,88 @@ GemNav Pro exclusively uses HERE APIs and HERE map tiles.
 
 ---
 
-# 🟥 PRO TIER TRIAL RULE
+# 🟥 PRO TIER TRIAL & SUBSCRIPTION RULES
 
-### 7-Day GemNav Pro Trial:
-- Unlocks **Pro tier only**
-- Does **not** include Basic features during trial
+## 7-Day GemNav Pro Trial:
+- Unlocks **Pro tier features ONLY** (HERE + Gemini)
+- Does **NOT** include Basic features during trial
 - Shows full HERE stack and all truck features
+- User sees truck routing exclusively
 
-### After Trial:
-- If user subscribes → Unlock:
-  - GemNav Pro (HERE)
-  - GemNav Basic (Google)
-- If user does not subscribe:
-  - Downgrade to Basic (Google stack)
+## After 7-Day Trial Expires:
+
+### If User Subscribes to Paid Pro:
+**Unlock BOTH tiers:**
+- ✅ GemNav Basic (Google Maps SDK, Directions, Places, Gemini)
+- ✅ GemNav Pro (HERE SDK, Truck Routing, HERE Search, Gemini)
+- User can switch between Google routing and HERE truck routing
+- Full access to entire app feature set
+
+### If User Does NOT Subscribe:
+**Downgrade to FREE tier:**
+- ❌ Lose ALL app access (both Basic and Pro)
+- ❌ No Google Maps SDK features
+- ❌ No HERE SDK features
+- ✅ Revert to Gemini + Google Maps app only (Free tier funnel)
+- User must start new trial or subscribe to regain app access
 
 ---
 
 # 🧱 ARCHITECTURE ENFORCEMENT RULES
 
-### Basic = Google stack
+## Tier Separation
+
+### Free = No custom app
+- Gemini assistant + Google Maps deep links only
+- No API integrations
+
+### Basic = Google stack (Paid Pro subscription only)
 - No HERE routing in Basic
 - No HERE map tiles in Basic
 - No HERE search in Basic
+- Basic NOT available as standalone purchase
 
-### Pro = HERE stack
-- No Google Directions in Pro
-- No Google map tiles in Pro
-- No Google Places API in Pro
+### Pro Trial = HERE stack only (7 days)
+- No Google Directions during trial
+- No Google map tiles during trial
+- No Google Places API during trial
+- HERE + Gemini only
 
-### Gemini is shared
-- With different prompts and contexts per tier
+### Pro Paid = Google + HERE stacks (full access)
+- Access to both Basic AND Pro features
+- Can toggle between Google and HERE routing
+- Full feature set unlocked
+
+### Gemini AI = Shared across all tiers
+- Different prompts and contexts per tier
+- Nano for Free tier
+- Cloud for trial and paid users
+
+---
+
+# 📋 SUBSCRIPTION LOGIC SUMMARY
+
+```
+User Journey:
+
+FREE (start) 
+  → Gemini assistant only
+  → No app access
+
+↓ (starts trial)
+
+PRO TRIAL (7 days)
+  → HERE + Gemini only
+  → No Google features
+  
+↓ (trial expires)
+
+PAID PRO SUBSCRIPTION?
+  ├─ YES → Basic + Pro features (Google + HERE + Gemini)
+  └─ NO  → Revert to FREE (lose all app access)
+```
+
+**Critical Rule:** There is NO path to Basic tier without paying for Pro subscription. Basic is always bundled with Pro in paid subscriptions only.
 
 ---
 
