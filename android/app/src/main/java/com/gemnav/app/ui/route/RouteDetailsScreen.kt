@@ -16,11 +16,11 @@ import com.gemnav.data.models.Destination
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.app.ui.map.HereMapContainer
 import com.gemnav.app.ui.map.GoogleMapContainer
-import com.gemnav.core.location.LocationViewModel
-import com.gemnav.core.navigation.DetourState
-import com.gemnav.core.navigation.TruckPoiState
-import com.gemnav.core.navigation.TruckPoiType
-import com.gemnav.core.shim.RouteDetailsViewModelProvider
+import com.gemnav.app.ui.location.LocationViewModel
+import com.gemnav.data.navigation.DetourState
+import com.gemnav.data.navigation.TruckPoiState
+import com.gemnav.data.navigation.TruckPoiType
+import com.gemnav.app.ui.providers.RouteDetailsViewModelProvider
 import com.gemnav.core.voice.VoiceFeedbackManager
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.LatLng
@@ -30,7 +30,7 @@ import com.gemnav.data.route.WarningSeverity
 
 @Composable
 fun RouteDetailsScreen(
-    navController: NavController,
+    @Suppress("UNUSED_PARAMETER") navController: NavController,
     id: String,
     destinationProvider: (String) -> Destination? = { null }
 ) {
@@ -1198,7 +1198,7 @@ private fun TruckPoiButton(
  */
 @Composable
 private fun TruckPoiResultCard(
-    result: com.gemnav.core.navigation.TruckPoiResult,
+    result: TruckPoiResult,
     detourState: DetourState,
     onAddStop: () -> Unit,
     onDismiss: () -> Unit

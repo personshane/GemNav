@@ -9,7 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.shim.GeminiShim
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.core.subscription.TierManager
 import com.gemnav.core.voice.SpeechRecognizerManager
 import com.gemnav.data.ai.*

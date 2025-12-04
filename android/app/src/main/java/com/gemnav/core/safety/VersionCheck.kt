@@ -1,4 +1,4 @@
-package com.gemnav.core.shim
+package com.gemnav.core.safety
 
 import android.util.Log
 

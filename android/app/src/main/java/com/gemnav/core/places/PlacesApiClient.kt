@@ -3,7 +3,7 @@ package com.gemnav.core.places
 import android.util.Log
 import com.gemnav.app.BuildConfig
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.core.subscription.TierManager
 import com.gemnav.data.ai.POIFilters
 import com.gemnav.data.ai.POIType

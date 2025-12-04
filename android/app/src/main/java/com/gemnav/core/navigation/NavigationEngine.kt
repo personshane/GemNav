@@ -2,7 +2,7 @@ package com.gemnav.core.navigation
 
 import android.util.Log
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow

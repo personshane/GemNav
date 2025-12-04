@@ -6,6 +6,7 @@ import com.gemnav.core.here.HereEngineManager
 import com.gemnav.core.here.TruckConfig
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.*
+import com.gemnav.core.safety.SafeModeManager
 
 /**
  * HereShim - Safe wrapper for HERE SDK commercial truck routing.

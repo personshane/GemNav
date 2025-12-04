@@ -1,4 +1,4 @@
-package com.gemnav.core.maps.google
+package com.gemnav.data.maps
 
 import com.gemnav.data.route.LatLng
 

@@ -1,8 +1,8 @@
-package com.gemnav.core.shim
+package com.gemnav.app.ui.providers
 
-import com.gemnav.core.navigation.AiVoiceEvent
-import com.gemnav.core.navigation.SelectedPoi
-import com.gemnav.core.navigation.TruckPoi
+import com.gemnav.data.navigation.AiVoiceEvent
+import com.gemnav.data.navigation.SelectedPoi
+import com.gemnav.data.navigation.TruckPoi
 import com.gemnav.data.route.LatLng
 
 /**

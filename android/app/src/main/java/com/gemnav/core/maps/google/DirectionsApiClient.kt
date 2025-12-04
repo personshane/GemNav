@@ -3,8 +3,9 @@ package com.gemnav.core.maps.google
 import android.util.Log
 import com.gemnav.app.BuildConfig
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.data.route.LatLng
+import com.gemnav.data.maps.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject

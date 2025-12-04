@@ -4,7 +4,7 @@ import android.util.Log
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.core.subscription.Tier
 import com.gemnav.core.subscription.TierManager
 

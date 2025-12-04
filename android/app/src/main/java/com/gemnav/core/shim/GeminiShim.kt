@@ -2,18 +2,20 @@ package com.gemnav.core.shim
 
 import android.util.Log
 import com.gemnav.app.BuildConfig
+import com.gemnav.app.ui.providers.RouteDetailsViewModelProvider
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.subscription.TierManager
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.data.ai.*
 import com.gemnav.data.route.LatLng
 import com.gemnav.core.places.PlacesApiClient
 import com.gemnav.core.places.PlacesResult
 import com.gemnav.core.places.PoiTypeMapper
-import com.gemnav.core.navigation.RouteCorridor
-import com.gemnav.core.navigation.SelectedPoi
-import com.gemnav.core.navigation.AiVoiceEvent
-import com.gemnav.core.navigation.TruckPoi
-import com.gemnav.core.navigation.TruckPoiType
+import com.gemnav.core.utils.RouteCorridor
+import com.gemnav.data.navigation.SelectedPoi
+import com.gemnav.data.navigation.AiVoiceEvent
+import com.gemnav.data.navigation.TruckPoi
+import com.gemnav.data.navigation.TruckPoiType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
@@ -195,10 +197,8 @@ object GeminiShim {
         
         return try {
             // TODO: Replace with actual Gemini API call
-            // Build classification prompt
-            val classificationPrompt = buildClassificationPrompt(rawInput)
-            
-            // TODO: Send to Gemini API
+            // TODO: Build classification prompt and send to Gemini API
+            // val classificationPrompt = buildClassificationPrompt(rawInput)
             // val response = geminiApiClient.generate(classificationPrompt)
             
             // Stub: Use heuristic classification until API is connected
@@ -489,12 +489,7 @@ object GeminiShim {
     ): IntentResolutionResult {
         val origin = currentLocation ?: LatLng(33.4484, -112.0740) // Phoenix default
         
-        // TODO: Geocode destination to coordinates
-        // For now, generate stub coordinates
-        val destCoords = intent.destinationCoords ?: LatLng(
-            origin.latitude + 0.05,
-            origin.longitude + 0.05
-        )
+        // TODO: Geocode destination to coordinates (currently unused)
         
         val isTruck = TierManager.isPro() // Pro tier can use truck mode
         

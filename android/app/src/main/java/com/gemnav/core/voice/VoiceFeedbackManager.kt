@@ -3,7 +3,7 @@ package com.gemnav.core.voice
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.util.Log
-import com.gemnav.core.navigation.AiVoiceEvent
+import com.gemnav.data.navigation.AiVoiceEvent
 import java.util.Locale
 
 /**

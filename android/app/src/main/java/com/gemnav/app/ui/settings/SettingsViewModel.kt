@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.shim.HereShim
-import com.gemnav.core.shim.SafeModeManager
-import com.gemnav.core.shim.VersionCheck
+import com.gemnav.core.safety.SafeModeManager
+import com.gemnav.core.safety.VersionCheck
 import com.gemnav.core.subscription.Tier
 import com.gemnav.core.subscription.TierManager
 import kotlinx.coroutines.flow.MutableStateFlow

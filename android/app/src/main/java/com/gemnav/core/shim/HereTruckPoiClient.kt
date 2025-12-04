@@ -3,11 +3,12 @@ package com.gemnav.core.shim
 import android.util.Log
 import com.gemnav.app.BuildConfig
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.core.navigation.RouteCorridor
-import com.gemnav.core.navigation.TruckPoi
-import com.gemnav.core.navigation.TruckPoiResult
-import com.gemnav.core.navigation.TruckPoiType
+import com.gemnav.core.utils.RouteCorridor
+import com.gemnav.data.navigation.TruckPoi
+import com.gemnav.data.navigation.TruckPoiResult
+import com.gemnav.data.navigation.TruckPoiType
 import com.gemnav.data.route.LatLng
+import com.gemnav.core.safety.SafeModeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject

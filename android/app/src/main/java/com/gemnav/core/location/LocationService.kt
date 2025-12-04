@@ -9,7 +9,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.data.route.LatLng
 import com.google.android.gms.location.*
 

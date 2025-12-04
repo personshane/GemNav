@@ -22,8 +22,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.core.location.LocationViewModel
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.app.ui.location.LocationViewModel
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.core.subscription.Tier
 import com.gemnav.core.subscription.TierManager
 import com.gemnav.core.subscription.displayName
@@ -34,7 +34,7 @@ import com.gemnav.core.subscription.priceString
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    viewModel: SettingsViewModel = viewModel()
+    @Suppress("UNUSED_PARAMETER") viewModel: SettingsViewModel = viewModel()
 ) {
     val currentTier by TierManager.currentTier.collectAsState()
     val featureSummary = FeatureGate.getFeatureSummary()

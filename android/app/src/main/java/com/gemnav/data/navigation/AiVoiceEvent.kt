@@ -1,4 +1,4 @@
-package com.gemnav.core.navigation
+package com.gemnav.data.navigation
 
 /**
  * MP-024: Voice event types for POI and detour feedback.

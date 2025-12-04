@@ -6,8 +6,8 @@ import com.gemnav.core.here.HereEngineManager
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.MapsShim
-import com.gemnav.core.shim.SafeModeManager
-import com.gemnav.core.shim.VersionCheck
+import com.gemnav.core.safety.SafeModeManager
+import com.gemnav.core.safety.VersionCheck
 import com.gemnav.core.subscription.BillingClientManager
 import com.gemnav.core.subscription.TierManager
 import dagger.hilt.android.HiltAndroidApp

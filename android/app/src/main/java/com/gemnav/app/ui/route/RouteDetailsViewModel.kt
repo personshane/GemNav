@@ -7,21 +7,21 @@ import com.gemnav.data.models.Destination
 import com.gemnav.core.feature.FeatureGate
 import com.gemnav.core.here.TruckConfig
 import com.gemnav.core.maps.google.DirectionsApiClient
-import com.gemnav.core.maps.google.DirectionsResult
+import com.gemnav.data.maps.DirectionsResult
 import com.gemnav.core.navigation.NavigationEngine
-import com.gemnav.core.navigation.AiVoiceEvent
-import com.gemnav.core.navigation.DetourInfo
-import com.gemnav.core.navigation.DetourState
-import com.gemnav.core.navigation.SelectedPoi
-import com.gemnav.core.navigation.TruckPoi
-import com.gemnav.core.navigation.TruckPoiState
-import com.gemnav.core.navigation.TruckPoiType
+import com.gemnav.data.navigation.AiVoiceEvent
+import com.gemnav.data.navigation.DetourInfo
+import com.gemnav.data.navigation.DetourState
+import com.gemnav.data.navigation.SelectedPoi
+import com.gemnav.data.navigation.TruckPoi
+import com.gemnav.data.navigation.TruckPoiState
+import com.gemnav.data.navigation.TruckPoiType
 import com.gemnav.core.shim.GeminiShim
 import com.gemnav.core.shim.HereShim
 import com.gemnav.core.shim.HereTruckPoiClient
 import com.gemnav.core.shim.MapsShim
-import com.gemnav.core.shim.RouteDetailsViewModelProvider
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.app.ui.providers.RouteDetailsViewModelProvider
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.core.subscription.TierManager
 import com.gemnav.data.ai.*
 import com.gemnav.data.navigation.*
@@ -279,7 +279,7 @@ class RouteDetailsViewModel : ViewModel() {
         // Get current route info
         val currentOrigin = _origin.value ?: return null
         val currentDestination = _destination.value ?: return null
-        val truckConfig = _currentTruckConfig.value ?: return null
+        val truckConfig = _currentTruckConfig.value
         
         // Convert Destination to LatLng
         val originLatLng = LatLng(currentOrigin.latitude, currentOrigin.longitude)
@@ -348,8 +348,6 @@ class RouteDetailsViewModel : ViewModel() {
      */
     fun onTruckStopConfirmed() {
         val poi = pendingTruckPoi ?: return
-        val currentDestination = _destination.value ?: return
-        val truckConfig = _currentTruckConfig.value ?: return
         
         // Add POI as waypoint
         val waypoint = Destination(
@@ -386,7 +384,7 @@ class RouteDetailsViewModel : ViewModel() {
         val origin = _origin.value ?: return
         val destination = _destination.value ?: return
         val waypoints = _waypoints.value
-        val truckConfig = _currentTruckConfig.value ?: return
+        val truckConfig = _currentTruckConfig.value
         
         _routeState.value = RouteState.Loading
         
@@ -761,7 +759,8 @@ class RouteDetailsViewModel : ViewModel() {
         // Trigger route recalculation
         viewModelScope.launch {
             val location = _currentUserLocation.value ?: return@launch
-            val dest = _destination.value ?: return@launch
+            // Ensure we have a destination before recalculating
+            _destination.value ?: return@launch
             
             // Update origin to current location
             _origin.value = Destination(

@@ -2,8 +2,10 @@ package com.gemnav.core.shim
 
 import android.util.Log
 import com.gemnav.core.maps.google.*
+import com.gemnav.data.maps.*
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.LatLng
+import com.gemnav.core.safety.SafeModeManager
 
 /**
  * MapsShim - Safe wrapper for all Google Maps SDK interactions.

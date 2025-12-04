@@ -19,7 +19,7 @@ import androidx.navigation.NavController
 import com.gemnav.app.ui.common.SafeModeBanner
 import com.gemnav.app.ui.voice.VoiceButton
 import com.gemnav.app.ui.voice.VoiceButtonState
-import com.gemnav.core.location.LocationViewModel
+import com.gemnav.app.ui.location.LocationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.gemnav.app.BuildConfig
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.data.navigation.NavStep
 import com.gemnav.data.route.LatLng
 import com.google.android.gms.maps.CameraUpdateFactory

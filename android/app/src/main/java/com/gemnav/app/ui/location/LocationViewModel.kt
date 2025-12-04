@@ -1,10 +1,11 @@
-package com.gemnav.core.location
+package com.gemnav.app.ui.location
 
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import com.gemnav.core.feature.FeatureGate
-import com.gemnav.core.shim.SafeModeManager
+import com.gemnav.core.location.LocationService
+import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.data.route.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

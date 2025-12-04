@@ -1,4 +1,4 @@
-package com.gemnav.core.navigation
+package com.gemnav.data.navigation
 
 import com.gemnav.core.places.PlaceResult
 import com.gemnav.data.route.LatLng
