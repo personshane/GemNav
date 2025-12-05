@@ -9,6 +9,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import com.gemnav.app.databinding.FragmentTripDetailsBinding
 import com.gemnav.app.trips.RouteOverlayModel
+import com.gemnav.app.trips.LiveTripController
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -28,6 +29,9 @@ class TripDetailsFragment : Fragment() {
     private val viewModel: TripDetailsViewModel by viewModels()
 
     private var map: GoogleMap? = null
+    private var liveTrip: LiveTripController? = null
+    private var mapPolyline: com.google.android.gms.maps.model.Polyline? = null
+    private var autoFollowCamera = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -60,6 +64,16 @@ class TripDetailsFragment : Fragment() {
             renderRoute()
         }
 
+        binding.buttonStartTrip.setOnClickListener {
+            autoFollowCamera = true
+            startLiveTrip()
+        }
+
+        binding.buttonStopTrip.setOnClickListener {
+            stopLiveTrip()
+            autoFollowCamera = false
+        }
+
         viewModel.trip.collectInLifecycle(viewLifecycleOwner) { trip ->
             if (trip != null) {
                 binding.textTripId.text = "Trip ID: ${trip.id}"
@@ -72,6 +86,36 @@ class TripDetailsFragment : Fragment() {
         viewModel.route.collectInLifecycle(viewLifecycleOwner) { overlay ->
             if (overlay != null) renderRoute()
         }
+    }
+
+    private fun startLiveTrip() {
+        liveTrip = LiveTripController(requireContext())
+
+        liveTrip?.start { poly, dist ->
+            if (map == null) return@start
+
+            val gMap = map!!
+
+            // remove previous polyline
+            mapPolyline?.remove()
+
+            // add updated polyline
+            mapPolyline = gMap.addPolyline(poly)
+
+            // camera follow mode
+            if (autoFollowCamera && poly.points.isNotEmpty()) {
+                val last = poly.points.last()
+                gMap.animateCamera(CameraUpdateFactory.newLatLng(last))
+            }
+
+            // Update UI distance if needed
+            binding.textDistanceLive?.text = String.format("%.2f km", dist / 1000.0)
+        }
+    }
+
+    private fun stopLiveTrip() {
+        liveTrip?.stop()
+        liveTrip = null
     }
 
     private fun renderRoute() {
