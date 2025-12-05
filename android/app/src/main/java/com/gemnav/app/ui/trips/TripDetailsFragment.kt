@@ -15,6 +15,8 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.gemnav.app.R
 
 class TripDetailsFragment : Fragment() {
 
@@ -68,16 +70,33 @@ class TripDetailsFragment : Fragment() {
 
         val points = polyline.points
         if (points.isNotEmpty()) {
-            // Start marker
-            gMap.addMarker(MarkerOptions().position(points.first()).title("Start"))
-            // End marker
-            gMap.addMarker(MarkerOptions().position(points.last()).title("End"))
+            val startIcon = BitmapDescriptorFactory.fromResource(R.drawable.start_marker)
+            val endIcon = BitmapDescriptorFactory.fromResource(R.drawable.end_marker)
+
+            gMap.addMarker(
+                MarkerOptions()
+                    .position(points.first())
+                    .title("Start")
+                    .icon(startIcon)
+            )
+
+            gMap.addMarker(
+                MarkerOptions()
+                    .position(points.last())
+                    .title("End")
+                    .icon(endIcon)
+            )
 
             val bounds = LatLngBounds.builder().apply {
                 points.forEach { include(it) }
             }.build()
 
-            gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100))
+            val update = CameraUpdateFactory.newLatLngBounds(bounds, 150)
+            gMap.animateCamera(update)
+
+            gMap.uiSettings.isZoomControlsEnabled = false
+            gMap.uiSettings.isMapToolbarEnabled = false
+            gMap.uiSettings.isCompassEnabled = false
         }
     }
 
