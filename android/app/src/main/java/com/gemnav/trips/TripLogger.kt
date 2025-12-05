@@ -5,6 +5,7 @@ import android.location.Location
 import com.gemnav.data.db.DatabaseProvider
 import com.gemnav.data.db.entities.TripLogEntity
 import com.gemnav.location.LocationRepository
+import com.gemnav.utils.PolylineEncoder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,13 +54,15 @@ class TripLogger(private val context: Context) {
 
         val endTime = System.currentTimeMillis()
 
+        val encoded = PolylineEncoder.encodePath(pathPoints)
+
         scope.launch {
             db.tripLogDao().insertTrip(
                 TripLogEntity(
                     startTimestamp = tripStartTime,
                     endTimestamp = endTime,
                     distanceMeters = distanceMeters,
-                    encodedPath = "UNENCODED" // placeholder until MP-020
+                    encodedPath = encoded
                 )
             )
         }
