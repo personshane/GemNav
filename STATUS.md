@@ -253,3 +253,139 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
 **Build**: assembleDebug passed (4s, 40 tasks)
 **Commit**: 5d55e86
 **Next**: MP-021 (Trip history UI with polyline decoding)
+
+
+---
+
+## MP-021: Trip Summary Backend
+**Status**: ✅ COMPLETE
+**Files Created**: 2
+- trips/TripSummary.kt - Data transfer object for trip summaries
+- trips/TripSummaryProvider.kt - Backend bridge from Room queries to UI
+**Commit**: 7775ef9
+**Next**: MP-022 (Trip decoding + UI display models)
+
+---
+
+## MP-022: Polyline Decoding + UI Display Models
+**Status**: ✅ COMPLETE
+**Files Created**: 3
+- utils/PolylineDecoder.kt - Decode Google polyline format to LatLng
+- trips/TripDisplayModel.kt - UI-ready trip data with formatted text
+- trips/TripDisplayMapper.kt - Convert TripSummary to TripDisplayModel
+**Commit**: 58f5df6
+**Next**: MP-023 (Trip History UI with RecyclerView)
+
+---
+
+## MP-023.FIX: UI Dependencies & DataBinding Configuration
+**Status**: ✅ COMPLETE
+**Files Created**: 6
+- app/ui/trips/TripHistoryFragment.kt - Fragment-based trip history list
+- app/ui/trips/TripHistoryViewModel.kt - ViewModel with Flow-based data
+- app/ui/trips/TripHistoryAdapter.kt - RecyclerView adapter
+- app/ui/trips/FlowExtensions.kt - Flow-to-LiveData utilities
+- res/layout/fragment_trip_history.xml - History list layout
+- res/layout/item_trip_row.xml - Individual trip row layout
+**Files Modified**: build.gradle.kts (DataBinding enabled, UI dependencies added)
+**Build**: assembleDebug passed after dependency fixes
+**Commit**: f6200ce
+**Next**: MP-024 (Navigation to details screen)
+
+---
+
+## MP-024: Trip Navigation + TripDetailsFragment
+**Status**: ✅ COMPLETE
+**Files Created**: 3
+- app/ui/trips/TripDetailsFragment.kt - Details screen with arguments
+- res/layout/fragment_trip_details.xml - Details layout with map placeholder
+- res/navigation/nav_graph.xml - Safe Args navigation configuration
+**Files Modified**: 5 files relocated to app/ui/trips namespace
+**Files Modified**: build.gradle.kts (Safe Args plugin added)
+**Commit**: e02a29a
+**Next**: MP-025 (Connect real trip data)
+
+---
+
+## MP-025: TripDetailsViewModel + Real Trip Data
+**Status**: ✅ COMPLETE
+**Files Created**: app/ui/trips/TripDetailsViewModel.kt - ViewModel with trip loading
+**Files Modified**: 
+- TripDetailsFragment.kt - Connected to ViewModel
+- TripLogDao.kt - Added getTripById query
+- fragment_trip_details.xml - Data binding setup
+**Commit**: 08f8d42
+**Next**: MP-026 (Route overlay backend)
+
+---
+
+## MP-026: Trip Route Overlay Backend
+**Status**: ✅ COMPLETE
+**Files Created**: 2
+- trips/RouteOverlayModel.kt - Route rendering data model
+- app/utils/PolylineMapper.kt - Polyline to LatLng conversion
+**Files Modified**: TripDetailsViewModel.kt (Added route overlay data mapping)
+**Commit**: 82629b8
+**Next**: MP-027 (Google Maps rendering)
+
+---
+
+## MP-027: Google Maps Route Rendering
+**Status**: ✅ COMPLETE
+**Files Modified**: 
+- TripDetailsFragment.kt - GoogleMap initialization, polyline rendering
+- fragment_trip_details.xml - Added MapView component
+**Commit**: bf6b9de
+**Next**: MP-028 (Enhanced visualization)
+
+---
+
+## MP-028: Enhanced Route Visualization
+**Status**: ✅ COMPLETE
+**Files Created**: 2
+- res/drawable/start_marker.xml - Custom start point marker
+- res/drawable/end_marker.xml - Custom end point marker
+**Files Modified**: 
+- TripDetailsFragment.kt - Added markers, polyline styling
+- PolylineMapper.kt - Enhanced polyline generation
+**Commit**: b8cbbe1
+**Next**: MP-029 (Interactive controls)
+
+---
+
+## MP-029: Interactive Map Controls + Dark Mode
+**Status**: ✅ COMPLETE
+**Files Created**: 2
+- res/raw/map_style_dark.json - Dark mode map theme
+- res/raw/map_style_light.json - Light mode map theme
+**Files Modified**: 
+- TripDetailsFragment.kt - Zoom, recenter, map styling
+- fragment_trip_details.xml - Control buttons added
+**Commit**: 593050d
+**Next**: MP-030 (Live trip tracking)
+
+---
+
+## MP-030: Live Trip Mode (Real-time Tracking)
+**Status**: ✅ COMPLETE
+**Files Created**: app/trips/LiveTripController.kt - Real-time location tracking, polyline updates
+**Files Modified**: 
+- TripDetailsFragment.kt - Start/Stop controls, live distance display
+- fragment_trip_details.xml - Live trip UI controls
+**Commit**: fb2615e + 21b2ca9 + cd73d8f (3 incremental updates)
+**Next**: MP-031 (Map theme toggle)
+
+---
+
+## MP-031: Map Theme Toggle (Dark/Light Mode)
+**Status**: ✅ COMPLETE
+**Files Created**: app/MapThemePreferences.kt - SharedPreferences-based theme persistence
+**Files Modified**: 
+- TripDetailsFragment.kt - Theme toggle button, preference integration
+- fragment_trip_details.xml - Theme toggle UI
+- app/trips/LiveTripController.kt - Theme-aware live tracking (duplicate removed in merge)
+**Commit**: 1316ef9 + 7ea470c (merge resolution)
+**Build**: assembleDebug verified passing
+**Current Status**: All code synchronized to GitHub
+
+**Next**: Awaiting next micro-project instruction
