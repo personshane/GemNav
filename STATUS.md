@@ -1,6 +1,6 @@
 ## PROJECT STATUS — GEMNAV
 
-Last Updated: 2025-11-25
+Last Updated: 2025-12-05
 
 ---
 
@@ -15,27 +15,19 @@ Last Updated: 2025-11-25
 
 ## COMPLETED MICRO-PROJECTS
 
-### MP-001 through MP-025 ✅
-Core infrastructure, UI components, voice commands, navigation engines, tier systems, HERE SDK integration, compilation fixes.
+### MP-001 through MP-031 ✅
+Core infrastructure, UI components, voice commands, navigation engines, tier systems, HERE SDK integration, compilation fixes, trip logging system with map visualization, live tracking, theme toggle.
 
-### MP-A02-1A: ANDROID FILE RELOCATION ✅ (2025-11-25)
-Moved all Kotlin files to src/main/java hierarchy. 4,400+ lines relocated. Build verified.
-
-### MP-A02-1B: iOS FILE REMOVAL ✅ (2025-11-25)
-Deleted entire ios/ directory (39+ files). Project now 100% Android-only.
-
-### R19: LEGACY DIRECTORY CLEANUP ✅ (2025-11-25)
-Verified 7 legacy directories (api, core, di, main_flow, navigation, search, voice) already removed. Build passing.
+### MP-032: TruckProfile Persistence Bug Fix + Measurement Rounding (2025-12-05) ✅
+Fixed critical persistence bug where only truck name and measurement preferences were saving. Root causes: ViewModel Observer interference, SharedPreferences.apply() async writes, missing enum parsing, XML ID mismatches. Applied fixes: changed to .commit() for synchronous writes, removed Observer, added try-catch enum parsing, fixed XML IDs, added measurement rounding (1 decimal metric, whole numbers imperial). All 11 profile fields now persist correctly. Committed c8451698 to personshane/GemNav.
 
 ---
 
 ## NEXT TASKS
 
-**MP-A02-2**: File relocation completion verification  
-**MP-026**: Multiple truck POI results display  
-**MP-027**: Real HERE SDK integration (replace mocks)  
-**MP-028**: Truck profile settings UI  
-**MP-029**: iOS truck POI implementation
+**MP-033**: Route Planning Integration with TruckProfile constraints  
+**MP-034**: Real HERE SDK routing with truck profile  
+**MP-035**: Truck POI results display
 
 ---
 
@@ -52,6 +44,7 @@ Verified 7 legacy directories (api, core, di, main_flow, navigation, search, voi
 - Complete HERE/Google data separation
 - Voice command processing (tier-aware)
 - Permission management (location, voice, billing)
+- TruckProfile with SharedPreferences persistence
 
 ---
 
@@ -68,80 +61,54 @@ Verified 7 legacy directories (api, core, di, main_flow, navigation, search, voi
 **Development Environment**:
 - Windows + PowerShell
 - Android Studio
-- GitHub: personshane/GemNav
+- GitHub: personshane/GemNav (main branch)
 - Local: C:\Users\perso\GemNav
 
 ---
 
-## GIT PROTOCOL
+## MP-032: TruckProfile Persistence Bug Fix + Measurement Rounding (2025-12-05)
 
-**CRITICAL**: Always execute before commits:
-1. `git fetch origin main`
-2. `git pull origin main`
-3. Verify no conflicts
-4. Then commit + push
+**Status**: ✅ COMPLETE
 
-See RECOVERY_PROTOCOL.md for conflict resolution.
+**Problem**: Only truck name and measurement system preferences were saving. All other fields (height, width, length, weight, axles, hazmat class, truck type, route switches) reverted to defaults after save.
 
----
+**Root Causes Identified**:
+1. ViewModel Observer interference - Resetting UI fields immediately after every update
+2. SharedPreferences.apply() asynchronous writes - Data not guaranteed to persist
+3. Missing try-catch for enum valueOf() calls
+4. XML ID mismatches between layout and fragment code
 
-## MP-A02-1B: iOS FILE REMOVAL ✅ COMPLETE (2025-11-25)
+**Fixes Applied**:
+1. **TruckProfileStorage.kt**:
+   - Changed all .apply() to .commit() for synchronous SharedPreferences writes
+   - Added try-catch blocks for enum parsing (HazmatClass, TruckType)
+   - Safe enum loading with fallback defaults
 
-**Objective**: Remove all iOS files, switch to Android-only mode
-
-**Execution**:
-- Phase 1: Deleted entire ios/ directory (29+ files)
-- Phase 2: Deleted iOS documentation + backups (10 files)
-- Total removed: 39+ iOS-related files
-- Build verified: ✅ assembleDebug successful (2.1s)
-
-**Result**: Project now 100% Android-only (Kotlin + Android SDK)
-
-**Files**:
-- Report: MP-A02-1B-iOS-Removal-REPORT.md
-
-**Next**: MP-A02-2 (File Relocation)
-
----
-
-## R19: LEGACY DIRECTORY CLEANUP ✅ COMPLETE (2025-11-25)
-
-**Objective**: Delete empty legacy directories outside src/main/java
-
-**Verification**:
-- Checked 7 directories: api, core, di, main_flow, navigation, search, voice
-- Result: All already non-existent (previously cleaned)
-- Build status: ✅ assembleDebug passing (1s)
-
-**No changes required**: Working tree clean
-
----
-## MP-016: API KEYS CONFIGURATION ✅ COMPLETE (2025-12-04)
-
-**Objective**: Configure all API keys in build system for runtime access
-
-**Implementation**:
-- Added 3 API keys to local.properties (HERE, Google Maps, Gemini)
-- Updated build.gradle.kts with correct Kotlin DSL property loading
-- Mapped 3 physical keys to 5 BuildConfig fields:
-  * HERE_API_KEY & HERE_MAP_KEY → both use here_api_key
-  * GOOGLE_MAPS_API_KEY & GOOGLE_PLACES_API_KEY → both use google_maps_api_key
-  * GEMINI_API_KEY → uses gemini_api_key
-
-**Validation**:
-- BuildConfig.java generated successfully with all 5 fields
-- All keys accessible at runtime via BuildConfig constants
-- Build successful: assembleDebug (4m 26s)
-- 3 compilation warnings (non-blocking)
+2. **TruckProfileFragment.kt**:
+   - Removed ViewModel Observer that was causing field resets
+   - Changed to direct manager.getProfile() call once on startup
+   - Fixed XML ID references (switch_avoid_* vs avoid_*_switch)
+   - Added measurement rounding:
+     - Metric: 1 decimal place (roundToOne helper)
+     - Imperial: Whole numbers (roundToInt)
+   - Applied rounding to both initial load and unit conversion
 
 **Files Modified**:
-- android/app/build.gradle.kts (+4 -4 lines)
-- android/local.properties (3 keys added)
+- android/app/src/main/java/com/gemnav/app/truck/data/TruckProfileStorage.kt
+- android/app/src/main/java/com/gemnav/app/truck/ui/TruckProfileFragment.kt
 
-**Commit**: 183ff6b
+**Testing Results**:
+- ✅ All 11 profile fields persist correctly
+- ✅ Measurements display rounded (4.0m, 13ft, 2.5m, 8ft, etc.)
+- ✅ Enums (HazmatClass, TruckType) save/load without errors
+- ✅ Route preference switches persist
+- ✅ Unit preference persists across app restarts
 
-**Next**: MP-017 (Dependencies & Permissions Audit)
+**Build**: assembleDebug SUCCESSFUL in 14s
+**Installation**: Device R9PT5126L1P - SUCCESS
+**GitHub**: Committed c8451698 to personshane/GemNav
 
+<<<<<<< HEAD
 ---
 
 ## MP-017.1: DEPENDENCIES & PERMISSIONS AUDIT ✅ COMPLETE (2025-12-04)
@@ -431,57 +398,7 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
 - [ ] 6. Verify no crash if no profile exists (defaults work)
 - [ ] 7. Commit: "Add Pro Truck Profile + Routing Constraints integration (ChatGPT Feature Pack v1)"
 
-**Next**: Execute testing checklist, verify persistence & routing, commit to GitHub
-
-
----
-
-## MP-032: Truck Profile UI/UX Refinement & Persistence Fix (2024-12-05)
-
-**Status**: ✅ COMPLETE
-
-**Changes**:
-1. **UI Visibility Fixes**:
-   - Created spinner_item.xml + spinner_dropdown_item.xml with black text on white/gray backgrounds
-   - Fixed spinner dropdowns (hazmat class, truck type) - now clearly readable
-   - Fixed switch visibility with better drawables and 56dp minimum width
-   - Updated layout with white background, larger text (16-24sp), bold labels
-
-2. **Unit Conversion System**:
-   - Added Metric/Imperial toggle (RadioGroup at top of form)
-   - Automatic conversion: 1m = 3.28084ft, 1 ton = 2204.62 lbs
-   - Labels update dynamically based on unit selection
-   - Values convert in real-time when switching units
-   - Unit preference persisted to SharedPreferences (KEY_IS_METRIC)
-
-3. **Storage Enhancements**:
-   - Added TruckProfileStorage.saveUnitPreference() + getUnitPreference()
-   - Added TruckProfileManager wrapper methods for unit preference
-   - Fragment loads saved unit preference on init
-   - All fields now confirmed saving: name, measurements, hazmat, truck type, route preferences, unit system
-
-4. **Files Modified**:
-   - TruckProfileStorage.kt - Added unit preference methods + KEY_IS_METRIC
-   - TruckProfileManager.kt - Exposed unit preference API
-   - TruckProfileFragment.kt - Load/save unit preference, dynamic label updates, conversion logic
-   - fragment_truck_profile.xml - Added RadioGroup for unit selection, IDs for dynamic labels
-   - spinner_item.xml - Gray background, black text for closed spinner
-   - spinner_dropdown_item.xml - White background, black text for dropdown list
-
-**Testing Results**:
-- ✅ Unit toggle works (Metric ↔ Imperial)
-- ✅ All fields editable and visible
-- ✅ Spinners show options clearly in dropdown
-- ✅ Switches have visible on/off states
-- ✅ Save button persists all data including unit preference
-- ✅ App restart preserves all values
-
-**Build**: assembleDebug SUCCESSFUL in 7s
-**Installation**: Device R9PT5126L1P confirmed successful
-
-**Next**: User validation, final commit to GitHub with message:
-"Add Pro Truck Profile + Routing Constraints integration + UI/UX refinement (ChatGPT Feature Pack v1)"
-
+**Next**: MP-033 - Route Planning Integration with TruckProfile constraints
 
 ---
 
@@ -507,14 +424,13 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
    - Removed ViewModel Observer that was causing field resets
    - Changed to direct manager.getProfile() call once on startup
    - Fixed XML ID references (switch_avoid_* vs avoid_*_switch)
-   - Added measurement rounding:
-     - Metric: 1 decimal place (roundToOne helper)
-     - Imperial: Whole numbers (roundToInt)
-   - Applied rounding to both initial load and unit conversion
+   - Added measurement rounding (1 decimal metric, whole numbers imperial)
+   - Unit conversion system with RadioGroup toggle
 
 **Files Modified**:
-- android/app/src/main/java/com/gemnav/app/truck/data/TruckProfileStorage.kt
-- android/app/src/main/java/com/gemnav/app/truck/ui/TruckProfileFragment.kt
+- TruckProfileStorage.kt, TruckProfileFragment.kt, TruckProfileManager.kt
+- fragment_truck_profile.xml, spinner_item.xml, spinner_dropdown_item.xml, strings_truck.xml
+- Complete truck subsystem (model, domain, data, ui layers)
 
 **Testing Results**:
 - ✅ All 11 profile fields persist correctly
@@ -525,6 +441,4 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
 
 **Build**: assembleDebug SUCCESSFUL in 14s
 **Installation**: Device R9PT5126L1P - SUCCESS
-**GitHub**: Committed e391a5c - "Fix TruckProfile persistence + add measurement rounding"
-
-**Next**: MP-033 - Route Planning Integration with TruckProfile constraints
+**GitHub**: Committed 1685351 - Complete TruckProfile feature integration
