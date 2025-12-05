@@ -16,6 +16,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.gemnav.app.R
 
 class TripDetailsFragment : Fragment() {
@@ -43,7 +44,20 @@ class TripDetailsFragment : Fragment() {
         binding.mapView.onCreate(savedInstanceState)
         binding.mapView.getMapAsync { gMap ->
             map = gMap
+            
+            // Apply dark/light mode style
+            val isDark = resources.configuration.uiMode and 
+                         android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                         android.content.res.Configuration.UI_MODE_NIGHT_YES
+            
+            val style = if (isDark) R.raw.map_style_dark else R.raw.map_style_light
+            gMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), style))
+            
             renderRoute() // if route already loaded
+        }
+
+        binding.buttonRecenter.setOnClickListener {
+            renderRoute()
         }
 
         viewModel.trip.collectInLifecycle(viewLifecycleOwner) { trip ->
@@ -70,6 +84,16 @@ class TripDetailsFragment : Fragment() {
 
         val points = polyline.points
         if (points.isNotEmpty()) {
+            // Enable all map gestures
+            gMap.uiSettings.apply {
+                isZoomControlsEnabled = true
+                isZoomGesturesEnabled = true
+                isScrollGesturesEnabled = true
+                isRotateGesturesEnabled = true
+                isTiltGesturesEnabled = true
+                isCompassEnabled = true
+            }
+            
             val startIcon = BitmapDescriptorFactory.fromResource(R.drawable.start_marker)
             val endIcon = BitmapDescriptorFactory.fromResource(R.drawable.end_marker)
 
@@ -78,6 +102,8 @@ class TripDetailsFragment : Fragment() {
                     .position(points.first())
                     .title("Start")
                     .icon(startIcon)
+                    .anchor(0.5f, 1f)
+                    .zIndex(10f)
             )
 
             gMap.addMarker(
@@ -85,6 +111,8 @@ class TripDetailsFragment : Fragment() {
                     .position(points.last())
                     .title("End")
                     .icon(endIcon)
+                    .anchor(0.5f, 1f)
+                    .zIndex(10f)
             )
 
             val bounds = LatLngBounds.builder().apply {
@@ -93,10 +121,6 @@ class TripDetailsFragment : Fragment() {
 
             val update = CameraUpdateFactory.newLatLngBounds(bounds, 150)
             gMap.animateCamera(update)
-
-            gMap.uiSettings.isZoomControlsEnabled = false
-            gMap.uiSettings.isMapToolbarEnabled = false
-            gMap.uiSettings.isCompassEnabled = false
         }
     }
 

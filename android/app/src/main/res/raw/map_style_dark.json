@@ -1,0 +1,14 @@
+[
+  {
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#202124" }
+    ]
+  },
+  {
+    "elementType": "labels.text.fill",
+    "stylers": [
+      { "color": "#E8EAED" }
+    ]
+  }
+]
