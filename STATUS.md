@@ -244,3 +244,12 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
 **Next**: MP-020.1 (Update TripLogger to use polyline encoder)
 
 ---
+## MP-020.1: TripLogger Polyline Integration
+**Status**: ✅ COMPLETE
+**Files Modified**: trips/TripLogger.kt
+- Added import: com.gemnav.utils.PolylineEncoder
+- Replaced "UNENCODED" with PolylineEncoder.encodePath(pathPoints)
+- Real encoded paths now stored in database
+**Build**: assembleDebug passed (4s, 40 tasks)
+**Commit**: 5d55e86
+**Next**: MP-021 (Trip history UI with polyline decoding)
