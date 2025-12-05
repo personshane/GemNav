@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import com.gemnav.app.databinding.FragmentTripDetailsBinding
+import com.gemnav.app.trips.RouteOverlayModel
 
 class TripDetailsFragment : Fragment() {
 
@@ -36,6 +37,11 @@ class TripDetailsFragment : Fragment() {
                 binding.textEndTime.text = "End: ${trip.endTimeText}"
                 binding.textDistance.text = "Distance: ${trip.distanceText}"
             }
+        }
+
+        viewModel.route.collectInLifecycle(viewLifecycleOwner) { overlay ->
+            // Map integration happens in MP-027
+            // For now: no-op placeholder
         }
     }
 

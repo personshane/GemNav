@@ -7,6 +7,8 @@ import com.gemnav.data.db.DatabaseProvider
 import com.gemnav.trips.TripDisplayModel
 import com.gemnav.trips.TripSummary
 import com.gemnav.trips.TripDisplayMapper
+import com.gemnav.app.utils.PolylineMapper
+import com.gemnav.app.trips.RouteOverlayModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,6 +21,9 @@ class TripDetailsViewModel(
 
     private val _trip = MutableStateFlow<TripDisplayModel?>(null)
     val trip: StateFlow<TripDisplayModel?> = _trip
+
+    private val _route = MutableStateFlow<RouteOverlayModel?>(null)
+    val route: StateFlow<RouteOverlayModel?> = _route
 
     fun loadTrip(id: Long) {
         viewModelScope.launch {
@@ -34,6 +39,13 @@ class TripDetailsViewModel(
                 val list = listOf(summary)
                 val mapped = TripDisplayMapper.map(getApplication(), list)
                 _trip.value = mapped.firstOrNull()
+
+                // Build route overlay
+                val displayModel = mapped.firstOrNull()
+                if (displayModel != null) {
+                    val polylineOptions = PolylineMapper.toPolylineOptions(displayModel.path)
+                    _route.value = RouteOverlayModel(polylineOptions)
+                }
             }
         }
     }
