@@ -37,6 +37,12 @@
             android:paddingTop="8dp"
             android:textSize="16sp" />
 
+        <com.google.android.gms.maps.MapView
+            android:id="@+id/mapView"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginTop="24dp" />
+
     </LinearLayout>
 
 </layout>

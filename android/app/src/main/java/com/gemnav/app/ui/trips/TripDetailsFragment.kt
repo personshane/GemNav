@@ -9,6 +9,12 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import com.gemnav.app.databinding.FragmentTripDetailsBinding
 import com.gemnav.app.trips.RouteOverlayModel
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.MapView
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MarkerOptions
 
 class TripDetailsFragment : Fragment() {
 
@@ -17,6 +23,8 @@ class TripDetailsFragment : Fragment() {
 
     private val args: TripDetailsFragmentArgs by navArgs()
     private val viewModel: TripDetailsViewModel by viewModels()
+
+    private var map: GoogleMap? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -30,6 +38,12 @@ class TripDetailsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         viewModel.loadTrip(args.tripId)
 
+        binding.mapView.onCreate(savedInstanceState)
+        binding.mapView.getMapAsync { gMap ->
+            map = gMap
+            renderRoute() // if route already loaded
+        }
+
         viewModel.trip.collectInLifecycle(viewLifecycleOwner) { trip ->
             if (trip != null) {
                 binding.textTripId.text = "Trip ID: ${trip.id}"
@@ -40,13 +54,51 @@ class TripDetailsFragment : Fragment() {
         }
 
         viewModel.route.collectInLifecycle(viewLifecycleOwner) { overlay ->
-            // Map integration happens in MP-027
-            // For now: no-op placeholder
+            if (overlay != null) renderRoute()
         }
+    }
+
+    private fun renderRoute() {
+        val gMap = map ?: return
+        val route = viewModel.route.value ?: return
+        val polyline = route.polyline
+
+        gMap.clear()
+        gMap.addPolyline(polyline)
+
+        val points = polyline.points
+        if (points.isNotEmpty()) {
+            // Start marker
+            gMap.addMarker(MarkerOptions().position(points.first()).title("Start"))
+            // End marker
+            gMap.addMarker(MarkerOptions().position(points.last()).title("End"))
+
+            val bounds = LatLngBounds.builder().apply {
+                points.forEach { include(it) }
+            }.build()
+
+            gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100))
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        binding.mapView.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        binding.mapView.onPause()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        binding.mapView.onDestroy()
         _binding = null
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        binding.mapView.onLowMemory()
     }
 }
