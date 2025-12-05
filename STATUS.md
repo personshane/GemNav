@@ -210,3 +210,26 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
 **Next**: MP-020 (Polyline encoding + search history autofill)
 
 ---
+
+## MP-019.CLEAN: File Relocation & Dependency Verification
+**Status**: ✅ COMPLETE
+**Critical Fix**: Moved all MP-018 through MP-019.1 files from wrong location (app/) to correct location (android/app/)
+**Files Relocated**: 10
+- data/db/GemNavDatabase.kt
+- data/db/DatabaseProvider.kt
+- data/db/entities/TripLogEntity.kt
+- data/db/entities/SearchHistoryEntity.kt
+- data/db/TripLogDao.kt
+- data/db/SearchHistoryDao.kt
+- location/LocationService.kt
+- location/LocationPermissionChecker.kt
+- location/LocationRepository.kt
+- trips/TripLogger.kt
+**Room Dependencies**: Already present (confirmed in build.gradle.kts)
+**Build**: assembleDebug passed (41s, 11 tasks executed)
+**Warnings**: 2 non-blocking (schema export, deprecated API)
+**Commit**: f89ff12 + merge 75e7514
+
+**Next**: MP-020 (Polyline encoding + search history autofill)
+
+---
