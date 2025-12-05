@@ -138,7 +138,7 @@ fun SettingsScreen(
             
             // Pro Features (Truck Settings)
             if (currentTier == Tier.PRO) {
-                TruckSettingsSection()
+                TruckSettingsSection(navController)
                 Spacer(modifier = Modifier.height(24.dp))
             }
             
@@ -338,7 +338,7 @@ fun SafeModeCard(onResetClick: () -> Unit) {
 }
 
 @Composable
-fun TruckSettingsSection() {
+fun TruckSettingsSection(navController: NavController) {
     Text(
         text = "Truck Settings",
         style = MaterialTheme.typography.titleMedium,
@@ -348,7 +348,6 @@ fun TruckSettingsSection() {
     
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // TODO: Add truck spec inputs
             Text(
                 text = "Configure your vehicle specifications for accurate routing.",
                 style = MaterialTheme.typography.bodyMedium
@@ -357,7 +356,7 @@ fun TruckSettingsSection() {
             Spacer(modifier = Modifier.height(12.dp))
             
             OutlinedButton(
-                onClick = { /* TODO: Open truck config */ },
+                onClick = { navController.navigate("truckProfile") },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.LocalShipping, contentDescription = null)

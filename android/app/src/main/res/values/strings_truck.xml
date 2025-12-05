@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="truck_profile_title">Truck profile</string>
+    <string name="truck_profile_name_hint">Truck name/label</string>
+    <string name="truck_profile_height_hint">Height (m)</string>
+    <string name="truck_profile_width_hint">Width (m)</string>
+    <string name="truck_profile_length_hint">Length (m)</string>
+    <string name="truck_profile_weight_hint">Weight (tons)</string>
+    <string name="truck_profile_axles_hint">Axle count</string>
+    <string name="truck_profile_hazmat_label">Hazmat class</string>
+    <string name="truck_profile_type_label">Truck type</string>
+    <string name="truck_profile_avoid_tolls">Avoid tolls</string>
+    <string name="truck_profile_avoid_ferries">Avoid ferries</string>
+    <string name="truck_profile_avoid_low_bridges">Avoid low bridges where possible</string>
+    <string name="truck_profile_save_button">Save Truck Profile</string>
+    <string name="truck_profile_saved">Truck profile saved</string>
+    <string name="truck_profile_invalid_numbers">Please enter valid numeric values.</string>
+</resources>

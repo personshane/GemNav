@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/truck_profile_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="#FFFFFF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/truck_profile_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/truck_profile_title"
+            android:textStyle="bold"
+            android:textSize="24sp"
+            android:textColor="#000000"
+            android:paddingBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Measurement System"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingBottom="8dp" />
+
+        <RadioGroup
+            android:id="@+id/unit_radio_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/radio_metric"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Metric (m/kg)"
+                android:textSize="16sp"
+                android:textColor="#000000"
+                android:checked="true"
+                android:paddingEnd="16dp" />
+
+            <RadioButton
+                android:id="@+id/radio_imperial"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Imperial (ft/lbs)"
+                android:textSize="16sp"
+                android:textColor="#000000" />
+
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Truck Name/Label"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="8dp" />
+        
+        <EditText
+            android:id="@+id/truck_name_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/truck_profile_name_hint"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/label_height"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Height (meters)"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="8dp" />
+
+        <EditText
+            android:id="@+id/truck_height_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:hint="e.g., 4.0"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/label_width"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Width (meters)"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="8dp" />
+
+        <EditText
+            android:id="@+id/truck_width_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:hint="e.g., 2.5"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/label_length"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Length (meters)"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="8dp" />
+
+        <EditText
+            android:id="@+id/truck_length_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:hint="e.g., 16.5"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/label_weight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Weight (metric tons)"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="8dp" />
+
+        <EditText
+            android:id="@+id/truck_weight_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:hint="e.g., 40.0"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Number of Axles"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="8dp" />
+
+        <EditText
+            android:id="@+id/truck_axles_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="e.g., 5"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/truck_profile_hazmat_label"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/truck_hazmat_spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#EEEEEE"
+            android:padding="8dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/truck_profile_type_label"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="8dp"
+            android:paddingBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/truck_type_spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#EEEEEE"
+            android:padding="8dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Route Preferences"
+            android:textSize="18sp"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp" />
+
+        <Switch
+            android:id="@+id/switch_avoid_tolls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/truck_profile_avoid_tolls"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:padding="12dp"
+            android:switchMinWidth="56dp"
+            android:thumb="@android:drawable/btn_radio"
+            android:track="@android:drawable/progress_horizontal" />
+
+        <Switch
+            android:id="@+id/switch_avoid_ferries"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/truck_profile_avoid_ferries"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:padding="12dp"
+            android:switchMinWidth="56dp"
+            android:thumb="@android:drawable/btn_radio"
+            android:track="@android:drawable/progress_horizontal" />
+
+        <Switch
+            android:id="@+id/switch_avoid_low_bridges"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/truck_profile_avoid_low_bridges"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:textColorHint="#666666"
+            android:padding="12dp"
+            android:switchMinWidth="56dp"
+            android:thumb="@android:drawable/btn_radio"
+            android:track="@android:drawable/progress_horizontal" />
+
+        <Button
+            android:id="@+id/button_save_truck_profile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/truck_profile_save_button"
+            android:textSize="18sp"
+            android:layout_marginTop="24dp"
+            android:padding="16dp" />
+
+    </LinearLayout>
+</ScrollView>

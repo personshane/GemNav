@@ -1,0 +1,22 @@
+package com.gemnav.app.truck.model
+
+enum class HazmatClass {
+    NONE,
+    CLASS_1_EXPLOSIVES,
+    CLASS_2_GASES,
+    CLASS_3_FLAMMABLE_LIQUIDS,
+    CLASS_4_FLAMMABLE_SOLIDS,
+    CLASS_5_OXIDIZERS,
+    CLASS_6_POISONS,
+    CLASS_7_RADIOACTIVE,
+    CLASS_8_CORROSIVE,
+    CLASS_9_MISC
+}
+
+enum class TruckType {
+    UNKNOWN,
+    STRAIGHT_TRUCK,
+    SEMI_TRACTOR_TRAILER,
+    DOUBLE_TRAILER,
+    TRIPLE_TRAILER
+}

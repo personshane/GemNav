@@ -1,5 +1,6 @@
 package com.gemnav.app.ui.route
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,6 +24,9 @@ import com.gemnav.core.shim.MapsShim
 import com.gemnav.app.ui.providers.RouteDetailsViewModelProvider
 import com.gemnav.core.safety.SafeModeManager
 import com.gemnav.core.subscription.TierManager
+import com.gemnav.app.truck.domain.TruckProfileManager
+import com.gemnav.app.truck.domain.TruckRoutingConstraintBuilder
+import com.gemnav.app.truck.domain.TruckConstraintsConverter
 import com.gemnav.data.ai.*
 import com.gemnav.data.navigation.*
 import com.gemnav.data.route.*
@@ -1149,6 +1153,19 @@ class RouteDetailsViewModel : ViewModel() {
      */
     fun updateTruckConfig(config: TruckConfig) {
         _currentTruckConfig.value = config
+    }
+    
+    /**
+     * Load truck profile from storage and apply it to routing.
+     * Call this before requesting truck routes to ensure constraints are active.
+     */
+    fun loadAndApplyTruckProfile(context: Context) {
+        val profileManager = TruckProfileManager(context)
+        val truckProfile = profileManager.getProfile()
+        val constraints = TruckRoutingConstraintBuilder.fromProfile(truckProfile)
+        val truckConfig = TruckConstraintsConverter.toTruckConfig(constraints)
+        _currentTruckConfig.value = truckConfig
+        Log.i(TAG, "Truck profile loaded: ${truckProfile.name}, height=${truckProfile.heightMeters}m")
     }
     
     /**

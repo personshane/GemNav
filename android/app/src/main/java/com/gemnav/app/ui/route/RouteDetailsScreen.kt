@@ -72,6 +72,11 @@ fun RouteDetailsScreen(
     val context = LocalContext.current
     val voiceManager = remember { VoiceFeedbackManager(context) }
     
+    // Load truck profile on screen init (ChatGPT Feature Pack integration)
+    LaunchedEffect(Unit) {
+        viewModel.loadAndApplyTruckProfile(context)
+    }
+    
     // Feed location updates to navigation engine
     LaunchedEffect(currentLocation) {
         currentLocation?.let { loc ->
