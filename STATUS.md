@@ -143,3 +143,32 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
 **Next**: MP-017 (Dependencies & Permissions Audit)
 
 ---
+
+## MP-017.1: DEPENDENCIES & PERMISSIONS AUDIT ✅ COMPLETE (2025-12-04)
+
+**Objective**: Add missing Room database dependencies and verify required permissions
+
+**Implementation**:
+- Added Room database dependencies to build.gradle.kts:
+  * androidx.room:room-runtime:2.6.1
+  * androidx.room:room-ktx:2.6.1
+  * androidx.room:room-compiler:2.6.1 (kapt)
+- Added missing permissions to AndroidManifest.xml:
+  * FOREGROUND_SERVICE (for background navigation)
+  * POST_NOTIFICATIONS (Android 13+ support)
+
+**Validation**:
+- All 5 required permissions now present in manifest
+- Room dependencies correctly added to dependencies section
+- Build successful: assembleDebug passed
+- APK generated: app-debug.apk (23.2 MB)
+
+**Files Modified**:
+- android/app/build.gradle.kts (+4 lines)
+- android/app/src/main/AndroidManifest.xml (+2 permissions)
+
+**Commit**: 5d5baa5
+
+**Next**: MP-018 (TruckProfileScreen Implementation)
+
+---
