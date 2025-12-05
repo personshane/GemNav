@@ -13,4 +13,7 @@ interface TripLogDao {
 
     @Query("SELECT * FROM trip_logs ORDER BY startTimestamp DESC LIMIT :limit")
     suspend fun getRecentTrips(limit: Int = 20): List<TripLogEntity>
+
+    @Query("SELECT * FROM trip_logs WHERE id = :id LIMIT 1")
+    suspend fun getTripById(id: Long): TripLogEntity?
 }

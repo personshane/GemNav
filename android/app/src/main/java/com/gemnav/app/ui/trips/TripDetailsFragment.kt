@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import com.gemnav.app.databinding.FragmentTripDetailsBinding
 
@@ -14,6 +15,7 @@ class TripDetailsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val args: TripDetailsFragmentArgs by navArgs()
+    private val viewModel: TripDetailsViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -25,7 +27,16 @@ class TripDetailsFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.textTripId.text = "Trip ID: ${args.tripId}"
+        viewModel.loadTrip(args.tripId)
+
+        viewModel.trip.collectInLifecycle(viewLifecycleOwner) { trip ->
+            if (trip != null) {
+                binding.textTripId.text = "Trip ID: ${trip.id}"
+                binding.textStartTime.text = "Start: ${trip.startTimeText}"
+                binding.textEndTime.text = "End: ${trip.endTimeText}"
+                binding.textDistance.text = "Distance: ${trip.distanceText}"
+            }
+        }
     }
 
     override fun onDestroyView() {
