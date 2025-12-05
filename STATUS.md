@@ -233,3 +233,14 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
 **Next**: MP-020 (Polyline encoding + search history autofill)
 
 ---
+
+## MP-020: Polyline Encoding + Search History Autofill Backends
+**Status**: ✅ COMPLETE
+**Files Created**: 2
+- utils/PolylineEncoder.kt (47 lines) - Google-style polyline encoding
+- search/SearchHistoryRepository.kt (31 lines) - Search history backend
+**Build**: assembleDebug passed (6s, 10 tasks executed)
+**Commit**: bc9bfcb
+**Next**: MP-020.1 (Update TripLogger to use polyline encoder)
+
+---
