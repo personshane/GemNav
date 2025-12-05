@@ -116,3 +116,30 @@ See RECOVERY_PROTOCOL.md for conflict resolution.
 **No changes required**: Working tree clean
 
 ---
+## MP-016: API KEYS CONFIGURATION ✅ COMPLETE (2025-12-04)
+
+**Objective**: Configure all API keys in build system for runtime access
+
+**Implementation**:
+- Added 3 API keys to local.properties (HERE, Google Maps, Gemini)
+- Updated build.gradle.kts with correct Kotlin DSL property loading
+- Mapped 3 physical keys to 5 BuildConfig fields:
+  * HERE_API_KEY & HERE_MAP_KEY → both use here_api_key
+  * GOOGLE_MAPS_API_KEY & GOOGLE_PLACES_API_KEY → both use google_maps_api_key
+  * GEMINI_API_KEY → uses gemini_api_key
+
+**Validation**:
+- BuildConfig.java generated successfully with all 5 fields
+- All keys accessible at runtime via BuildConfig constants
+- Build successful: assembleDebug (4m 26s)
+- 3 compilation warnings (non-blocking)
+
+**Files Modified**:
+- android/app/build.gradle.kts (+4 -4 lines)
+- android/local.properties (3 keys added)
+
+**Commit**: 183ff6b
+
+**Next**: MP-017 (Dependencies & Permissions Audit)
+
+---
