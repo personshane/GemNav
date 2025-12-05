@@ -61,6 +61,55 @@
             android:layout_margin="16dp"
             android:layout_gravity="end|bottom"/>
 
+        <Button
+            android:id="@+id/buttonStartTrip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Start Trip"
+            android:padding="12dp"
+            android:backgroundTint="#00CC44"
+            android:textColor="#FFFFFF"
+            android:elevation="6dp"
+            android:layout_margin="16dp"
+            android:layout_gravity="start|bottom"/>
+
+        <Button
+            android:id="@+id/buttonStopTrip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Stop"
+            android:padding="12dp"
+            android:backgroundTint="#CC0000"
+            android:textColor="#FFFFFF"
+            android:elevation="6dp"
+            android:layout_margin="16dp"
+            android:layout_gravity="center_horizontal|bottom"/>
+
+        <TextView
+            android:id="@+id/textDistanceLive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.00 km"
+            android:textSize="18sp"
+            android:padding="12dp"
+            android:textStyle="bold"
+            android:textColor="#007AFF"
+            android:layout_gravity="top|end"
+            android:layout_margin="16dp"/>
+
+        <Button
+            android:id="@+id/buttonToggleTheme"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🌙"
+            android:textSize="20sp"
+            android:padding="12dp"
+            android:backgroundTint="#555555"
+            android:textColor="#FFFFFF"
+            android:elevation="6dp"
+            android:layout_margin="16dp"
+            android:layout_gravity="top|start"/>
+
     </FrameLayout>
 
 </layout>
