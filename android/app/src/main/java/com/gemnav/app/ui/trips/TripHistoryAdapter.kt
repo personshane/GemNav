@@ -1,4 +1,4 @@
-package com.gemnav.ui.trips
+package com.gemnav.app.ui.trips
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -8,7 +8,9 @@ import androidx.recyclerview.widget.ListAdapter
 import com.gemnav.app.databinding.ItemTripRowBinding
 import com.gemnav.trips.TripDisplayModel
 
-class TripHistoryAdapter :
+class TripHistoryAdapter(
+    private val onTripClicked: (Long) -> Unit
+) :
     ListAdapter<TripDisplayModel, TripHistoryAdapter.ViewHolder>(DiffCallback) {
 
     object DiffCallback : DiffUtil.ItemCallback<TripDisplayModel>() {
@@ -35,5 +37,9 @@ class TripHistoryAdapter :
         holder.binding.textDate.text = trip.startTimeText
         holder.binding.textDistance.text = trip.distanceText
         holder.binding.textEndTime.text = trip.endTimeText
+
+        holder.binding.root.setOnClickListener {
+            onTripClicked(trip.id)
+        }
     }
 }

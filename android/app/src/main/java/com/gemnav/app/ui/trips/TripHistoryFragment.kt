@@ -1,4 +1,4 @@
-package com.gemnav.ui.trips
+package com.gemnav.app.ui.trips
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gemnav.app.R
 import com.gemnav.app.databinding.FragmentTripHistoryBinding
@@ -29,7 +30,9 @@ class TripHistoryFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        adapter = TripHistoryAdapter()
+        adapter = TripHistoryAdapter { tripId ->
+            navigateToDetails(tripId)
+        }
 
         binding.recyclerTrips.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerTrips.adapter = adapter
@@ -37,6 +40,11 @@ class TripHistoryFragment : Fragment() {
         viewModel.trips.collectInLifecycle(viewLifecycleOwner) { list ->
             adapter.submitList(list)
         }
+    }
+
+    private fun navigateToDetails(id: Long) {
+        val action = TripHistoryFragmentDirections.actionTripHistoryToTripDetails(id)
+        findNavController().navigate(action)
     }
 
     override fun onDestroyView() {

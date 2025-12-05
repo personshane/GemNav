@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/tripHistoryFragment">
+
+    <fragment
+        android:id="@+id/tripHistoryFragment"
+        android:name="com.gemnav.app.ui.trips.TripHistoryFragment"
+        android:label="Trip History">
+
+        <action
+            android:id="@+id/actionTripHistoryToTripDetails"
+            app:destination="@id/tripDetailsFragment" />
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/tripDetailsFragment"
+        android:name="com.gemnav.app.ui.trips.TripDetailsFragment"
+        android:label="Trip Details">
+
+        <argument
+            android:name="tripId"
+            app:argType="long"
+            android:defaultValue="0L" />
+
+    </fragment>
+
+</navigation>

@@ -1,4 +1,4 @@
-package com.gemnav.ui.trips
+package com.gemnav.app.ui.trips
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

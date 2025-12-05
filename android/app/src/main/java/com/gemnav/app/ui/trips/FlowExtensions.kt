@@ -1,4 +1,4 @@
-package com.gemnav.ui.trips
+package com.gemnav.app.ui.trips
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
