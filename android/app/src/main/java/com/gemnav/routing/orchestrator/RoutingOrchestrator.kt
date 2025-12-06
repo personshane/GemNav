@@ -1,5 +1,6 @@
 package com.gemnav.routing.orchestrator
 
+import android.util.Log
 import com.gemnav.routing.domain.RouteRequest
 import com.gemnav.routing.domain.RouteResult
 import com.gemnav.routing.domain.RoutingTier
@@ -28,6 +29,13 @@ class RoutingOrchestrator(
         request: RouteRequest,
         tier: RoutingTier
     ): RouteResult {
+        val engineName = when (tier) {
+            RoutingTier.PRO -> "HERE"
+            RoutingTier.BASIC, RoutingTier.FREE -> "GOOGLE"
+        }
+        
+        Log.d(TAG, "Routing request: tier=$tier → engine=$engineName")
+        
         return when (tier) {
             RoutingTier.PRO -> {
                 // For now, just call HERE engine. In future, we can add fallback to Google on certain failures.
@@ -38,5 +46,9 @@ class RoutingOrchestrator(
                 googleEngine.calculateRoute(request)
             }
         }
+    }
+    
+    companion object {
+        private const val TAG = "RoutingOrchestrator"
     }
 }
