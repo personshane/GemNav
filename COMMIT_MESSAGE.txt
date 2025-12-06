@@ -1,0 +1,25 @@
+feat: Integrate HERE Routing Pack 2A - Domain models and engine placeholder
+
+Add engine-agnostic routing domain models and HERE-specific implementation placeholder.
+This integration prepares the foundation for multi-engine routing orchestration.
+
+Changes:
+- Add routing domain models (LatLng, RouteRequest, RouteResult, RouteModel)
+- Add HERE routing engine placeholder (HereRoutingEngine)
+- Add HERE-specific parsers and mappers (polyline decoder, maneuver mapper, route parser)
+- Add truck constraint domain model (TruckRoutingConstraints stub)
+
+Package structure:
+- com.gemnav.routing.domain: Engine-agnostic models
+- com.gemnav.routing.here: HERE SDK integration layer
+- com.gemnav.truck.domain: Truck-specific constraints
+
+Technical notes:
+- HereRoutingEngine.calculateRoute() returns RouteResult.Failure placeholder
+- All HERE SDK integration points use `Any` type placeholders
+- Domain models support future Google engine and orchestrator
+- Validated via runtime testing on Android device (SM-T227U)
+
+Source: GemNav_RoutingPack_2A_HERE.zip from ChatGPT
+Integration validated: Phase 1-3 protocol complete
+Build status: assembleDebug successful, all files compile clean

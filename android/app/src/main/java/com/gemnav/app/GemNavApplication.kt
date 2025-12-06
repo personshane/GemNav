@@ -27,6 +27,10 @@ class GemNavApplication : Application() {
         super.onCreate()
         initializeSubscriptionSystem()
         initializeShieldLayer()
+        
+        // DEBUG/TEST-ONLY: Validate RoutingOrchestrator (PHASE 3 - Pack 2B)
+        // TODO: Remove after validation complete
+        runOrchestratorValidation()
     }
     
     /**
@@ -150,5 +154,15 @@ class GemNavApplication : Application() {
         Log.i(TAG, "  Safe Mode: ${status.isSafeModeEnabled}")
         Log.i(TAG, "  Version Warning: ${status.hasVersionWarning}")
         Log.i(TAG, "  Recent Failures: ${status.recentFailureCount}/${status.failureThreshold}")
+    }
+    
+    /**
+     * DEBUG/TEST-ONLY: Run RoutingOrchestrator validation.
+     * This is part of PHASE 3 integration for Routing Pack 2B.
+     * TODO: Remove after validation is complete.
+     */
+    private fun runOrchestratorValidation() {
+        Log.i(TAG, "Running RoutingOrchestrator validation test...")
+        com.gemnav.routing.orchestrator.OrchestratorValidationTest.runValidation(this)
     }
 }

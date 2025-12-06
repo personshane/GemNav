@@ -442,3 +442,37 @@ Fixed critical persistence bug where only truck name and measurement preferences
 **Build**: assembleDebug SUCCESSFUL in 14s
 **Installation**: Device R9PT5126L1P - SUCCESS
 **GitHub**: Committed 1685351 - Complete TruckProfile feature integration
+
+
+---
+
+## 2025-12-05 | Routing Pack 2B: Google Engine + Orchestrator Integration (Phase 3 Complete)
+
+**Feature**: Google routing skeleton + tier-based orchestration
+**Scope**: 
+- Domain: RoutingTier enum (FREE/BASIC/PRO)
+- Google: GoogleRoutingEngine (stub), GooglePolylineDecoder, GoogleRouteParser, GoogleManeuverMapper
+- Orchestrator: RoutingOrchestrator (tier-based dispatch)
+- Validation: OrchestratorValidationTest (non-UI)
+
+**Integration**:
+- PRO → HereRoutingEngine (Pack 2A)
+- BASIC/FREE → GoogleRoutingEngine (stub returns Failure)
+- No changes to HERE engine behavior
+- No UI wiring (future phase)
+
+**Files Added**:
+- routing/domain/RoutingTier.kt
+- routing/google/GoogleRoutingEngine.kt, GooglePolylineDecoder.kt, GoogleRouteParser.kt, GoogleManeuverMapper.kt
+- routing/orchestrator/RoutingOrchestrator.kt, OrchestratorValidationTest.kt
+
+**Files Modified**:
+- app/GemNavApplication.kt (validation test hook)
+
+**Validation**:
+- Test dispatches PRO→HERE, FREE→GOOGLE
+- Both engines return expected Failure stubs
+- Runs at app startup, logs to OrchestratorValidation tag
+
+**Build**: assembleDebug SUCCESSFUL in 10s
+**Status**: Ready for runtime verification, awaiting approval before GitHub commit
